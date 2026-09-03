@@ -116,6 +116,11 @@
   .sheet h3{margin:0 0 12px;font-family:var(--num);font-weight:600;letter-spacing:.03em;text-transform:uppercase;font-size:15px;}
   .opt{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);}
   .opt .d{font-size:13px;color:var(--muted);max-width:70%;}
+  .acct{padding:12px 0;border-top:1px solid var(--border);}
+  .acct .d{font-size:13px;color:var(--muted);max-width:100%;}
+  .acctin{width:100%;box-sizing:border-box;background:var(--raised);border:1px solid var(--border);border-radius:10px;
+     color:var(--ink);font-size:14px;padding:11px;margin-top:8px;}
+  .acctin:focus{outline:none;border-color:var(--go);}
   .sw{width:46px;height:27px;border-radius:999px;background:var(--border);border:0;position:relative;cursor:pointer;flex:0 0 auto;}
   .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.15s;}
   .sw.on{background:var(--go);}
@@ -243,6 +248,17 @@
 <div class="sheet" id="sheet">
   <div class="card">
     <h3>Réglages</h3>
+    <div class="acct">
+      <div class="d"><b>Compte cloud</b><br><span id="acctStatus">…</span></div>
+      <div id="acctLoggedOut">
+        <input id="acctEmail" type="email" placeholder="ton@email.com" class="acctin" autocomplete="email">
+        <button class="close" id="acctSendLink">Recevoir un lien de connexion</button>
+      </div>
+      <div id="acctLoggedIn" style="display:none">
+        <div class="d">Connecté : <b id="acctEmailShown"></b></div>
+        <button class="close" id="acctLogout">Se déconnecter</button>
+      </div>
+    </div>
     <div class="opt">
       <div class="d"><b>Afficher le 6ᵉ jour</b><br>Bras + rappel pecs + core (variante 6 séances)</div>
       <button class="sw" id="sw6" aria-label="Activer le 6e jour"></button>
@@ -275,6 +291,7 @@
 
 <div class="foot">Reprise progressive → surcharge → décharge. Bats la dernière ligne, une rep à la fois.</div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 /* ---------- Programme ---------- */
 const CORE='core';
@@ -374,12 +391,80 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-let state={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:false,swaps:{},done:{},logs:{}};
+let state={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:false,swaps:{},done:{},logs:{},updatedAt:0};
 let saveTimer=null;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(flush,250);}
-function flush(){clearTimeout(saveTimer);writeNow(KEY,JSON.stringify(state));}
+function flush(){clearTimeout(saveTimer);state.updatedAt=Date.now();writeNow(KEY,JSON.stringify(state));cloudPush();}
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
 addEventListener('pagehide',flush);
+
+/* ---------- Synchro cloud (Supabase) ---------- */
+const SUPABASE_URL='https://nwirxyyirkidiwaqaxjc.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_mCDGXglTY8R8hmD-V3m52g_dym-VSsQ';
+const sb=(window.supabase&&SUPABASE_URL)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+let cloudUser=null,cloudPushTimer=null;
+const STATE_DEFAULTS={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0};
+
+function cloudStatus(msg,ok){const el=$('#acctStatus');if(el){el.textContent=msg;el.style.color=ok?'var(--go)':'var(--muted)';}}
+
+function applyRemoteState(data){
+  state=Object.assign({},STATE_DEFAULTS,data);
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};
+  writeNow(KEY,JSON.stringify(state));renderAll();setView(state.view||'train');
+}
+
+async function cloudPull(){
+  if(!sb||!cloudUser)return;
+  try{
+    const{data,error}=await sb.from('state').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
+    if(error)throw error;
+    if(!data){cloudPush(true);return;}
+    const remoteAt=new Date(data.updated_at).getTime();
+    if(remoteAt>(state.updatedAt||0)){applyRemoteState(data.data);cloudStatus('Synchronisé ✓ (données du cloud)',true);}
+    else{cloudPush(true);}
+  }catch(e){cloudStatus('Erreur de synchro au chargement',false);}
+}
+function cloudPush(immediate){
+  if(!sb||!cloudUser)return;
+  clearTimeout(cloudPushTimer);
+  const run=async()=>{
+    try{
+      const{error}=await sb.from('state').upsert({user_id:cloudUser.id,data:state,updated_at:new Date(state.updatedAt).toISOString()});
+      if(error)throw error;
+      cloudStatus('Synchronisé ✓',true);
+    }catch(e){cloudStatus('Erreur de synchro — nouvel essai au prochain enregistrement',false);}
+  };
+  if(immediate)run();else cloudPushTimer=setTimeout(run,1200);
+}
+async function cloudSignIn(email){
+  if(!sb)return;
+  cloudStatus('Envoi du lien…',false);
+  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
+  cloudStatus(error?'Erreur : '+error.message:'Lien envoyé — vérifie ta boîte mail ✉︎',!error);
+}
+async function cloudSignOut(){if(!sb)return;await sb.auth.signOut();}
+function renderAccount(){
+  const out=$('#acctLoggedOut'),inn=$('#acctLoggedIn');
+  if(!sb){if(out)out.style.display='none';if(inn)inn.style.display='none';cloudStatus('Synchro indisponible (client non chargé)',false);return;}
+  if(cloudUser){
+    if(out)out.style.display='none';if(inn)inn.style.display='';
+    const em=$('#acctEmailShown');if(em)em.textContent=cloudUser.email||'';
+    cloudStatus('Connecté ✓',true);
+  }else{
+    if(out)out.style.display='';if(inn)inn.style.display='none';
+    cloudStatus('Non connecté — synchro uniquement sur cet appareil.',false);
+  }
+}
+if(sb){
+  sb.auth.onAuthStateChange((event,session)=>{
+    cloudUser=session?session.user:null;renderAccount();
+    if(cloudUser)cloudPull();
+  });
+}
+function initAccount(){
+  if(!sb){renderAccount();return;}
+  sb.auth.getSession().then(({data})=>{cloudUser=data.session?data.session.user:null;renderAccount();if(cloudUser)cloudPull();});
+}
 
 /* ---------- Helpers ---------- */
 const $=s=>document.querySelector(s);
@@ -652,7 +737,13 @@ $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('s
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
 $('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Action irréversible.')){
-  state={week:1,day:'d1',show6:state.show6,view:state.view,weights:[],wseed:true,swaps:{},done:{},logs:{}};delVal(KEY);renderAll();setView(state.view);$('#sheet').classList.remove('show');}};
+  state={week:1,day:'d1',show6:state.show6,view:state.view,weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0};delVal(KEY);renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
+$('#acctSendLink').onclick=()=>{
+  const email=($('#acctEmail').value||'').trim();
+  if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
+  cloudSignIn(email);
+};
+$('#acctLogout').onclick=()=>cloudSignOut();
 $('#exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(state)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -665,8 +756,9 @@ $('#importFile').onchange=ev=>{
   const r=new FileReader();
   r.onload=()=>{try{
     const s=JSON.parse(r.result);if(typeof s!=='object'||!s)throw 0;
-    state=Object.assign({week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{}},s);
+    state=Object.assign({},STATE_DEFAULTS,s);
     if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};
+    state.updatedAt=Date.now();
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
   }catch(e){alert('Fichier invalide — ce n\u2019est pas une sauvegarde PosiTraining.');}};
   r.readAsText(f);ev.target.value='';
@@ -778,6 +870,7 @@ document.querySelectorAll('.viewtabs button').forEach(b=>b.onclick=()=>setView(b
   if(!state.done)state.done={};
   if(!state.weights.length&&!state.wseed){state.weights=[{date:today(),kg:86.8}];state.wseed=true;}
   renderAll();setView(state.view||'train');save();
+  initAccount();
 })();
 </script>
 </body>
