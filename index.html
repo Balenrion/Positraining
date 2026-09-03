@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carnet — Prise de masse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#131519; --surface:#1b1e26; --raised:#232734; --border:#2e3340;
+    --ink:#e8eaf0; --muted:#9aa1af; --faint:#666d7c;
+    --go:#c4f82a; --go-dim:#8ba81f;
+    --ramp:#54a6e8; --build:#c4f82a; --deload:#f2b33d;
+    --num:'Oswald', 'Arial Narrow', system-ui, sans-serif;
+    --ui:system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);}
+  body{padding-bottom:96px; line-height:1.4;}
+  .wrap{max-width:520px;margin:0 auto;padding:0 14px;}
+
+  /* Header */
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 72%,rgba(19,21,25,0));padding:12px 0 8px;}
+  .brand{display:flex;align-items:baseline;justify-content:space-between;padding:0 14px;}
+  .brand b{font-family:var(--num);font-weight:700;font-size:20px;letter-spacing:.03em;text-transform:uppercase;}
+  .brand b span{color:var(--go);}
+  .cog{background:none;border:0;color:var(--faint);font-size:20px;padding:4px 6px;cursor:pointer;}
+
+  /* Week rail */
+  .weeks{display:flex;gap:6px;overflow-x:auto;padding:10px 14px 4px;scrollbar-width:none;}
+  .weeks::-webkit-scrollbar{display:none;}
+  .wk{flex:0 0 auto;min-width:46px;text-align:center;background:var(--surface);border:1px solid var(--border);
+      border-radius:10px;padding:7px 0;cursor:pointer;}
+  .wk .n{font-family:var(--num);font-weight:600;font-size:22px;line-height:1;}
+  .wk .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+  .wk.on{border-color:var(--pc,var(--go));background:var(--raised);}
+  .wk.on .n{color:var(--pc,var(--go));}
+
+  /* Phase banner */
+  .phase{margin:8px 14px 2px;border-left:3px solid var(--pc,var(--go));background:var(--surface);
+         border-radius:0 10px 10px 0;padding:9px 12px;}
+  .phase h2{margin:0;font-family:var(--num);font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--pc,var(--go));text-transform:uppercase;}
+  .phase p{margin:3px 0 0;font-size:12.5px;color:var(--muted);}
+
+  /* Day tabs */
+  .days{display:flex;gap:6px;overflow-x:auto;padding:12px 14px 4px;scrollbar-width:none;}
+  .days::-webkit-scrollbar{display:none;}
+  .day{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);border-radius:999px;
+       padding:8px 13px;cursor:pointer;white-space:nowrap;}
+  .day .t{font-family:var(--num);font-weight:600;font-size:13px;letter-spacing:.03em;}
+  .day .s{font-size:10px;color:var(--faint);margin-left:5px;}
+  .day.on{background:var(--ink);border-color:var(--ink);}
+  .day.on .t,.day.on .s{color:#12141a;}
+
+  .dayhead{padding:14px 14px 2px;}
+  .dayhead h1{margin:0;font-family:var(--num);font-weight:700;font-size:26px;letter-spacing:.02em;}
+  .dayhead .role{color:var(--muted);font-size:12.5px;margin-top:2px;}
+
+  /* Exercise card */
+  .ex{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin:10px 0;overflow:hidden;}
+  .ex.core{border-color:#3a3550;}
+  .exhead{display:flex;align-items:flex-start;gap:10px;padding:12px 13px 8px;}
+  .exhead .idx{font-family:var(--num);font-weight:700;font-size:15px;color:var(--faint);min-width:20px;padding-top:2px;}
+  .exhead .name{flex:1;font-weight:600;font-size:15.5px;letter-spacing:-.01em;}
+  .exhead .name .tag{display:inline-block;font-family:var(--num);font-size:10px;font-weight:600;letter-spacing:.06em;
+       color:#c9b6ff;background:#2a2540;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
+  .spark{width:56px;height:26px;flex:0 0 auto;}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;padding:0 13px 4px;}
+  .chip{font-family:var(--num);font-weight:500;font-size:12px;letter-spacing:.02em;color:var(--muted);
+        background:var(--raised);border-radius:6px;padding:3px 8px;}
+  .chip.rest{cursor:pointer;color:var(--ink);}
+  .chip.rest:active{background:var(--go-dim);}
+  .last{padding:2px 13px 0;font-size:11.5px;color:var(--faint);}
+  .last b{color:var(--go);font-weight:600;}
+  .cuebtn{background:none;border:0;color:var(--faint);font-size:11.5px;text-decoration:underline;
+          text-underline-offset:2px;padding:6px 13px 2px;cursor:pointer;}
+  .cue{max-height:0;overflow:hidden;transition:max-height .2s ease;}
+  .cue.open{max-height:220px;}
+  .cue p{margin:0;padding:2px 13px 10px;font-size:12.5px;color:var(--muted);}
+
+  /* Sets grid */
+  .sets{padding:4px 10px 12px;}
+  .setrow{display:grid;grid-template-columns:26px 1fr 14px 1fr 34px;align-items:center;gap:7px;margin-top:7px;}
+  .setrow .sn{font-family:var(--num);font-weight:600;font-size:14px;color:var(--faint);text-align:center;}
+  .setrow .x{text-align:center;color:var(--faint);font-size:13px;}
+  .setrow input{width:100%;background:var(--raised);border:1px solid var(--border);border-radius:9px;
+      color:var(--ink);font-family:var(--num);font-weight:600;font-size:19px;text-align:center;padding:9px 4px;}
+  .setrow input:focus{outline:none;border-color:var(--go);}
+  .setrow input::placeholder{color:var(--faint);font-weight:400;}
+  .done{width:34px;height:34px;border:1px solid var(--border);background:var(--raised);border-radius:9px;
+        color:var(--faint);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .done.on{background:var(--go);border-color:var(--go);color:#12141a;}
+  .unit{display:grid;grid-template-columns:26px 1fr 14px 1fr 34px;gap:7px;padding:0 0 2px;}
+  .unit span{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;text-align:center;}
+  .unit span:nth-child(2),.unit span:nth-child(4){text-align:left;padding-left:4px;}
+
+  /* Rest timer */
+  .timer{position:fixed;left:0;right:0;bottom:0;z-index:30;transform:translateY(120%);transition:transform .25s ease;}
+  .timer.show{transform:translateY(0);}
+  .timer .inner{max-width:520px;margin:0 auto;background:var(--raised);border-top:1px solid var(--border);
+     display:flex;align-items:center;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
+  .timer .big{font-family:var(--num);font-weight:700;font-size:34px;letter-spacing:.02em;min-width:92px;
+     font-variant-numeric:tabular-nums;}
+  .timer.warn .big{color:var(--go);}
+  .timer .lbl{flex:1;font-size:12px;color:var(--muted);}
+  .timer button{background:var(--surface);border:1px solid var(--border);color:var(--ink);border-radius:9px;
+     padding:9px 13px;font-family:var(--num);font-weight:600;font-size:13px;letter-spacing:.03em;cursor:pointer;}
+
+  /* Settings sheet */
+  .sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:none;align-items:flex-end;}
+  .sheet.show{display:flex;}
+  .sheet .card{background:var(--surface);width:100%;max-width:520px;margin:0 auto;border-radius:16px 16px 0 0;
+     padding:18px 18px calc(20px + env(safe-area-inset-bottom));}
+  .sheet h3{margin:0 0 12px;font-family:var(--num);font-weight:600;letter-spacing:.03em;text-transform:uppercase;font-size:15px;}
+  .opt{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);}
+  .opt .d{font-size:13px;color:var(--muted);max-width:70%;}
+  .sw{width:46px;height:27px;border-radius:999px;background:var(--border);border:0;position:relative;cursor:pointer;flex:0 0 auto;}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.15s;}
+  .sw.on{background:var(--go);}
+  .sw.on::after{left:22px;}
+  .danger{background:none;border:1px solid #5a2b2b;color:#e88;border-radius:10px;padding:11px;width:100%;
+     margin-top:14px;font-family:var(--num);font-weight:600;letter-spacing:.03em;font-size:13px;cursor:pointer;}
+  .close{background:var(--raised);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:11px;
+     width:100%;margin-top:8px;font-weight:600;cursor:pointer;}
+  .foot{text-align:center;color:var(--faint);font-size:11px;padding:22px 0 6px;}
+
+  /* View tabs */
+  .viewtabs{display:flex;gap:4px;margin:10px 14px 0;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:3px;}
+  .viewtabs button{flex:1;background:none;border:0;color:var(--muted);font-family:var(--num);font-weight:600;font-size:13px;letter-spacing:.03em;padding:8px;border-radius:8px;cursor:pointer;text-transform:uppercase;}
+  .viewtabs button.on{background:var(--raised);color:var(--ink);}
+
+  /* Note / rehab cards */
+  .ex.note{border-style:dashed;border-color:#3a4150;background:transparent;}
+  .ex.note .exhead{padding-bottom:4px;}
+  .ex.note .name{font-size:14px;color:var(--muted);font-weight:600;}
+  .ex.note .exhead .tag{color:#9fe6a0;background:#1e2a1e;}
+  .notebody{padding:0 13px 12px 44px;font-size:12.5px;color:var(--muted);}
+
+  /* Weight view */
+  .wstats{display:flex;gap:8px;margin:14px 0 12px;}
+  .wstat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 10px;}
+  .wstat .k{font-family:var(--num);font-weight:700;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;}
+  .wstat .l{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-top:5px;}
+  .winput{display:flex;gap:8px;margin-bottom:12px;}
+  .winput input{flex:1;background:var(--raised);border:1px solid var(--border);border-radius:10px;color:var(--ink);font-family:var(--num);font-weight:600;font-size:22px;text-align:center;padding:11px;}
+  .winput input:focus{outline:none;border-color:var(--go);}
+  .winput button{background:var(--go);border:0;color:#12141a;border-radius:10px;padding:0 18px;font-family:var(--num);font-weight:700;font-size:14px;letter-spacing:.03em;cursor:pointer;}
+  .wchart{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;}
+  .wchart svg{width:100%;height:auto;display:block;}
+  .insight{font-size:12.5px;padding:11px 13px;border-radius:10px;margin-bottom:12px;line-height:1.35;}
+  .insight.ok{background:#1d2a13;color:var(--go);}
+  .insight.warn{background:#2b2412;color:var(--deload);}
+  .wrow{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-top:1px solid var(--border);}
+  .wrow .dt{color:var(--muted);font-family:var(--num);font-size:14px;}
+  .wrow .kg{font-family:var(--num);font-weight:600;font-size:17px;margin-left:auto;margin-right:6px;}
+  .wrow .del{background:none;border:0;color:var(--faint);font-size:14px;cursor:pointer;padding:4px 8px;}
+
+  /* How-to fiche */
+  .howbtn{background:none;border:0;color:var(--go-dim);font-size:11.5px;font-family:var(--num);font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px 4px;cursor:pointer;}
+  #howBody h3{margin:0 0 6px;font-family:var(--num);font-weight:700;font-size:21px;letter-spacing:.01em;text-transform:none;}
+  .muscles{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;}
+  .steps{margin:0 0 14px;padding-left:20px;}
+  .steps li{font-size:13.5px;color:var(--ink);margin-bottom:8px;line-height:1.4;}
+  .cuebox{background:var(--raised);border-left:3px solid var(--go);border-radius:0 9px 9px 0;padding:10px 12px;font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.4;}
+  .cuebox b{color:var(--ink);font-weight:600;}
+  .videolink{display:block;text-align:center;background:var(--go);color:#12141a;border-radius:10px;padding:13px;font-family:var(--num);font-weight:700;font-size:14px;letter-spacing:.03em;text-decoration:none;}
+  .videolink:active{background:var(--go-dim);}
+  .altbox{background:#161b26;border:1px solid #2a3350;border-radius:10px;padding:11px 12px;margin-bottom:14px;}
+  .altt{font-family:var(--num);font-weight:600;font-size:12px;letter-spacing:.03em;color:var(--ramp);text-transform:uppercase;margin-bottom:7px;}
+  .altl{margin:0;padding-left:18px;}
+  .altl li{font-size:13px;color:var(--muted);margin-bottom:5px;line-height:1.35;}
+
+  /* Swap selector */
+  .exbtns{display:flex;gap:16px;padding:6px 13px 2px;}
+  .exbtns .howbtn,.exbtns .swapbtn{padding:4px 0;}
+  .swapbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--ramp);}
+  .swtag{display:inline-block;font-family:var(--num);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--ramp);background:#16202e;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
+  .ex.swapped{border-color:#2a3a52;}
+  .swapsub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.45;}
+  .swaplist{display:flex;flex-direction:column;gap:8px;}
+  .swopt{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--raised);border:1px solid var(--border);border-radius:11px;padding:14px;color:var(--ink);font-size:14.5px;font-weight:500;text-align:left;cursor:pointer;}
+  .swopt em{font-family:var(--num);font-style:normal;font-weight:600;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);flex:0 0 auto;}
+  .swopt.on{border-color:var(--go);background:#1e2a14;}
+  .swopt.on em{color:var(--go);}
+
+  /* Terminer la séance */
+  .finish{margin:16px 0 8px;}
+  .finishbtn{width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--raised);border:1px solid var(--border);border-radius:13px;padding:15px;cursor:pointer;color:var(--ink);}
+  .finishbtn .fmain{font-family:var(--num);font-weight:700;font-size:16px;letter-spacing:.03em;text-transform:uppercase;}
+  .finishbtn .fprog{font-size:11px;color:var(--faint);}
+  .finishbtn.full{border-color:var(--go);}
+  .finishbtn.full .fmain{color:var(--go);}
+  .finishbtn.done{background:#1a2513;border-color:var(--go-dim);}
+  .finishbtn.done .fmain{color:var(--go);}
+  .dcheck{color:var(--go);font-size:11px;margin-left:5px;font-weight:700;}
+  .day.on .dcheck{color:#12141a;}
+
+  /* Nutrition */
+  .nsec{font-family:var(--num);font-weight:600;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:22px 2px 10px;}
+  .nsec span{color:var(--faint);text-transform:none;letter-spacing:0;font-family:var(--ui);font-weight:400;font-size:11px;}
+  .ntl{display:flex;flex-direction:column;}
+  .nti{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--border);}
+  .nti:first-child{border-top:0;}
+  .ntt{flex:0 0 84px;font-family:var(--num);font-weight:600;font-size:13px;color:var(--go);letter-spacing:.02em;padding-top:1px;}
+  .ntc{flex:1;font-size:13px;}
+  .ntc b{display:block;color:var(--ink);margin-bottom:2px;}
+  .ntc span{color:var(--muted);line-height:1.4;}
+  .mealc{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 14px;margin-bottom:10px;}
+  .mealh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;}
+  .mealh b{font-size:15px;}
+  .mealh em{font-family:var(--num);font-style:normal;font-size:11px;letter-spacing:.03em;color:var(--go);flex:0 0 auto;}
+  .mealc ul{margin:0;padding-left:18px;}
+  .mealc li{font-size:13px;color:var(--muted);margin-bottom:4px;line-height:1.35;}
+  .ncmp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.7;}
+  .ncmp b{color:var(--ink);}
+  .nnote{font-size:12px;color:var(--faint);line-height:1.5;padding:14px 2px 4px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>POSI<span>·</span>TRAINING</b><button class="cog" id="cog" aria-label="Réglages">⚙︎</button></div>
+  <div class="viewtabs"><button data-v="train" class="on">Séance</button><button data-v="weight">Poids</button><button data-v="nutri">Nutrition</button></div>
+  <div class="weeks" id="weeks"></div>
+  <div class="phase" id="phase"><h2></h2><p></p></div>
+  <div class="days" id="days"></div>
+</header>
+
+<main class="wrap" id="app"></main>
+<main class="wrap" id="weightView" style="display:none"></main>
+<main class="wrap" id="nutriView" style="display:none"></main>
+
+<div class="timer" id="timer">
+  <div class="inner">
+    <div class="big" id="tval">0:00</div>
+    <div class="lbl" id="tlbl">Repos</div>
+    <button id="tadd">+15 s</button>
+    <button id="tstop">Stop</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="card">
+    <h3>Réglages</h3>
+    <div class="opt">
+      <div class="d"><b>Afficher le 6ᵉ jour</b><br>Bras + rappel pecs + core (variante 6 séances)</div>
+      <button class="sw" id="sw6" aria-label="Activer le 6e jour"></button>
+    </div>
+    <div class="opt">
+      <div class="d"><b>Sauvegarde automatique</b><br>Tes charges sont enregistrées sur cet appareil.</div>
+      <span style="font-family:var(--num);color:var(--go);font-weight:600">ON</span>
+    </div>
+    <button class="close" id="exportBtn" style="margin-top:14px">⤓ Exporter mes données (sauvegarde)</button>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    <button class="close" id="importBtn">⤒ Importer une sauvegarde</button>
+    <button class="danger" id="reset">Effacer toutes mes données</button>
+    <button class="close" id="closeSheet">Fermer</button>
+  </div>
+</div>
+
+<div class="sheet" id="howto">
+  <div class="card">
+    <div id="howBody"></div>
+    <button class="close" id="howClose">Fermer</button>
+  </div>
+</div>
+
+<div class="sheet" id="swap">
+  <div class="card">
+    <div id="swapBody"></div>
+    <button class="close" id="swapClose">Fermer</button>
+  </div>
+</div>
+
+<div class="foot">Reprise progressive → surcharge → décharge. Bats la dernière ligne, une rep à la fois.</div>
+
+<script>
+/* ---------- Programme ---------- */
+const CORE='core';
+const DAYS=[
+ {id:'d1',t:'J1',s:'Bas A',title:'Bas A — Quadriceps',role:'Volume jambes #1 · dominante quadriceps',
+  ex:[
+   {n:'Presse à cuisses',sets:4,reps:'8-12',rest:120,start:'~60 kg',cue:'Amplitude complète sans arrondir le bas du dos ; pieds à mi-hauteur pour cibler les quadriceps.'},
+   {n:'Hack squat',sets:3,reps:'10-12',rest:120,cue:'Descends cuisses parallèles, pousse talons + avant-pied, ne verrouille pas en haut.'},
+   {n:'Fentes marchées haltères',sets:3,reps:'10-12 /jbe',rest:90,cue:'Grand pas, genou arrière vers le sol, buste légèrement penché pour les fessiers.'},
+   {n:'Leg extension',sets:3,reps:'12-15',rest:75,cue:'Pause 1 s en haut, contraction max du quadriceps, contrôle la descente.'},
+   {n:'Hip thrust',sets:3,reps:'10-12',rest:90,cue:'Menton rentré, extension complète des hanches, serre les fessiers 1 s.'},
+   {n:'Woodchopper poulie',tag:'obliques',sets:3,reps:'12 /côté',rest:60,cls:CORE,cue:'Rotation depuis le tronc, bras tendus, contrôle le retour.'}
+ ]},
+ {id:'d2',t:'J2',s:'Push A',title:'Push A — Pectoraux',role:'Volume pecs #1 · 2 mouvements de base',
+  ex:[
+   {n:'Développé couché haltères',sets:4,reps:'8-12',rest:120,start:'15-16 kg ×2',cue:'Omoplates serrées/basses, descends jusqu\u2019à l\u2019étirement des pecs, ne cambre pas trop.'},
+   {n:'Développé incliné haltères',sets:4,reps:'8-12',rest:120,cue:'Banc ~30°, coudes ~45°, pousse en rapprochant les mains — haut des pecs.'},
+   {n:'Écarté poulies',sets:3,reps:'12-15',rest:90,cue:'Coudes fléchis fixes, contraction 1 s au centre, cherche l\u2019étirement.'},
+   {n:'Développé épaules haltères',sets:3,reps:'8-12',rest:90,cue:'Gainage abdo, ne verrouille pas brutalement en haut.'},
+   {n:'Élévations latérales',sets:3,reps:'12-20',rest:60,cue:'Mène avec les coudes, aucun balancier.'},
+   {n:'Extension triceps poulie corde',sets:3,reps:'10-15',rest:60,cue:'Coudes fixes le long du corps, écarte la corde en bas.'},
+   {n:'Crunch à la poulie',tag:'abdos',sets:3,reps:'12-15',rest:60,cls:CORE,cue:'Enroule la colonne, tire avec les abdos pas les bras. Charge progressive.'}
+ ]},
+ {id:'d3',t:'J3',s:'Pull',title:'Pull — Dos & biceps',role:'Équilibre postural + obliques anti-rotation',
+  ex:[
+   {n:'Rappel coude — isométries poignet',note:true,tag:'rééduc',cue:'Haltère léger, poignet en flexion, tiens 30-45 s × 4 (échauffement/rééduc). À faire 5-6×/semaine, y compris à la maison. Reste sous 3-4/10 de douleur — le tendon se répare en chargeant, pas au repos.'},
+   {n:'Tirage vertical prise large',sets:4,reps:'8-12',rest:120,start:'~38-40 kg',cue:'Coudes vers le bas/arrière, poitrine haute, pas de balancier.'},
+   {n:'Rowing haltère un bras',sets:4,reps:'8-12',rest:120,cue:'Tire vers le nombril, serre l\u2019omoplate, pas de coup de rein. Sangles conseillées.'},
+   {n:'Tirage horizontal poulie',sets:3,reps:'10-12',rest:90,cue:'Buste stable, amplitude complète, étire en avant.'},
+   {n:'Face pull',sets:3,reps:'15-20',rest:60,cue:'Tire vers le front, rotation externe — deltoïdes postérieurs.'},
+   {n:'Curl haltères',tag:'coude',sets:3,reps:'10-12',rest:60,cue:'Léger si ça tire (épitrochléite), coudes fixes, contrôle la descente. Marteau si besoin.'},
+   {n:'Pallof press poulie',tag:'obliques',sets:3,reps:'12 /côté',rest:45,cls:CORE,cue:'Anti-rotation : résiste à la traction, bras tendus, gainage total.'},
+   {n:'Gainage latéral',tag:'core',sets:3,reps:'30-45 s /côté',rest:45,cls:CORE,cue:'Corps aligné, hanches hautes, ne t\u2019affaisse pas.'}
+ ]},
+ {id:'d4',t:'J4',s:'Bas B',title:'Bas B — Chaîne postérieure',role:'Volume jambes #2 · dominante ischios/fessiers',
+  ex:[
+   {n:'Soulevé de terre roumain haltères',sets:4,reps:'8-12',rest:120,cue:'Charnière de hanche, dos neutre, sens l\u2019étirement des ischios. Sangles.'},
+   {n:'Hip thrust lourd',sets:4,reps:'8-12',rest:120,cue:'Extension complète, pause 1 s en haut, menton rentré.'},
+   {n:'Leg curl',sets:4,reps:'10-15',rest:90,cue:'Pause en contraction, ne décolle pas les hanches, contrôle le retour.'},
+   {n:'Abduction machine',sets:3,reps:'15-20',rest:60,cue:'Buste légèrement penché en avant, pause en position ouverte — fessier moyen.'},
+   {n:'Mollets debout',sets:4,reps:'10-15',rest:60,cue:'Amplitude max, pause d\u2019étirement 1 s en bas.'},
+   {n:'Relevé de jambes suspendu',tag:'bas abdos',sets:3,reps:'10-15',rest:60,cls:CORE,cue:'Bascule le bassin (il s\u2019enroule), ne balance pas.'}
+ ]},
+ {id:'d5',t:'J5',s:'Push B',title:'Push B — Pecs & épaules',role:'Volume pecs #2 · angle incliné prioritaire',
+  ex:[
+   {n:'Développé incliné machine',sets:4,reps:'8-12',rest:120,cue:'Encore le haut des pecs ; en machine tu pousses fort en sécurité.'},
+   {n:'Chest press machine convergente',sets:3,reps:'10-12',rest:90,cue:'Pousse en pensant à rapprocher les coudes, pas juste à tendre les bras.'},
+   {n:'Écarté incliné haltères',sets:3,reps:'12-15',rest:90,cue:'Étirement contrôlé, squeeze en haut — sensation avant la charge.'},
+   {n:'Développé épaules machine',sets:3,reps:'10-12',rest:90,cue:'Amplitude propre, gainage.'},
+   {n:'Élévations latérales poulie',sets:3,reps:'12-20',rest:60,cue:'Tension constante en bas — avantage de la poulie.'},
+   {n:'Dips machine / assistées',sets:3,reps:'10-12',rest:90,cue:'Buste penché = bas des pecs ; buste droit = triceps.'},
+   {n:'Rotations obliques poulie',tag:'obliques',sets:3,reps:'15 /côté',rest:45,cls:CORE,cue:'Mouvement lent, contraction franche du côté travaillé.'}
+ ]},
+ {id:'ds',t:'Soir',s:'Léger',title:'Soir — Séance légère (avec ta femme)',role:'Jours doublés · pump + cardio + core · ne pas cannibaliser la récup',
+  ex:[
+   {n:'Rappel coude — isométries poignet',note:true,tag:'rééduc',cue:'Haltère léger, poignet en flexion, tiens 30-45 s × 4. Idéal à caser dans une séance calme.'},
+   {n:'Vélo ou rameur — zone 2',note:true,tag:'cardio',cue:'8-10 min faciles, tu peux tenir une conversation. Ça compte comme ton cardio de la semaine.'},
+   {n:'Chest press ou écarté poulies',sets:3,reps:'12-15',rest:60,cue:'Léger, RPE 6-7 — cherche la congestion, pas la charge. Pas d\u2019échec un jour doublé.'},
+   {n:'Élévations latérales',sets:3,reps:'15-20',rest:45,cue:'Léger et propre, épaules qui brûlent.'},
+   {n:'Face pull',sets:3,reps:'15-20',rest:45,cue:'Santé d\u2019épaule, coude peu sollicité — parfait en séance légère.'},
+   {n:'Abduction machine',tag:'fessiers',sets:3,reps:'20',rest:45,cue:'Fessiers, très peu fatigant, buste légèrement penché.'},
+   {n:'Circuit core',tag:'core',sets:3,reps:'circuit',rest:30,cls:CORE,cue:'3 tours : gainage 40 s + woodchopper 15/côté + relevé de jambes 12.'},
+   {n:'Étirements / retour au calme',note:true,cue:'5 min : pecs, quadriceps, fléchisseurs de hanche. Fait redescendre le rythme et aide la récup.'}
+ ]},
+ {id:'d6',t:'J6',s:'Bras+',title:'J6 — Bras, pecs & core',role:'Variante 6 séances · rappel points faibles',opt:true,
+  ex:[
+   {n:'Rappel coude — isométries poignet',note:true,tag:'rééduc',cue:'Avant de charger les bras : haltère léger, poignet en flexion, tiens 30-45 s × 4. Curls légers ensuite si ça tire.'},
+   {n:'Écarté poulies',tag:'pecs',sets:3,reps:'12-15',rest:90,cue:'Volume pecs bonus, cherche l\u2019étirement.'},
+   {n:'Curl barre EZ / haltères',tag:'coude',sets:4,reps:'10-12',rest:60,cue:'Reste léger si l\u2019épitrochléite tire, contrôle la descente.'},
+   {n:'Extension triceps poulie',sets:4,reps:'10-12',rest:60,cue:'Coudes fixes, extension complète.'},
+   {n:'Curl marteau',sets:3,reps:'12-15',rest:60,cue:'Prise neutre — brachial, plus doux pour le coude.'},
+   {n:'Extension triceps au-dessus de la tête',sets:3,reps:'12-15',rest:60,cue:'Coudes serrés, étire bien en bas.'},
+   {n:'Circuit core',tag:'core',sets:2,reps:'circuit',rest:0,cls:CORE,cue:'2 tours : woodchopper 15/côté + crunch 15 + gainage 45 s.'}
+ ]}
+];
+DAYS.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
+
+const PHASES=[
+ {wk:[1,2],  key:'ramp',  name:'Remise en route', p:'~70 % des charges, RPE 6-7, garde 2-3 reps en réserve. Zéro échec — on réveille muscles et tendons.'},
+ {wk:[3,6],  key:'build', name:'Bloc de charge',  p:'Double progression : monte les reps jusqu\u2019en haut de la fourchette, puis +2,5-5 % de charge. RIR 1-2. +1 série sur le 1ᵉʳ exo des séances Push & Bas.'},
+ {wk:[7,7],  key:'deload',name:'Décharge',        p:'Charges −40/50 % ou volume −50 %, RPE 6. Tu récupères nerfs et articulations avant de repartir.'},
+ {wk:[8,8],  key:'build', name:'Nouveau bloc',     p:'Repars en double progression avec des charges de départ plus hautes qu\u2019au bloc précédent.'}
+];
+const PC={ramp:'--ramp',build:'--build',deload:'--deload'};
+function phaseOf(w){return PHASES.find(p=>w>=p.wk[0]&&w<=p.wk[1])||PHASES[1];}
+
+/* ---------- Stockage (persistant, avec repli mémoire) ---------- */
+const KEY='positraining_v1';
+const mem={};
+function writeNow(k,v){mem[k]=v;
+  try{if(window.storage){const p=window.storage.set(k,v,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
+  try{localStorage.setItem(k,v);}catch(e){}}
+async function readVal(k){
+  try{if(window.storage){const r=await window.storage.get(k);if(r)return r.value;}}catch(e){}
+  try{const v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}
+  return mem[k]??null;}
+function delVal(k){delete mem[k];
+  try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
+  try{localStorage.removeItem(k);}catch(e){}}
+let state={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:false,swaps:{},done:{},logs:{}};
+let saveTimer=null;
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(flush,250);}
+function flush(){clearTimeout(saveTimer);writeNow(KEY,JSON.stringify(state));}
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
+addEventListener('pagehide',flush);
+
+/* ---------- Helpers ---------- */
+const $=s=>document.querySelector(s);
+function logKey(exId,w){return exId+'__w'+w;}
+function getLog(exId,w){return state.logs[logKey(exId,w)]||null;}
+function bestSet(arr){if(!arr)return null;let b=null;arr.forEach(s=>{const w=parseFloat(s.w),r=parseInt(s.r);if(!isNaN(w)&&!isNaN(r)){if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};}});return b;}
+function lastTime(exId,curW){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(exId,k));if(b)return{w:k,b};}return null;}
+function series(exId){const pts=[];for(let k=1;k<=8;k++){const b=bestSet(getLog(exId,k));if(b)pts.push({week:k,val:b.w});}return pts;}
+
+function sparkline(pts){
+  if(pts.length<2)return '';
+  const w=56,h=26,pad=3;
+  const xs=pts.map(p=>p.week),ys=pts.map(p=>p.val);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const sx=v=>pad+(x1===x0?0:(v-x0)/(x1-x0))*(w-2*pad);
+  const sy=v=>h-pad-(y1===y0?(h-2*pad)/2:(v-y0)/(y1-y0)*(h-2*pad));
+  const d=pts.map((p,i)=>(i?'L':'M')+sx(p.week).toFixed(1)+' '+sy(p.val).toFixed(1)).join(' ');
+  const last=pts[pts.length-1];
+  const up=pts.length>1&&pts[pts.length-1].val>=pts[0].val;
+  const col=up?'var(--go)':'#f2b33d';
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${sx(last.week).toFixed(1)}" cy="${sy(last.val).toFixed(1)}" r="2.6" fill="${col}"/></svg>`;
+}
+
+/* ---------- Fiches technique ---------- */
+const HOWTO={
+ "Presse à cuisses":{m:"Quadriceps, fessiers",s:["Dos et bassin plaqués au dossier, pieds largeur épaules à mi-plateau.","Déverrouille, descends en contrôle jusqu'à ~90° aux genoux.","Pousse dans les talons et l'avant-pied, sans verrouiller en haut."]},
+ "Hack squat":{m:"Quadriceps, fessiers",s:["Épaules sous les cales, dos plaqué, pieds au milieu de la plateforme.","Descends jusqu'aux cuisses parallèles, genoux dans l'axe des pieds.","Remonte en poussant le sol, talons ancrés."]},
+ "Fentes marchées haltères":{m:"Quadriceps, fessiers, ischios",s:["Un haltère dans chaque main, buste droit, regard devant.","Grand pas en avant, descends le genou arrière vers le sol.","Pousse sur la jambe avant pour enchaîner le pas suivant."]},
+ "Leg extension":{m:"Quadriceps",s:["Règle le dossier : genoux alignés avec l'axe de la machine.","Monte jusqu'à l'extension complète, pause 1 s en contraction.","Redescends lentement sans lâcher la charge."]},
+ "Hip thrust":{m:"Fessiers, ischios",s:["Haut du dos calé sur le banc, coussin sur le bassin, pieds à plat.","Monte le bassin jusqu'à aligner épaules-hanches-genoux.","Serre les fessiers 1 s en haut, menton rentré, descends contrôlé."]},
+ "Woodchopper poulie":{m:"Obliques",s:["Poulie en haut, poignée à deux mains, bras tendus.","Tire en diagonale vers la hanche opposée en tournant le tronc.","Reviens lentement en résistant à la rotation (chaque côté)."]},
+ "Développé couché haltères":{m:"Pectoraux, triceps, épaules",s:["Allongé, omoplates serrées et basses, pieds ancrés au sol.","Descends les haltères au niveau des pecs, coudes ~45°.","Pousse en rapprochant légèrement les haltères."]},
+ "Développé incliné haltères":{m:"Haut des pectoraux, épaules",s:["Banc à ~30°, omoplates serrées, haltères au-dessus des épaules.","Descends jusqu'à l'étirement du haut des pecs.","Pousse en trajectoire légèrement convergente."]},
+ "Écarté poulies":{m:"Pectoraux",s:["Poulies à hauteur d'épaules, léger buste en avant.","Coudes fixes à peine fléchis, ouvre en grand pour étirer.","Ramène les mains devant la poitrine, contraction 1 s."]},
+ "Développé épaules haltères":{m:"Épaules, triceps",s:["Assis dos calé, haltères au niveau des oreilles.","Pousse au-dessus de la tête sans verrouiller sèchement.","Redescends contrôlé jusqu'à l'angle droit aux coudes."]},
+ "Élévations latérales":{m:"Deltoïdes latéraux",s:["Debout, léger buste en avant, haltères le long du corps.","Monte sur les côtés en menant avec les coudes, jusqu'à l'horizontale.","Descends lentement, aucun balancier."]},
+ "Extension triceps poulie corde":{m:"Triceps",s:["Corde à la poulie haute, coudes serrés le long du corps.","Tends les bras vers le bas en écartant la corde en fin de course.","Remonte contrôlé sans décoller les coudes."]},
+ "Crunch à la poulie":{m:"Abdominaux (grand droit)",s:["À genoux face à la poulie haute, corde derrière la nuque.","Enroule la colonne vers le sol, hanches fixes.","Remonte lentement. Tire avec les abdos, pas les bras."]},
+ "Tirage vertical prise large":{m:"Dorsaux, biceps",s:["Prise large, poitrine haute, léger buste en arrière.","Tire la barre vers le haut de la poitrine, coudes vers le bas.","Contrôle la remontée jusqu'à l'étirement complet."]},
+ "Rowing haltère un bras":{m:"Dorsaux, trapèzes",s:["Genou et main sur le banc, dos plat, haltère bras tendu.","Tire vers la hanche en serrant l'omoplate, coude proche du corps.","Descends lentement sans tourner le buste (sangle conseillée)."]},
+ "Tirage horizontal poulie":{m:"Dorsaux, milieu du dos",s:["Assis, genoux à peine fléchis, dos droit, prise serrée.","Tire vers le nombril en serrant les omoplates, buste stable.","Reviens en contrôlant l'étirement vers l'avant."]},
+ "Face pull":{m:"Deltoïdes postérieurs, dos haut",s:["Corde à hauteur du visage, recule pour mettre en tension.","Tire vers le front en écartant, rotation externe des épaules.","Reviens lentement, coudes hauts."]},
+ "Curl haltères":{m:"Biceps",s:["Debout, coudes fixes le long du corps, paumes vers l'avant.","Fléchis en montant les haltères, sans balancer.","Descends lentement. Reste léger si le coude tire."]},
+ "Pallof press poulie":{m:"Obliques, gainage profond",s:["Poulie à hauteur de poitrine, de profil, mains jointes sur la poignée.","Tends les bras devant toi en résistant à la rotation.","Ramène contre la poitrine sans te laisser tourner (chaque côté)."]},
+ "Gainage latéral":{m:"Obliques, gainage",s:["Sur l'avant-bras, coude sous l'épaule, corps aligné.","Hanches hautes et décollées, ne t'affaisse pas.","Tiens la durée en respirant (chaque côté)."]},
+ "Soulevé de terre roumain haltères":{m:"Ischios, fessiers, dos",s:["Debout, haltères devant les cuisses, genoux à peine fléchis.","Pousse les fesses vers l'arrière (charnière de hanche), dos neutre.","Descends jusqu'à l'étirement des ischios, remonte en serrant les fessiers (sangles)."]},
+ "Leg curl":{m:"Ischios",s:["Réglage : axe de rotation aligné avec les genoux.","Fléchis en amenant les talons vers les fessiers, pause en contraction.","Reviens lentement, ne décolle pas les hanches."]},
+ "Abduction machine":{m:"Fessier moyen",s:["Assis, dos calé, léger buste penché en avant.","Écarte les cuisses jusqu'à l'ouverture complète, pause 1 s.","Reviens lentement en gardant la tension."]},
+ "Mollets debout":{m:"Mollets",s:["Avant-pieds sur le repose-pied, talons dans le vide.","Monte le plus haut possible sur la pointe, pause en haut.","Descends jusqu'à l'étirement, pause 1 s en bas."]},
+ "Relevé de jambes suspendu":{m:"Bas des abdominaux",s:["Suspendu, épaules engagées, jambes tendues ou genoux fléchis.","Enroule le bassin vers le haut (pas seulement les jambes).","Redescends lentement sans balancer."]},
+ "Développé incliné machine":{m:"Haut des pectoraux",s:["Règle le siège : poignées au niveau du haut des pecs.","Pousse en pensant à rapprocher les coudes.","Reviens contrôlé jusqu'à l'étirement."]},
+ "Chest press machine convergente":{m:"Pectoraux, triceps",s:["Poignées au niveau de la poitrine, dos calé.","Pousse en rapprochant les coudes devant toi.","Reviens lentement sans choquer la charge."]},
+ "Écarté incliné haltères":{m:"Haut des pectoraux",s:["Banc à ~30°, haltères au-dessus, coudes légèrement fléchis fixes.","Ouvre en grand arc pour étirer les pecs.","Ramène au-dessus de la poitrine, squeeze."]},
+ "Développé épaules machine":{m:"Épaules, triceps",s:["Poignées au niveau des oreilles, dos calé.","Pousse au-dessus de la tête sans verrouiller sèchement.","Redescends contrôlé."]},
+ "Élévations latérales poulie":{m:"Deltoïdes latéraux",s:["Poulie basse, poignée dans la main opposée.","Monte sur le côté jusqu'à l'horizontale, coude à peine fléchi.","Descends lentement, tension constante."]},
+ "Dips machine / assistées":{m:"Bas des pectoraux, triceps",s:["Prise sur les barres, épaules basses, gainage.","Descends jusqu'à ~90° aux coudes.","Buste penché = pecs, droit = triceps. Remonte sans verrouiller."]},
+ "Rotations obliques poulie":{m:"Obliques",s:["Poulie à hauteur de poitrine, de profil, bras semi-tendus.","Tourne le tronc à l'opposé de la poulie, lentement.","Reviens en contrôlant (chaque côté)."]},
+ "Curl marteau":{m:"Biceps, brachial, avant-bras",s:["Prise neutre (paumes face à face), coudes fixes.","Monte sans balancer, contraction en haut.","Descends lentement. Prise douce pour le coude."]},
+ "Extension triceps au-dessus de la tête":{m:"Triceps (longue portion)",s:["Charge au-dessus de la tête, coudes serrés vers l'avant.","Descends derrière la tête en gardant les coudes fixes.","Tends les bras vers le haut, étirement en bas."]},
+ "Chest press ou écarté poulies":{m:"Pectoraux",s:["Prends la machine libre (chest press ou écarté).","Mouvement léger et contrôlé, cherche la congestion.","Contraction devant la poitrine, pas de charge lourde ce jour."]},
+ "Circuit core":{m:"Abdominaux, obliques, gainage",s:["Enchaîne les 3 exercices sans repos entre eux.","Gainage strict, respire, ne creuse pas le bas du dos.","Repos seulement en fin de tour."]}
+};
+HOWTO["Hip thrust lourd"]=HOWTO["Hip thrust"];
+HOWTO["Extension triceps poulie"]=HOWTO["Extension triceps poulie corde"];
+HOWTO["Curl barre EZ / haltères"]=HOWTO["Curl haltères"];
+
+const ALT={
+ "Presse à cuisses":["Hack squat","Squat gobelet haltère","Squat guidé (Smith)"],
+ "Hack squat":["Presse à cuisses (horizontale ou inclinée)","Squat guidé (Smith)","Squat gobelet haltère"],
+ "Fentes marchées haltères":["Split squat bulgare","Fentes statiques sur place","Presse à cuisses une jambe"],
+ "Leg extension":["Presse à cuisses pieds bas (accent quadriceps)","Sissy squat","Fentes"],
+ "Hip thrust":["Hip thrust avec haltère sur les hanches","Pont fessier au sol","Kickback fessier à la poulie"],
+ "Woodchopper poulie":["Pallof press","Russian twist lesté","Crunch oblique au sol"],
+ "Développé couché haltères":["Développé couché barre","Chest press machine","Développé couché guidé (Smith)"],
+ "Développé incliné haltères":["Développé incliné barre ou Smith","Chest press incliné machine"],
+ "Écarté poulies":["Pec deck","Écarté haltères sur banc plat"],
+ "Développé épaules haltères":["Développé épaules machine","Militaire barre/Smith","Arnold press"],
+ "Élévations latérales":["Élévations latérales à la poulie","Machine à élévations latérales"],
+ "Extension triceps poulie corde":["Extension à la barre/V","Extension haltère au-dessus de la tête","Dips machine"],
+ "Crunch à la poulie":["Machine à abdos (crunch)","Crunch au sol lesté","Relevé de buste sur banc"],
+ "Tirage vertical prise large":["Tractions assistées","Tirage prise neutre/serrée","Lat pulldown machine"],
+ "Rowing haltère un bras":["Rowing machine assis","Tirage horizontal poulie","Rowing T-bar"],
+ "Tirage horizontal poulie":["Rowing machine assis","Rowing haltère un bras","Rowing T-bar"],
+ "Face pull":["Oiseau haltères (buste penché)","Reverse pec deck (oiseau machine)"],
+ "Curl haltères":["Curl à la poulie","Curl barre EZ","Curl machine ou pupitre"],
+ "Pallof press poulie":["Gainage anti-rotation haltère","Planche classique","Woodchopper léger"],
+ "Gainage latéral":["Rotations obliques poulie","Suitcase carry (marche lestée un bras)","Side crunch"],
+ "Soulevé de terre roumain haltères":["RDL à la barre ou au Smith","Good morning léger","Leg curl (si le dos fatigue)"],
+ "Leg curl":["Leg curl assis ⇄ allongé (l'autre variante)","RDL léger","Nordic curl"],
+ "Abduction machine":["Abduction à la poulie ou élastique","Kickback fessier","Abduction allongé lesté"],
+ "Mollets debout":["Mollets à la presse à cuisses","Mollets assis","Mollets sur marche avec haltère"],
+ "Relevé de jambes suspendu":["Relevé de genoux sur chaise romaine","Crunch inversé au sol","Relevé de jambes au banc"],
+ "Développé incliné machine":["Développé incliné haltères","Développé incliné barre/Smith"],
+ "Chest press machine convergente":["Développé couché haltères","Développé couché Smith","Pompes lestées"],
+ "Écarté incliné haltères":["Pec deck","Écarté poulies","Écarté haltères à plat"],
+ "Développé épaules machine":["Développé épaules haltères","Militaire Smith","Arnold press"],
+ "Élévations latérales poulie":["Élévations latérales haltères","Machine à élévations latérales"],
+ "Dips machine / assistées":["Dips aux barres parallèles","Développé couché prise serrée","Extension triceps poulie"],
+ "Rotations obliques poulie":["Woodchopper","Russian twist lesté","Side crunch"],
+ "Curl marteau":["Curl corde à la poulie","Curl inversé (prise pronation)","Curl haltères prise neutre"],
+ "Extension triceps au-dessus de la tête":["Extension corde overhead à la poulie","Skullcrusher barre EZ","Extension haltère assis"],
+ "Chest press ou écarté poulies":["Pompes","Pec deck","Développé haltères léger"],
+ "Circuit core":["Planche + mountain climbers + relevé de genoux","Tout trio gainage / crunch / oblique"]
+};
+ALT["Hip thrust lourd"]=ALT["Hip thrust"];
+ALT["Extension triceps poulie"]=ALT["Extension triceps poulie corde"];
+ALT["Curl barre EZ / haltères"]=ALT["Curl haltères"];
+
+function openHow(name,cue){
+  const h=HOWTO[name];
+  const q=encodeURIComponent(name.split(' ou ')[0].split(' / ')[0]+' technique musculation');
+  const mus=h?`<div class="muscles">${h.m}</div>`:'';
+  const steps=h?`<ol class="steps">${h.s.map(t=>`<li>${t}</li>`).join('')}</ol>`:'';
+  $('#howBody').innerHTML=`<h3>${name}</h3>${mus}${steps}<div class="cuebox"><b>Point clé —</b> ${cue}</div><a class="videolink" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">Voir une démo vidéo ↗</a>`;
+  $('#howto').classList.add('show');
+}
+$('#howClose').onclick=()=>$('#howto').classList.remove('show');
+$('#howto').onclick=e=>{if(e.target.id==='howto')$('#howto').classList.remove('show');};
+
+function slug(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24);}
+function openSwap(e){
+  const opts=[e.n].concat(ALT[e.n]||[]);
+  const cur=state.swaps[e.id]||e.n;
+  $('#swapBody').innerHTML=`<h3>Changer l'exercice</h3><div class="swapsub">Choisis la machine disponible. Chaque exercice garde son propre historique de charges — tu peux revenir à l'original quand tu veux.</div><div class="swaplist">${opts.map((o,idx)=>`<button class="swopt${o===cur?' on':''}" data-i="${idx}"><span>${o}</span>${idx===0?'<em>d\u2019origine</em>':(o===cur?'<em>actuel</em>':'')}</button>`).join('')}</div>`;
+  $('#swapBody').querySelectorAll('.swopt').forEach(b=>b.onclick=()=>{
+    const c=opts[+b.dataset.i];
+    if(c===e.n)delete state.swaps[e.id];else state.swaps[e.id]=c;
+    save();$('#swap').classList.remove('show');renderDay();
+  });
+  $('#swap').classList.add('show');
+}
+$('#swapClose').onclick=()=>$('#swap').classList.remove('show');
+$('#swap').onclick=e=>{if(e.target.id==='swap')$('#swap').classList.remove('show');};
+
+/* ---------- Rendu ---------- */
+function renderWeeks(){
+  const el=$('#weeks');el.innerHTML='';
+  const labels={1:'Rodage',2:'Rodage',3:'Charge',4:'Charge',5:'Charge',6:'Charge',7:'Décharge',8:'Bloc 2'};
+  for(let w=1;w<=8;w++){
+    const ph=phaseOf(w);
+    const d=document.createElement('div');
+    d.className='wk'+(w===state.week?' on':'');
+    d.style.setProperty('--pc','var('+PC[ph.key]+')');
+    d.innerHTML=`<div class="n">${w}</div><div class="l">${labels[w]}</div>`;
+    d.onclick=()=>{state.week=w;save();renderAll();};
+    el.appendChild(d);
+  }
+}
+function renderPhase(){
+  const ph=phaseOf(state.week);const el=$('#phase');
+  el.style.setProperty('--pc','var('+PC[ph.key]+')');
+  el.querySelector('h2').textContent='Sem. '+state.week+' · '+ph.name;
+  el.querySelector('p').textContent=ph.p;
+}
+function renderDays(){
+  const el=$('#days');el.innerHTML='';
+  DAYS.filter(d=>!d.opt||state.show6).forEach(d=>{
+    const b=document.createElement('div');
+    b.className='day'+(d.id===state.day?' on':'');
+    const dn=state.done[d.id+'__w'+state.week];
+    b.innerHTML=`<span class="t">${d.t}</span><span class="s">${d.s}</span>${dn?'<span class="dcheck">✓</span>':''}`;
+    b.onclick=()=>{state.day=d.id;save();renderAll();};
+    el.appendChild(b);
+  });
+}
+function sessionProgress(day){
+  let filled=0,total=0;
+  day.ex.forEach(e=>{
+    if(e.note)return;total++;
+    const sw=state.swaps[e.id],eid=sw?e.id+'~'+slug(sw):e.id;
+    const arr=getLog(eid,state.week);
+    if(arr&&arr.some(s=>String(s.w).trim()!==''||String(s.r).trim()!==''))filled++;
+  });
+  return {filled,total};
+}
+function renderDay(){
+  const day=DAYS.find(d=>d.id===state.day)||DAYS[0];
+  const app=$('#app');app.innerHTML='';
+  const hd=document.createElement('div');hd.className='dayhead';
+  hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>`;
+  app.appendChild(hd);
+
+  const inRamp=state.week<=2;
+  day.ex.forEach((e,i)=>{
+    if(e.note){
+      const c=document.createElement('div');c.className='ex note';
+      c.innerHTML=`<div class="exhead"><div class="idx">•</div><div class="name">${e.n}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">${e.cue}</div>`;
+      app.appendChild(c);return;
+    }
+    const nm=state.swaps[e.id]||e.n, sw=state.swaps[e.id];
+    const eid=sw?e.id+'~'+slug(sw):e.id;
+    const key=logKey(eid,state.week);
+    if(!state.logs[key])state.logs[key]=Array.from({length:e.sets},()=>({w:'',r:'',d:false}));
+    const rows=state.logs[key];
+    const lt=lastTime(eid,state.week);
+    const spk=sparkline(series(eid));
+
+    const card=document.createElement('div');
+    card.className='ex'+(e.cls===CORE?' core':'')+(sw?' swapped':'');
+    let html=`<div class="exhead"><div class="idx">${i+1}</div>
+      <div class="name">${nm}${e.tag?`<span class="tag">${e.tag}</span>`:''}${sw?`<span class="swtag">⇄ au lieu de ${e.n}</span>`:''}</div>${spk}</div>
+      <div class="meta"><span class="chip">${e.sets}×${e.reps}</span>`;
+    if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${e.rest>=60?(e.rest/60).toString().replace('.5','\u00bd')+' min':e.rest+' s'} ⏱</span>`;
+    if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
+    html+=`</div>`;
+    if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b> — à battre</div>`;
+    html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button><button class="swapbtn">⇄ Changer</button></div>`;
+    html+=`<div class="sets"><div class="unit"><span></span><span>kg</span><span></span><span>reps</span><span></span></div>`;
+    rows.forEach((s,si)=>{
+      html+=`<div class="setrow" data-ex="${eid}" data-si="${si}">
+        <div class="sn">${si+1}</div>
+        <input class="w" inputmode="decimal" placeholder="${lt?lt.b.w:'–'}" value="${s.w}">
+        <div class="x">×</div>
+        <input class="r" inputmode="numeric" placeholder="${e.reps.split('-')[0]||''}" value="${s.r}">
+        <button class="done${s.d?' on':''}">✓</button>
+      </div>`;
+    });
+    html+=`</div>`;
+    card.innerHTML=html;
+
+    const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
+    const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=()=>openSwap(e);
+    const restChip=card.querySelector('.rest');
+    if(restChip)restChip.onclick=()=>startTimer(parseInt(restChip.dataset.rest),restChip.dataset.name);
+    card.querySelectorAll('.setrow').forEach(row=>{
+      const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,state.week);
+      row.querySelector('.w').oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId);};
+      row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId);};
+      row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();};
+    });
+    app.appendChild(card);
+  });
+
+  const prog=sessionProgress(day),dk=day.id+'__w'+state.week,dn=state.done[dk];
+  const full=prog.total>0&&prog.filled===prog.total;
+  const bar=document.createElement('div');bar.className='finish';
+  bar.innerHTML=`<button class="finishbtn${dn?' done':(full?' full':'')}"><span class="fmain">${dn?'✓ Séance validée'+(dn.length>6?' · '+fmtDate(dn):''):'Terminer la séance'}</span><span class="fprog">${prog.filled}/${prog.total} exercices remplis${dn?' · touche pour rouvrir':''}</span></button>`;
+  bar.querySelector('button').onclick=()=>{if(state.done[dk])delete state.done[dk];else state.done[dk]=today();flush();renderDays();renderDay();};
+  app.appendChild(bar);
+}
+function refreshSpark(card,exId){
+  const svg=sparkline(series(exId));const head=card.querySelector('.exhead');
+  const old=head.querySelector('.spark');
+  if(svg){const tmp=document.createElement('div');tmp.innerHTML=svg;const el=tmp.firstChild;
+    if(old)old.replaceWith(el);else head.appendChild(el);}
+}
+function renderAll(){renderWeeks();renderPhase();renderDays();renderDay();}
+
+/* ---------- Minuteur de repos ---------- */
+let tId=null,tLeft=0;
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function startTimer(sec,name){
+  clearInterval(tId);tLeft=sec;
+  const t=$('#timer');t.classList.add('show');t.classList.remove('warn');
+  $('#tlbl').textContent='Repos · '+name;$('#tval').textContent=fmt(tLeft);
+  tId=setInterval(()=>{
+    tLeft--;$('#tval').textContent=fmt(Math.max(tLeft,0));
+    if(tLeft<=5)t.classList.add('warn');
+    if(tLeft<=0){clearInterval(tId);if(navigator.vibrate)navigator.vibrate([120,60,120]);
+      $('#tlbl').textContent='Repos terminé — go 💪';setTimeout(()=>t.classList.remove('show'),2500);}
+  },1000);
+}
+$('#tstop').onclick=()=>{clearInterval(tId);$('#timer').classList.remove('show');};
+$('#tadd').onclick=()=>{tLeft+=15;$('#tval').textContent=fmt(tLeft);$('#timer').classList.remove('warn');};
+
+/* ---------- Réglages ---------- */
+$('#cog').onclick=()=>{$('#sw6').classList.toggle('on',state.show6);$('#sheet').classList.add('show');};
+$('#closeSheet').onclick=()=>$('#sheet').classList.remove('show');
+$('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('show');};
+$('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
+  if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
+$('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Action irréversible.')){
+  state={week:1,day:'d1',show6:state.show6,view:state.view,weights:[],wseed:true,swaps:{},done:{},logs:{}};delVal(KEY);renderAll();setView(state.view);$('#sheet').classList.remove('show');}};
+$('#exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='positraining-sauvegarde.json';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+};
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const s=JSON.parse(r.result);if(typeof s!=='object'||!s)throw 0;
+    state=Object.assign({week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{}},s);
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};
+    flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
+  }catch(e){alert('Fichier invalide — ce n\u2019est pas une sauvegarde PosiTraining.');}};
+  r.readAsText(f);ev.target.value='';
+};
+
+/* ---------- Suivi du poids ---------- */
+const GOAL=92;
+function today(){return new Date().toISOString().slice(0,10);}
+function fmtDate(iso){const p=iso.split('-');return p[2]+'/'+p[1];}
+function weightChart(ws){
+  if(!ws.length)return '<div style="color:var(--faint);font-size:13px;text-align:center;padding:22px">Enregistre ton poids pour voir la courbe.</div>';
+  const W=320,H=132,padL=8,padR=8,padT=12,padB=18;
+  const kgs=ws.map(w=>w.kg),minK=Math.min(...kgs),maxK=Math.max(...kgs);
+  const showGoal=(GOAL-maxK)<=6;
+  const ymin=Math.min(minK,showGoal?GOAL:minK)-0.4, ymax=Math.max(maxK,showGoal?GOAL:maxK)+0.4;
+  const n=ws.length;
+  const sx=i=>padL+(n===1?(W-padL-padR)/2:(i/(n-1))*(W-padL-padR));
+  const sy=v=>padT+(1-(v-ymin)/(ymax-ymin))*(H-padT-padB);
+  let goal='';
+  if(showGoal){const gy=sy(GOAL).toFixed(1);goal=`<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--go-dim)" stroke-width="1" stroke-dasharray="4 4"/><text x="${W-padR}" y="${(sy(GOAL)-4).toFixed(1)}" text-anchor="end" fill="var(--go-dim)" font-family="Oswald,sans-serif" font-size="10">objectif ${GOAL}</text>`;}
+  const line=ws.map((w,i)=>(i?'L':'M')+sx(i).toFixed(1)+' '+sy(w.kg).toFixed(1)).join(' ');
+  const area=`M ${sx(0).toFixed(1)} ${(H-padB).toFixed(1)} `+ws.map((w,i)=>'L'+sx(i).toFixed(1)+' '+sy(w.kg).toFixed(1)).join(' ')+` L ${sx(n-1).toFixed(1)} ${(H-padB).toFixed(1)} Z`;
+  const dots=ws.map((w,i)=>`<circle cx="${sx(i).toFixed(1)}" cy="${sy(w.kg).toFixed(1)}" r="2.6" fill="var(--go)"/>`).join('');
+  const lastLbl=`<text x="${sx(n-1).toFixed(1)}" y="${(sy(ws[n-1].kg)-7).toFixed(1)}" text-anchor="end" fill="var(--ink)" font-family="Oswald,sans-serif" font-weight="600" font-size="12">${String(ws[n-1].kg).replace('.',',')}</text>`;
+  const xl=`<text x="${padL}" y="${H-4}" fill="var(--faint)" font-family="Oswald,sans-serif" font-size="9">${fmtDate(ws[0].date)}</text>`+(n>1?`<text x="${W-padR}" y="${H-4}" text-anchor="end" fill="var(--faint)" font-family="Oswald,sans-serif" font-size="9">${fmtDate(ws[n-1].date)}</text>`:'');
+  return `<svg viewBox="0 0 ${W} ${H}"><defs><linearGradient id="wg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--go)" stop-opacity="0.16"/><stop offset="1" stop-color="var(--go)" stop-opacity="0"/></linearGradient></defs>${goal}<path d="${area}" fill="url(#wg)"/><path d="${line}" fill="none" stroke="var(--go)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${dots}${lastLbl}${xl}</svg>`;
+}
+function renderWeight(){
+  const ws=[...(state.weights||[])].sort((a,b)=>a.date<b.date?-1:1);
+  const cur=ws.length?ws[ws.length-1].kg:null, start=ws.length?ws[0].kg:null;
+  const dStart=(cur!=null&&start!=null)?cur-start:null, toGoal=cur!=null?GOAL-cur:null;
+  const num=v=>String(Math.round(v*10)/10).replace('.',',');
+  const signed=v=>v==null?'—':(v>0?'+':(v<0?'−':''))+num(Math.abs(v));
+  let insight='';
+  if(ws.length>=2){
+    const f=ws[0],l=ws[ws.length-1],days=(new Date(l.date)-new Date(f.date))/86400000;
+    if(days>=6){const rate=(l.kg-f.kg)/(days/7),r=signed(rate);
+      if(rate<0.15)insight=`<div class="insight warn">Rythme : ${r} kg/sem — un peu lent pour ta cible. Ajoute ~150-200 kcal/jour (glucides).</div>`;
+      else if(rate>0.45)insight=`<div class="insight warn">Rythme : ${r} kg/sem — trop rapide, tu prends du gras. Enlève ~150-200 kcal/jour.</div>`;
+      else insight=`<div class="insight ok">Rythme : ${r} kg/sem — pile dans la cible (0,25-0,35 kg/sem). Continue comme ça.</div>`;
+    }
+  }
+  $('#weightView').innerHTML=`
+   <div class="wstats">
+     <div class="wstat"><div class="k">${cur!=null?num(cur):'—'}</div><div class="l">kg à jeun</div></div>
+     <div class="wstat"><div class="k" style="color:var(--go)">${signed(dStart)}</div><div class="l">depuis le départ</div></div>
+     <div class="wstat"><div class="k">${toGoal!=null?num(toGoal):'—'}</div><div class="l">reste → ${GOAL}</div></div>
+   </div>
+   <div class="winput"><input id="wIn" inputmode="decimal" placeholder="${cur!=null?num(cur):'87,0'}"><button id="wSave">Enregistrer</button></div>
+   ${insight}
+   <div class="wchart">${weightChart(ws)}</div>
+   <div class="wlist">${ws.slice().reverse().map(w=>`<div class="wrow"><span class="dt">${fmtDate(w.date)}</span><span class="kg">${num(w.kg)} kg</span><button class="del" data-d="${w.date}">✕</button></div>`).join('')}</div>`;
+  $('#wSave').onclick=()=>{const kg=parseFloat(($('#wIn').value||'').replace(',','.').trim());
+    if(isNaN(kg)||kg<30||kg>250){$('#wIn').focus();return;}
+    state.weights=state.weights||[];const t=today(),ex=state.weights.find(x=>x.date===t);
+    if(ex)ex.kg=Math.round(kg*10)/10;else state.weights.push({date:t,kg:Math.round(kg*10)/10});
+    save();renderWeight();};
+  $('#weightView').querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+    state.weights=(state.weights||[]).filter(x=>x.date!==b.dataset.d);save();renderWeight();});
+}
+function renderNutri(){
+  $('#nutriView').innerHTML=`
+  <div class="wstats" style="flex-wrap:wrap">
+    <div class="wstat"><div class="k">3100</div><div class="l">kcal / jour</div></div>
+    <div class="wstat"><div class="k" style="color:var(--go)">175</div><div class="l">g protéines</div></div>
+  </div>
+  <div class="wstats" style="margin-top:0">
+    <div class="wstat"><div class="k">80</div><div class="l">g lipides</div></div>
+    <div class="wstat"><div class="k">420</div><div class="l">g glucides</div></div>
+  </div>
+
+  <div class="nsec">Timing de la journée <span>· séance le matin</span></div>
+  <div class="ntl">
+    <div class="nti"><div class="ntt">Au réveil</div><div class="ntc"><b>Avant la séance</b><span>½ banane si tu t'entraînes à jeun. Créatine 3-5 g (ici ou n'importe quand).</span></div></div>
+    <div class="nti"><div class="ntt">Post-séance</div><div class="ntc"><b>Petit-déjeuner</b><span>Shake complet : fromage blanc + 1 dose whey + avoine + banane + 1 c.à.s. beurre de cacahuète. ~50 g de protéines.</span></div></div>
+    <div class="nti"><div class="ntt">Midi</div><div class="ntc"><b>Repas cuisiné</b><span>Viande maigre ou poisson + riz/pâtes complètes + légumes + huile d'olive. ~45 g.</span></div></div>
+    <div class="nti"><div class="ntt">Après-midi</div><div class="ntc"><b>Collation</b><span>Whey + banane + amandes. ~35 g. (= ton pré-training les jours où tu t'entraînes le soir.)</span></div></div>
+    <div class="nti"><div class="ntt">Soir</div><div class="ntc"><b>Dîner simple</b><span>Œufs ou saumon + féculent + légumes. ~40 g. Garde-le rapide.</span></div></div>
+  </div>
+
+  <div class="nsec">Repas types <span>· faciles à préparer</span></div>
+  <div class="mealc"><div class="mealh"><b>Shake du matin</b><em>~50 g · 700 kcal</em></div><ul><li>250 g fromage blanc</li><li>1 dose de whey</li><li>60-80 g flocons d'avoine</li><li>1 banane</li><li>1 c. à s. beurre de cacahuète</li><li>Lait ou eau — au mixer</li></ul></div>
+  <div class="mealc"><div class="mealh"><b>Déjeuner batch-cook</b><em>~45 g · 850 kcal</em></div><ul><li>150-180 g poulet / dinde / bœuf 5 %</li><li>100 g (cru) riz ou pâtes complètes</li><li>Légumes + filet d'huile d'olive</li><li>Prépare 3-4 portions d'avance</li></ul></div>
+  <div class="mealc"><div class="mealh"><b>Collation whey</b><em>~35 g · 450 kcal</em></div><ul><li>1 dose de whey</li><li>1 banane</li><li>Poignée d'amandes (ou 40 g d'avoine)</li></ul></div>
+  <div class="mealc"><div class="mealh"><b>Dîner express</b><em>~40 g · 700 kcal</em></div><ul><li>Omelette 4 œufs + fromage + pain complet, ou</li><li>Saumon au four + patate douce + légumes surgelés, ou</li><li>Portion du repas familial + protéine préparée (poulet, thon)</li></ul></div>
+
+  <div class="nsec">Compléments</div>
+  <div class="ncmp"><b>Créatine</b> — 3-5 g/jour, tous les jours, peu importe l'heure.<br><b>Whey</b> — pour compléter tes protéines quand la nourriture ne suffit pas.<br><b>Le reste</b> (BCAA, gainer, booster) — dispensable.</div>
+
+  <div class="nnote">Prise de masse propre = surplus modéré. Si tu montes de plus de 0,45 kg/sem, enlève 150-200 kcal ; trop lent, ajoute-en autant. Tes abdos se révèlent en sèche, pas pendant la prise.</div>`;
+}
+function setView(v){state.view=v;save();
+  const train=v==='train';
+  ['#weeks','#phase','#days','#app'].forEach(s=>{const el=$(s);if(el)el.style.display=train?'':'none';});
+  $('#weightView').style.display=v==='weight'?'':'none';
+  $('#nutriView').style.display=v==='nutri'?'':'none';
+  document.querySelectorAll('.viewtabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='weight')renderWeight();
+  if(v==='nutri')renderNutri();
+}
+document.querySelectorAll('.viewtabs button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+
+/* ---------- Init ---------- */
+(async()=>{
+  const raw=await readVal(KEY);
+  if(raw){try{const s=JSON.parse(raw);state=Object.assign(state,s);if(!state.logs)state.logs={};}catch(e){}}
+  if(!state.weights)state.weights=[];
+  if(!state.swaps)state.swaps={};
+  if(!state.done)state.done={};
+  if(!state.weights.length&&!state.wseed){state.weights=[{date:today(),kg:86.8}];state.wseed=true;}
+  renderAll();setView(state.view||'train');save();
+})();
+</script>
+</body>
+</html>
