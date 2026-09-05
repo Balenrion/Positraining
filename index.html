@@ -326,6 +326,10 @@
       <option value="confirme">Niveau : confirmé</option>
     </select>
     <textarea id="obLimites" class="acctin" rows="3" placeholder="Limites, blessures, contraintes (optionnel)"></textarea>
+    <div class="d" style="margin-top:10px"><b>Points faibles</b> — à prioriser (optionnel)</div>
+    <div id="obWeak" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+    <div class="d" style="margin-top:10px"><b>Points forts</b> — déjà bien développés, à réduire (optionnel)</div>
+    <div id="obStrong" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <button class="close" id="obGenerate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Générer mon programme</button>
     <button class="close" id="obCancel">Annuler</button>
   </div>
@@ -436,6 +440,39 @@ const EXO_GROUP={
  core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Circuit core']
 };
 function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
+const MUSCLE_GROUPS=[
+ {key:'quad',label:'Quadriceps'},
+ {key:'hinge',label:'Ischios / fessiers'},
+ {key:'push',label:'Pectoraux'},
+ {key:'pull',label:'Dos'},
+ {key:'shoulder',label:'Épaules'},
+ {key:'arms',label:'Bras'},
+ {key:'glutes',label:'Fessiers / mollets'},
+ {key:'core',label:'Abdos / gainage'}
+];
+function applyMuscleFocus(days,weak,strong){
+  (weak||[]).forEach(g=>{
+    const extra=pickExo(g,2);
+    if(!extra)return;
+    days.forEach(d=>{
+      if(d.ex.some(e=>e.n===extra.n))return;
+      const hasGroupAlready=d.ex.some(e=>!e.note&&(EXO_GROUP[g]||[]).includes(e.n));
+      if(hasGroupAlready)d.ex.push(Object.assign({},extra));
+    });
+  });
+  (strong||[]).forEach(g=>{
+    const names=EXO_GROUP[g]||[];
+    days.forEach(d=>{
+      const idx=d.ex.findIndex(e=>!e.note&&names.includes(e.n));
+      if(idx===-1)return;
+      const without=d.ex.slice(0,idx).concat(d.ex.slice(idx+1));
+      // jamais de retrait qui ferait tomber la séance sous le plancher de 30 min (même logique que trimDayToTime)
+      if(dayDuration(without)<30*60)return;
+      d.ex.splice(idx,1);
+    });
+  });
+  return days;
+}
 function buildDay(id,t,s,title,role,specs){
   const ex=specs.map(sp=>{const base=pickExo(sp.group,sp.idx||0);return base?Object.assign({},base):null;}).filter(Boolean);
   return {id,t,s,title,role,ex};
@@ -511,6 +548,7 @@ function generateProgram(ob){
   else days=template56(jours);
   if(jours<=4&&ob.objectif==='masse')days.forEach(d=>d.ex.push(cardioNote(8)));
   genderBias(days,ob.sexe);
+  applyMuscleFocus(days,ob.weakGroups,ob.strongGroups);
   applyObjectif(days,ob.objectif);
   applyNiveau(days,ob.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
@@ -1006,10 +1044,23 @@ $('#importFile').onchange=ev=>{
 };
 
 /* ---------- Profils : nouveau / suppression ---------- */
-let draftOnboarding=null,draftProgram=null;
+let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set();
+function renderMuscleChips(id,selected,other){
+  const el=$('#'+id);if(!el)return;
+  el.innerHTML=MUSCLE_GROUPS.map(g=>`<button type="button" class="day${selected.has(g.key)?' on':''}" data-k="${g.key}" style="padding:6px 11px"><span class="t">${g.label}</span></button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;
+    if(selected.has(k))selected.delete(k);else{selected.add(k);other.delete(k);}
+    renderMuscleChips(id,selected,other);
+    renderMuscleChips(id==='obWeak'?'obStrong':'obWeak',other,selected);
+  });
+}
 $('#newProfileBtn').onclick=()=>{
   ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
   $('#obSexe').value='H';
+  obWeakSet=new Set();obStrongSet=new Set();
+  renderMuscleChips('obWeak',obWeakSet,obStrongSet);
+  renderMuscleChips('obStrong',obStrongSet,obWeakSet);
   $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
 };
 $('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
@@ -1019,14 +1070,17 @@ $('#obGenerate').onclick=()=>{
   if(!prenom){$('#obPrenom').focus();return;}
   const poids=$('#obPoids').value,taille=$('#obTaille').value,age=$('#obAge').value;
   if(!poids||!taille||!age){if(!age)$('#obAge').focus();else if(!poids)$('#obPoids').focus();else $('#obTaille').focus();return;}
-  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim()};
+  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet]};
   draftProgram=generateProgram(draftOnboarding);
   $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
 };
+function groupLabels(keys){return keys.map(k=>(MUSCLE_GROUPS.find(g=>g.key===k)||{}).label||k).join(', ');}
 function renderReview(){
   let html='';
   const jp=+draftOnboarding.joursParSemaine||5;
   html+=`<div class="insight ok">${jp} jour(s) d'entraînement/semaine → ${Math.max(0,7-jp)} jour(s) de repos complet dans la semaine, à respecter pour la récupération.</div>`;
+  if(draftOnboarding.weakGroups&&draftOnboarding.weakGroups.length)html+=`<div class="insight ok">Volume renforcé : ${groupLabels(draftOnboarding.weakGroups)}.</div>`;
+  if(draftOnboarding.strongGroups&&draftOnboarding.strongGroups.length)html+=`<div class="insight warn">Volume réduit (déjà bien développés) : ${groupLabels(draftOnboarding.strongGroups)}.</div>`;
   if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
   draftProgram.days.forEach((d,di)=>{
     html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
