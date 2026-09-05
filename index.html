@@ -249,6 +249,12 @@
   <div class="card">
     <h3>Réglages</h3>
     <div class="acct">
+      <div class="d"><b>Qui s'entraîne ?</b></div>
+      <div id="profileChips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+      <button class="close" id="newProfileBtn">+ Nouveau profil</button>
+      <button class="danger" id="deleteProfileBtn" style="display:none">Supprimer ce profil</button>
+    </div>
+    <div class="acct">
       <div class="d"><b>Compte cloud</b><br><span id="acctStatus">…</span></div>
       <div id="acctLoggedOut">
         <input id="acctEmail" type="email" placeholder="ton@email.com" class="acctin" autocomplete="email">
@@ -289,13 +295,52 @@
   </div>
 </div>
 
+<div class="sheet" id="onboard">
+  <div class="card" style="max-height:85vh;overflow-y:auto">
+    <h3>Nouveau profil</h3>
+    <input id="obPrenom" class="acctin" placeholder="Prénom">
+    <input id="obAge" class="acctin" inputmode="numeric" placeholder="Âge">
+    <input id="obPoids" class="acctin" inputmode="decimal" placeholder="Poids actuel (kg)">
+    <input id="obTaille" class="acctin" inputmode="numeric" placeholder="Taille (cm)">
+    <select id="obObjectif" class="acctin">
+      <option value="masse">Objectif : prise de masse</option>
+      <option value="perte">Objectif : perte de poids</option>
+      <option value="recomp">Objectif : recomposition / tonification</option>
+      <option value="maintien">Objectif : maintien / forme générale</option>
+    </select>
+    <select id="obJours" class="acctin">
+      <option value="3">3 jours / semaine</option>
+      <option value="4">4 jours / semaine</option>
+      <option value="5" selected>5 jours / semaine</option>
+      <option value="6">6 jours / semaine</option>
+    </select>
+    <select id="obNiveau" class="acctin">
+      <option value="debutant">Niveau : débutant</option>
+      <option value="intermediaire" selected>Niveau : intermédiaire</option>
+      <option value="confirme">Niveau : confirmé</option>
+    </select>
+    <textarea id="obLimites" class="acctin" rows="3" placeholder="Limites, blessures, contraintes (optionnel)"></textarea>
+    <button class="close" id="obGenerate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Générer mon programme</button>
+    <button class="close" id="obCancel">Annuler</button>
+  </div>
+</div>
+
+<div class="sheet" id="review">
+  <div class="card" style="max-height:85vh;overflow-y:auto">
+    <h3>Vérifie ton programme</h3>
+    <div id="reviewBody"></div>
+    <button class="close" id="reviewValidate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Valider et commencer</button>
+    <button class="close" id="reviewCancel">Annuler</button>
+  </div>
+</div>
+
 <div class="foot">Reprise progressive → surcharge → décharge. Bats la dernière ligne, une rep à la fois.</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 /* ---------- Programme ---------- */
 const CORE='core';
-const DAYS=[
+const DAYS_ORIGINAL=[
  {id:'d1',t:'J1',s:'Bas A',title:'Bas A — Quadriceps',role:'Volume jambes #1 · dominante quadriceps',
   ex:[
    {n:'Presse à cuisses',sets:4,reps:'8-12',rest:120,start:'~60 kg',cue:'Amplitude complète sans arrondir le bas du dos ; pieds à mi-hauteur pour cibler les quadriceps.'},
@@ -367,7 +412,88 @@ const DAYS=[
    {n:'Circuit core',tag:'core',sets:2,reps:'circuit',rest:0,cls:CORE,cue:'2 tours : woodchopper 15/côté + crunch 15 + gainage 45 s.'}
  ]}
 ];
-DAYS.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
+DAYS_ORIGINAL.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
+let DAYS=DAYS_ORIGINAL,GOAL=92,NUTRI={kcal:3100,protein:175,fat:80,carbs:420};
+
+/* ---------- Pool d'exercices (pour la génération de programme) ---------- */
+const EXO_POOL={};
+DAYS_ORIGINAL.forEach(d=>d.ex.forEach(e=>{if(!e.note)EXO_POOL[e.n]=e;}));
+const EXO_GROUP={
+ quad:['Presse à cuisses','Hack squat','Fentes marchées haltères','Leg extension'],
+ hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl','Hip thrust'],
+ push:['Développé couché haltères','Développé incliné haltères','Développé incliné machine','Chest press machine convergente','Dips machine / assistées'],
+ pushIso:['Écarté poulies','Écarté incliné haltères'],
+ pull:['Tirage vertical prise large','Rowing haltère un bras','Tirage horizontal poulie'],
+ shoulder:['Développé épaules haltères','Développé épaules machine','Élévations latérales','Élévations latérales poulie','Face pull'],
+ arms:['Curl haltères','Curl marteau','Extension triceps poulie corde','Extension triceps au-dessus de la tête','Curl barre EZ / haltères'],
+ glutes:['Abduction machine','Mollets debout'],
+ core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Circuit core']
+};
+function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
+function buildDay(id,t,s,title,role,specs){
+  const ex=specs.map(sp=>{const base=pickExo(sp.group,sp.idx||0);return base?Object.assign({},base):null;}).filter(Boolean);
+  return {id,t,s,title,role,ex};
+}
+function templateFullBody3(){
+  return [
+   buildDay('f1','J1','Full A','Full-body A','Corps entier · priorité bas du corps',
+     [{group:'quad',idx:0},{group:'hinge',idx:0},{group:'push',idx:0},{group:'pull',idx:0},{group:'shoulder',idx:0},{group:'core',idx:0}]),
+   buildDay('f2','J2','Full B','Full-body B','Corps entier · priorité haut du corps',
+     [{group:'push',idx:1},{group:'pull',idx:1},{group:'quad',idx:1},{group:'hinge',idx:1},{group:'arms',idx:0},{group:'core',idx:1}]),
+   buildDay('f3','J3','Full C','Full-body C','Corps entier · variante',
+     [{group:'hinge',idx:2},{group:'push',idx:2},{group:'pull',idx:2},{group:'shoulder',idx:1},{group:'glutes',idx:0},{group:'core',idx:2}])
+  ];
+}
+function templateUpperLower4(){
+  return [
+   buildDay('u1','J1','Haut A','Haut du corps A','Pecs, dos, épaules',
+     [{group:'push',idx:0},{group:'pull',idx:0},{group:'shoulder',idx:0},{group:'pushIso',idx:0},{group:'arms',idx:0},{group:'core',idx:0}]),
+   buildDay('l1','J2','Bas A','Bas du corps A','Quadriceps',
+     [{group:'quad',idx:0},{group:'quad',idx:1},{group:'hinge',idx:0},{group:'glutes',idx:0},{group:'core',idx:1}]),
+   buildDay('u2','J3','Haut B','Haut du corps B','Variante haut du corps',
+     [{group:'push',idx:1},{group:'pull',idx:1},{group:'shoulder',idx:1},{group:'pushIso',idx:1},{group:'arms',idx:1},{group:'core',idx:2}]),
+   buildDay('l2','J4','Bas B','Bas du corps B','Ischios, fessiers',
+     [{group:'hinge',idx:1},{group:'hinge',idx:2},{group:'glutes',idx:1},{group:'core',idx:3}])
+  ];
+}
+function template56(joursParSemaine){
+  return DAYS_ORIGINAL.filter(d=>d.id!=='d6'||joursParSemaine>=6).map(d=>({...d,ex:d.ex.map(e=>({...e}))}));
+}
+function applyNiveau(days,niveau){
+  const bump=niveau==='confirme'?1:0;
+  const restMul=niveau==='debutant'?1.15:1;
+  days.forEach(d=>d.ex.forEach(e=>{
+    if(e.note)return;
+    e.sets=(e.sets||3)+bump;
+    if(niveau==='debutant')e.reps='10-15';
+    if(e.rest)e.rest=Math.round((e.rest*restMul)/5)*5;
+  }));
+  return days;
+}
+function generateProgram(ob){
+  const jours=+ob.joursParSemaine||5;
+  let days;
+  if(jours<=3)days=templateFullBody3();
+  else if(jours===4)days=templateUpperLower4();
+  else days=template56(jours);
+  applyNiveau(days,ob.niveau);
+  days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
+  const poids=parseFloat(ob.poids)||75;
+  let kcalFactor,deltaKg;
+  if(ob.objectif==='masse'){kcalFactor=34;deltaKg=3;}
+  else if(ob.objectif==='perte'){kcalFactor=26;deltaKg=-4;}
+  else if(ob.objectif==='recomp'){kcalFactor=29;deltaKg=0;}
+  else{kcalFactor=31;deltaKg=0;}
+  const kcal=Math.round(poids*kcalFactor/10)*10;
+  const protein=Math.round(poids*2);
+  const fat=Math.round(poids*0.9);
+  const carbs=Math.max(0,Math.round((kcal-protein*4-fat*9)/4));
+  return{
+    days,
+    goal:Math.round((poids+deltaKg)*10)/10,
+    nutrition:{kcal,protein,fat,carbs}
+  };
+}
 
 const PHASES=[
  {wk:[1,2],  key:'ramp',  name:'Remise en route', p:'~70 % des charges, RPE 6-7, garde 2-3 reps en réserve. Zéro échec — on réveille muscles et tendons.'},
@@ -379,7 +505,7 @@ const PC={ramp:'--ramp',build:'--build',deload:'--deload'};
 function phaseOf(w){return PHASES.find(p=>w>=p.wk[0]&&w<=p.wk[1])||PHASES[1];}
 
 /* ---------- Stockage (persistant, avec repli mémoire) ---------- */
-const KEY='positraining_v1';
+const OLD_KEY='positraining_v1';
 const mem={};
 function writeNow(k,v){mem[k]=v;
   try{if(window.storage){const p=window.storage.set(k,v,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
@@ -391,26 +517,65 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-let state={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:false,swaps:{},done:{},logs:{},updatedAt:0};
+const STATE_DEFAULTS={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0};
+const PROGRAM_DEFAULT={days:DAYS_ORIGINAL,goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};
+let state=Object.assign({},STATE_DEFAULTS);
 let saveTimer=null;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(flush,250);}
-function flush(){clearTimeout(saveTimer);state.updatedAt=Date.now();writeNow(KEY,JSON.stringify(state));cloudPush();}
+function flush(){clearTimeout(saveTimer);state.updatedAt=Date.now();persistActiveBundle();cloudPush();}
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
 addEventListener('pagehide',flush);
+
+/* ---------- Profils ---------- */
+const PROFILES_KEY='positraining_v1_profiles';
+const ACTIVE_KEY='positraining_v1_active';
+function profileKey(id){return 'positraining_v1_p_'+id;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+let profiles=[],activeId=null,onboarding=null,program=PROGRAM_DEFAULT;
+async function loadProfilesIndex(){const raw=await readVal(PROFILES_KEY);profiles=raw?JSON.parse(raw):[];}
+function saveProfilesIndex(){writeNow(PROFILES_KEY,JSON.stringify(profiles));}
+async function loadProfileBundle(id){const raw=await readVal(profileKey(id));return raw?JSON.parse(raw):null;}
+function bundleFromCurrent(){return{onboarding,program,state};}
+function applyBundle(b){
+  onboarding=b.onboarding||null;
+  program=b.program||PROGRAM_DEFAULT;
+  DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
+  state=Object.assign({},STATE_DEFAULTS,b.state||{});
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};
+}
+function persistActiveBundle(){
+  if(!activeId)return;
+  writeNow(profileKey(activeId),JSON.stringify(bundleFromCurrent()));
+  writeNow(ACTIVE_KEY,activeId);
+}
+function renderProfileChips(){
+  const el=$('#profileChips');if(!el)return;
+  el.innerHTML=profiles.map(p=>`<button class="day${p.id===activeId?' on':''}" data-id="${p.id}" style="border-radius:999px"><span class="t">${p.name}</span></button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>switchProfile(b.dataset.id));
+  const del=$('#deleteProfileBtn');if(del)del.style.display=profiles.length>1?'':'none';
+}
+async function switchProfile(id){
+  if(id===activeId)return;
+  flush();
+  activeId=id;
+  const b=await loadProfileBundle(id)||{};
+  applyBundle(b);
+  writeNow(ACTIVE_KEY,activeId);
+  renderProfileChips();renderAll();setView(state.view||'train');
+  reconnectCloud();
+}
 
 /* ---------- Synchro cloud (Supabase) ---------- */
 const SUPABASE_URL='https://nwirxyyirkidiwaqaxjc.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_mCDGXglTY8R8hmD-V3m52g_dym-VSsQ';
-const sb=(window.supabase&&SUPABASE_URL)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
-let cloudUser=null,cloudPushTimer=null;
-const STATE_DEFAULTS={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0};
+let sb=null,sbUnsub=null,cloudUser=null,cloudPushTimer=null;
 
 function cloudStatus(msg,ok){const el=$('#acctStatus');if(el){el.textContent=msg;el.style.color=ok?'var(--go)':'var(--muted)';}}
 
-function applyRemoteState(data){
-  state=Object.assign({},STATE_DEFAULTS,data);
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};
-  writeNow(KEY,JSON.stringify(state));renderAll();setView(state.view||'train');
+function applyRemoteBundle(bundle){
+  applyBundle(bundle);
+  persistActiveBundle();
+  renderProfileChips();renderAll();setView(state.view||'train');
 }
 
 async function cloudPull(){
@@ -420,7 +585,7 @@ async function cloudPull(){
     if(error)throw error;
     if(!data){cloudPush(true);return;}
     const remoteAt=new Date(data.updated_at).getTime();
-    if(remoteAt>(state.updatedAt||0)){applyRemoteState(data.data);cloudStatus('Synchronisé ✓ (données du cloud)',true);}
+    if(remoteAt>(state.updatedAt||0)){applyRemoteBundle(data.data);cloudStatus('Synchronisé ✓ (données du cloud)',true);}
     else{cloudPush(true);}
   }catch(e){cloudStatus('Erreur de synchro au chargement',false);}
 }
@@ -429,7 +594,7 @@ function cloudPush(immediate){
   clearTimeout(cloudPushTimer);
   const run=async()=>{
     try{
-      const{error}=await sb.from('state').upsert({user_id:cloudUser.id,data:state,updated_at:new Date(state.updatedAt).toISOString()});
+      const{error}=await sb.from('state').upsert({user_id:cloudUser.id,data:bundleFromCurrent(),updated_at:new Date(state.updatedAt).toISOString()});
       if(error)throw error;
       cloudStatus('Synchronisé ✓',true);
     }catch(e){cloudStatus('Erreur de synchro — nouvel essai au prochain enregistrement',false);}
@@ -455,14 +620,16 @@ function renderAccount(){
     cloudStatus('Non connecté — synchro uniquement sur cet appareil.',false);
   }
 }
-if(sb){
-  sb.auth.onAuthStateChange((event,session)=>{
+function reconnectCloud(){
+  if(sbUnsub){try{sbUnsub.unsubscribe();}catch(e){}sbUnsub=null;}
+  sb=(window.supabase&&activeId)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:'sb-auth-'+activeId,persistSession:true}}):null;
+  cloudUser=null;
+  if(!sb){renderAccount();return;}
+  const{data}=sb.auth.onAuthStateChange((event,session)=>{
     cloudUser=session?session.user:null;renderAccount();
     if(cloudUser)cloudPull();
   });
-}
-function initAccount(){
-  if(!sb){renderAccount();return;}
+  sbUnsub=data.subscription;
   sb.auth.getSession().then(({data})=>{cloudUser=data.session?data.session.user:null;renderAccount();if(cloudUser)cloudPull();});
 }
 
@@ -736,8 +903,8 @@ $('#closeSheet').onclick=()=>$('#sheet').classList.remove('show');
 $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('show');};
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
-$('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Action irréversible.')){
-  state={week:1,day:'d1',show6:state.show6,view:state.view,weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0};delVal(KEY);renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
+$('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
+  state=Object.assign({},STATE_DEFAULTS,{show6:state.show6,view:state.view,day:DAYS[0].id});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
 $('#acctSendLink').onclick=()=>{
   const email=($('#acctEmail').value||'').trim();
   if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
@@ -745,9 +912,9 @@ $('#acctSendLink').onclick=()=>{
 };
 $('#acctLogout').onclick=()=>cloudSignOut();
 $('#exportBtn').onclick=()=>{
-  const blob=new Blob([JSON.stringify(state)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify(bundleFromCurrent())],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='positraining-sauvegarde.json';document.body.appendChild(a);a.click();
+  a.download='positraining-sauvegarde-'+(onboarding&&onboarding.prenom?slug(onboarding.prenom):'profil')+'.json';document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
 };
 $('#importBtn').onclick=()=>$('#importFile').click();
@@ -756,16 +923,107 @@ $('#importFile').onchange=ev=>{
   const r=new FileReader();
   r.onload=()=>{try{
     const s=JSON.parse(r.result);if(typeof s!=='object'||!s)throw 0;
-    state=Object.assign({},STATE_DEFAULTS,s);
+    if(s.program&&s.state){
+      onboarding=s.onboarding||null;program=s.program;
+      state=Object.assign({},STATE_DEFAULTS,s.state);
+    }else{
+      state=Object.assign({},STATE_DEFAULTS,s);
+    }
     if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};
     state.updatedAt=Date.now();
+    DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
   }catch(e){alert('Fichier invalide — ce n\u2019est pas une sauvegarde PosiTraining.');}};
   r.readAsText(f);ev.target.value='';
 };
 
+/* ---------- Profils : nouveau / suppression ---------- */
+let draftOnboarding=null,draftProgram=null;
+$('#newProfileBtn').onclick=()=>{
+  ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
+  $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
+};
+$('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
+$('#onboard').onclick=e=>{if(e.target.id==='onboard')$('#onboard').classList.remove('show');};
+$('#obGenerate').onclick=()=>{
+  const prenom=($('#obPrenom').value||'').trim();
+  if(!prenom){$('#obPrenom').focus();return;}
+  const poids=$('#obPoids').value,taille=$('#obTaille').value,age=$('#obAge').value;
+  if(!poids||!taille||!age){if(!age)$('#obAge').focus();else if(!poids)$('#obPoids').focus();else $('#obTaille').focus();return;}
+  draftOnboarding={prenom,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim()};
+  draftProgram=generateProgram(draftOnboarding);
+  $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
+};
+function renderReview(){
+  let html='';
+  if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
+  draftProgram.days.forEach((d,di)=>{
+    html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
+    d.ex.forEach((e,ei)=>{
+      if(e.note)return;
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border)">
+        <span>${e.n}<span style="color:var(--faint);font-size:12px"> · ${e.sets}×${e.reps}</span></span>
+        <button class="swapbtn" data-di="${di}" data-ei="${ei}">⇄ Changer</button>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  html+=`<div class="opt" style="display:block;flex-direction:column">
+    <div class="d"><b>Objectif de poids (kg)</b></div>
+    <input id="revGoal" class="acctin" inputmode="decimal" value="${draftProgram.goal}">
+  </div>
+  <div class="opt" style="display:block;flex-direction:column">
+    <div class="d"><b>Cibles nutrition / jour</b></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <input id="revKcal" class="acctin" inputmode="numeric" value="${draftProgram.nutrition.kcal}" placeholder="kcal">
+      <input id="revProt" class="acctin" inputmode="numeric" value="${draftProgram.nutrition.protein}" placeholder="protéines g">
+    </div>
+  </div>`;
+  $('#reviewBody').innerHTML=html;
+  $('#reviewBody').querySelectorAll('.swapbtn').forEach(b=>b.onclick=()=>{
+    const di=+b.dataset.di,ei=+b.dataset.ei,e=draftProgram.days[di].ex[ei];
+    openSwapDraft(e,renderReview);
+  });
+}
+function openSwapDraft(e,onPick){
+  const opts=[e.n].concat(ALT[e.n]||[]);
+  $('#swapBody').innerHTML=`<h3>Changer l'exercice</h3><div class="swaplist">${opts.map((o,idx)=>`<button class="swopt${o===e.n?' on':''}" data-i="${idx}"><span>${o}</span></button>`).join('')}</div>`;
+  $('#swapBody').querySelectorAll('.swopt').forEach(b=>b.onclick=()=>{
+    const chosen=opts[+b.dataset.i],id=e.id,base=EXO_POOL[chosen]||{n:chosen,sets:e.sets,reps:e.reps,rest:e.rest,cue:e.cue};
+    Object.assign(e,base,{n:chosen,id});
+    $('#swap').classList.remove('show');onPick();
+  });
+  $('#swap').classList.add('show');
+}
+$('#reviewCancel').onclick=()=>$('#review').classList.remove('show');
+$('#review').onclick=e=>{if(e.target.id==='review')$('#review').classList.remove('show');};
+$('#reviewValidate').onclick=()=>{
+  draftProgram.goal=parseFloat(($('#revGoal').value||'').replace(',','.'))||draftProgram.goal;
+  draftProgram.nutrition.kcal=parseInt($('#revKcal').value)||draftProgram.nutrition.kcal;
+  draftProgram.nutrition.protein=parseInt($('#revProt').value)||draftProgram.nutrition.protein;
+  const id=uid();
+  profiles.push({id,name:draftOnboarding.prenom,createdAt:Date.now()});
+  saveProfilesIndex();
+  activeId=id;onboarding=draftOnboarding;program=draftProgram;
+  DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
+  state=Object.assign({},STATE_DEFAULTS,{show6:+draftOnboarding.joursParSemaine>=6,day:draftProgram.days[0].id});
+  const kg=parseFloat((draftOnboarding.poids||'').replace(',','.'));
+  if(!isNaN(kg)){state.weights=[{date:today(),kg:Math.round(kg*10)/10}];state.wseed=true;}
+  persistActiveBundle();writeNow(ACTIVE_KEY,activeId);
+  $('#review').classList.remove('show');$('#sheet').classList.remove('show');
+  renderProfileChips();renderAll();setView('train');
+  reconnectCloud();
+};
+$('#deleteProfileBtn').onclick=async()=>{
+  if(profiles.length<=1)return;
+  if(!confirm('Supprimer ce profil et toutes ses données (irréversible) ?'))return;
+  delVal(profileKey(activeId));
+  profiles=profiles.filter(p=>p.id!==activeId);
+  saveProfilesIndex();
+  await switchProfile(profiles[0].id);
+};
+
 /* ---------- Suivi du poids ---------- */
-const GOAL=92;
 function today(){return new Date().toISOString().slice(0,10);}
 function fmtDate(iso){const p=iso.split('-');return p[2]+'/'+p[1];}
 function weightChart(ws){
@@ -822,12 +1080,12 @@ function renderWeight(){
 function renderNutri(){
   $('#nutriView').innerHTML=`
   <div class="wstats" style="flex-wrap:wrap">
-    <div class="wstat"><div class="k">3100</div><div class="l">kcal / jour</div></div>
-    <div class="wstat"><div class="k" style="color:var(--go)">175</div><div class="l">g protéines</div></div>
+    <div class="wstat"><div class="k">${NUTRI.kcal}</div><div class="l">kcal / jour</div></div>
+    <div class="wstat"><div class="k" style="color:var(--go)">${NUTRI.protein}</div><div class="l">g protéines</div></div>
   </div>
   <div class="wstats" style="margin-top:0">
-    <div class="wstat"><div class="k">80</div><div class="l">g lipides</div></div>
-    <div class="wstat"><div class="k">420</div><div class="l">g glucides</div></div>
+    <div class="wstat"><div class="k">${NUTRI.fat}</div><div class="l">g lipides</div></div>
+    <div class="wstat"><div class="k">${NUTRI.carbs}</div><div class="l">g glucides</div></div>
   </div>
 
   <div class="nsec">Timing de la journée <span>· séance le matin</span></div>
@@ -863,14 +1121,30 @@ document.querySelectorAll('.viewtabs button').forEach(b=>b.onclick=()=>setView(b
 
 /* ---------- Init ---------- */
 (async()=>{
-  const raw=await readVal(KEY);
-  if(raw){try{const s=JSON.parse(raw);state=Object.assign(state,s);if(!state.logs)state.logs={};}catch(e){}}
-  if(!state.weights)state.weights=[];
-  if(!state.swaps)state.swaps={};
-  if(!state.done)state.done={};
-  if(!state.weights.length&&!state.wseed){state.weights=[{date:today(),kg:86.8}];state.wseed=true;}
+  await loadProfilesIndex();
+  if(!profiles.length){
+    // Migration : anciennes données mono-profil (avant les profils multi-utilisateurs)
+    const oldRaw=await readVal(OLD_KEY);
+    const id=uid();
+    let migrated=Object.assign({},STATE_DEFAULTS);
+    if(oldRaw){try{const s=JSON.parse(oldRaw);migrated=Object.assign(migrated,s);if(!migrated.logs)migrated.logs={};}catch(e){}}
+    if(!migrated.weights)migrated.weights=[];
+    if(!migrated.swaps)migrated.swaps={};
+    if(!migrated.done)migrated.done={};
+    if(!migrated.weights.length&&!migrated.wseed){migrated.weights=[{date:today(),kg:86.8}];migrated.wseed=true;}
+    profiles=[{id,name:'Laurent',createdAt:Date.now()}];
+    saveProfilesIndex();
+    activeId=id;onboarding=null;program=PROGRAM_DEFAULT;state=migrated;
+    DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
+    persistActiveBundle();
+  }else{
+    activeId=(await readVal(ACTIVE_KEY))||profiles[0].id;
+    const b=await loadProfileBundle(activeId)||{};
+    applyBundle(b);
+  }
+  renderProfileChips();
   renderAll();setView(state.view||'train');save();
-  initAccount();
+  reconnectCloud();
 })();
 </script>
 </body>
