@@ -12,7 +12,7 @@ Tout tient dans `index.html`.
 - Un **profil** = une personne = `{onboarding, program, state}` :
   - `onboarding` : réponses du questionnaire (`prenom,sexe,age,poids,taille,objectif,joursParSemaine,niveau,limites`), ou `null` pour un profil migré depuis l'ancienne version mono-utilisateur.
   - `program` : `{days, goal, nutrition}` — le programme généré (ou celui de Laurent, `PROGRAM_DEFAULT`, pour la migration).
-  - `state` : `{week, day, view, weights[], swaps{}, done{}, logs{}, updatedAt, ...}` — les données d'entraînement, structure inchangée depuis la v1 mono-utilisateur.
+  - `state` : `{week, day, view, weights[], swaps{}, done{}, logs{}, updatedAt, timeCap, ...}` — les données d'entraînement. `timeCap` (0 = illimité, sinon 30/45/60/75/90 minutes) est une préférence d'affichage, pas une donnée d'entraînement : préservée par le reset (« Effacer mes données »), contrairement à `weights/logs/swaps/done`.
 - `DAYS`, `GOAL`, `NUTRI` sont des `let` au niveau module, réaffectés depuis `program` à chaque chargement/changement de profil (voir `applyBundle`). Toutes les fonctions de rendu (`renderDays`, `renderDay`, `renderNutri`, `weightChart`…) lisent ces variables sans savoir qu'elles changent de profil — **ne pas** les repasser en `const`.
 - `DAYS_ORIGINAL` (le programme historique de Laurent, 5-6 jours) reste une constante à part : c'est à la fois le template « 5/6 jours » du générateur et le pool d'exercices (`EXO_POOL`/`EXO_GROUP`) utilisé pour construire les templates full-body (3j) et haut/bas (4j). Ne jamais muter ses objets en place (toujours cloner avant modif — voir `template56`, `buildDay`).
 
@@ -30,8 +30,15 @@ Tout tient dans `index.html`.
 - **Nutrition** : formule de Mifflin-St Jeor (BMR selon `poids/taille/age/sexe`) × multiplicateur d'activité dérivé de `joursParSemaine` (1.4 à 1.7) = TDEE, puis ajustement additif selon `objectif` (+350 kcal prise de masse, −500 perte de poids, 0 sinon). Protéines/lipides toujours en g/kg de poids de corps, glucides en reste calorique. `sexe` vaut `'H'`/`'F'`/`'A'` (autre/non précisé, offset moyen) — champ requis dans le questionnaire, c'est la seule vraie utilité biologique du sexe ici.
 - **Exercices** : `genderBias(days,sexe)` ajoute, pour `sexe==='F'`, un exercice fessiers supplémentaire sur chaque jour qui travaille déjà le bas du corps (quad/hinge) — un choix de programmation courant, pas une règle rigide ; reste modifiable via le swap. S'applique à tous les templates générés (y compris `template56`) ; le profil migré de Laurent (`PROGRAM_DEFAULT`, jamais passé par `generateProgram`) n'est jamais concerné.
 - Les templates full-body/haut-bas piochent des exercices dans `EXO_POOL` via `EXO_GROUP` (nom → groupe musculaire) : mêmes noms d'exercices que `DAYS_ORIGINAL`, donc `HOWTO`/`ALT` restent valides pour tout programme généré.
-- Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif, nutrition) → validation → nouveau profil créé et activé.
+- Un rappel cardio (`cardioNote()`, note non swappable, ~9 min zone 2) est ajouté à chaque jour des templates full-body/haut-bas (`jours<=4`) ; les templates 5-6 jours en ont déjà un via la séance du soir (`ds`).
+- Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif, nutrition, rappel du nombre de jours de repos) → validation → nouveau profil créé et activé.
 - Les limites/blessures signalées ne sont **pas** parsées automatiquement (texte libre trop peu fiable) : affichées en rappel dans l'écran de review, à gérer via le swap manuel.
+
+## Temps disponible (durée de séance)
+- `state.timeCap` (0/30/45/60/75/90 min) est réglable en haut de la séance du jour (`renderDay`), via des chips réutilisant le style `.day`.
+- `trimDayToTime(exList, capMinutes)` masque les derniers exercices de la liste (jamais les premiers : les mouvements de base restent) tant que la durée estimée dépasse le cap, **sans jamais repasser sous un plancher strict de 30 minutes** — un cap trop serré est ignoré plutôt que de couper davantage. La séance réelle (`day.ex`) n'est jamais modifiée : seul l'affichage (et `sessionProgress`, donc le bouton « Terminer la séance ») porte sur la liste visible tronquée. Changer/agrandir le temps dispo fait immédiatement réapparaître les exercices masqués, logs déjà saisis compris.
+- `exDuration(e)` estime la durée par exercice (`sets × (45 s + repos)` ; notes ~3 min, cardio ~9 min) — une heuristique volontairement simple, pas un chronométrage réel.
+- `timeCap` est une préférence d'affichage : incluse dans `STATE_DEFAULTS`, mais **préservée** (pas remise à 0) par le bouton reset, comme `show6`/`view`.
 
 ## Synchro cloud (Supabase) — par profil
 - Client `@supabase/supabase-js` chargé via CDN (`<script src="...supabase-js@2.45.4/dist/umd/supabase.js">`), pas de build.

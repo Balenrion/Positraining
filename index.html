@@ -542,7 +542,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-const STATE_DEFAULTS={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0};
+const STATE_DEFAULTS={week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0,timeCap:0};
 const PROGRAM_DEFAULT={days:DAYS_ORIGINAL,goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};
 let state=Object.assign({},STATE_DEFAULTS);
 let saveTimer=null;
@@ -822,9 +822,9 @@ function renderDays(){
     el.appendChild(b);
   });
 }
-function sessionProgress(day){
+function sessionProgress(exList){
   let filled=0,total=0;
-  day.ex.forEach(e=>{
+  exList.forEach(e=>{
     if(e.note)return;total++;
     const sw=state.swaps[e.id],eid=sw?e.id+'~'+slug(sw):e.id;
     const arr=getLog(eid,state.week);
@@ -832,15 +832,43 @@ function sessionProgress(day){
   });
   return {filled,total};
 }
+/* ---------- Temps disponible (masque la fin de la séance sans y toucher) ---------- */
+const TIMECAP_OPTIONS=[0,30,45,60,75,90];
+function exDuration(e){
+  if(e.note)return e.tag==='cardio'?540:180;
+  return (e.sets||3)*(45+(e.rest||60));
+}
+function dayDuration(exList){return exList.reduce((sum,e)=>sum+exDuration(e),0);}
+function trimDayToTime(exList,capMinutes){
+  if(!capMinutes)return exList;
+  const capSec=capMinutes*60,floorSec=30*60;
+  let list=exList;
+  while(list.length>1&&dayDuration(list)>capSec){
+    const trimmed=list.slice(0,-1);
+    if(dayDuration(trimmed)<floorSec)break;
+    list=trimmed;
+  }
+  return list;
+}
 function renderDay(){
   const day=DAYS.find(d=>d.id===state.day)||DAYS[0];
+  const cap=state.timeCap||0;
+  const visible=trimDayToTime(day.ex,cap);
   const app=$('#app');app.innerHTML='';
   const hd=document.createElement('div');hd.className='dayhead';
-  hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>`;
+  const capHtml=TIMECAP_OPTIONS.map(m=>`<button class="day${cap===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m===0?'Illimité':m+' min'}</span></button>`).join('');
+  hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div><div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
   app.appendChild(hd);
+  hd.querySelectorAll('.day').forEach(b=>b.onclick=()=>{state.timeCap=+b.dataset.m;save();renderDay();});
+  if(visible.length<day.ex.length){
+    const hidden=day.ex.length-visible.length;
+    const note=document.createElement('div');note.className='insight warn';
+    note.textContent=`${hidden} exercice(s) masqué(s) pour tenir dans ${cap} min (mouvements de base gardés en priorité) — augmente le temps dispo pour les revoir.`;
+    app.appendChild(note);
+  }
 
   const inRamp=state.week<=2;
-  day.ex.forEach((e,i)=>{
+  visible.forEach((e,i)=>{
     if(e.note){
       const c=document.createElement('div');c.className='ex note';
       c.innerHTML=`<div class="exhead"><div class="idx">•</div><div class="name">${e.n}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">${e.cue}</div>`;
@@ -890,7 +918,7 @@ function renderDay(){
     app.appendChild(card);
   });
 
-  const prog=sessionProgress(day),dk=day.id+'__w'+state.week,dn=state.done[dk];
+  const prog=sessionProgress(visible),dk=day.id+'__w'+state.week,dn=state.done[dk];
   const full=prog.total>0&&prog.filled===prog.total;
   const bar=document.createElement('div');bar.className='finish';
   bar.innerHTML=`<button class="finishbtn${dn?' done':(full?' full':'')}"><span class="fmain">${dn?'✓ Séance validée'+(dn.length>6?' · '+fmtDate(dn):''):'Terminer la séance'}</span><span class="fprog">${prog.filled}/${prog.total} exercices remplis${dn?' · touche pour rouvrir':''}</span></button>`;
@@ -929,7 +957,7 @@ $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('s
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
 $('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
-  state=Object.assign({},STATE_DEFAULTS,{show6:state.show6,view:state.view,day:DAYS[0].id});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
+  state=Object.assign({},STATE_DEFAULTS,{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
 $('#acctSendLink').onclick=()=>{
   const email=($('#acctEmail').value||'').trim();
   if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
