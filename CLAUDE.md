@@ -10,7 +10,7 @@ Tout tient dans `index.html`.
 
 ## Modèle de données : profils
 - Un **profil** = une personne = `{onboarding, program, state}` :
-  - `onboarding` : réponses du questionnaire (`prenom,age,poids,taille,objectif,joursParSemaine,niveau,limites`), ou `null` pour un profil migré depuis l'ancienne version mono-utilisateur.
+  - `onboarding` : réponses du questionnaire (`prenom,sexe,age,poids,taille,objectif,joursParSemaine,niveau,limites`), ou `null` pour un profil migré depuis l'ancienne version mono-utilisateur.
   - `program` : `{days, goal, nutrition}` — le programme généré (ou celui de Laurent, `PROGRAM_DEFAULT`, pour la migration).
   - `state` : `{week, day, view, weights[], swaps{}, done{}, logs{}, updatedAt, ...}` — les données d'entraînement, structure inchangée depuis la v1 mono-utilisateur.
 - `DAYS`, `GOAL`, `NUTRI` sont des `let` au niveau module, réaffectés depuis `program` à chaque chargement/changement de profil (voir `applyBundle`). Toutes les fonctions de rendu (`renderDays`, `renderDay`, `renderNutri`, `weightChart`…) lisent ces variables sans savoir qu'elles changent de profil — **ne pas** les repasser en `const`.
@@ -26,7 +26,9 @@ Tout tient dans `index.html`.
 - **Migration automatique** (Init) : si aucun profil n'existe mais que `positraining_v1` (ancien format) existe, un profil « Laurent » est créé à partir de ces données + `PROGRAM_DEFAULT`, sans perte de charges/poids/logs.
 
 ## Générateur de programme
-- `generateProgram(onboarding)` (pur, pas d'effet de bord) : choisit un template selon `joursParSemaine` (≤3 → full-body ×3, 4 → haut/bas ×4, 5-6 → `template56`, la structure historique de Laurent), ajuste séries/reps/repos selon `niveau` (`applyNiveau`), calcule nutrition et objectif de poids selon `poids`/`objectif` (règles simples, pas de calcul clinique — pas de champ sexe dans le questionnaire).
+- `generateProgram(onboarding)` (pur, pas d'effet de bord) : choisit un template selon `joursParSemaine` (≤3 → full-body ×3, 4 → haut/bas ×4, 5-6 → `template56`, la structure historique de Laurent), applique `genderBias` (voir plus bas), ajuste séries/reps/repos selon `niveau` (`applyNiveau`), calcule nutrition et objectif de poids.
+- **Nutrition** : formule de Mifflin-St Jeor (BMR selon `poids/taille/age/sexe`) × multiplicateur d'activité dérivé de `joursParSemaine` (1.4 à 1.7) = TDEE, puis ajustement additif selon `objectif` (+350 kcal prise de masse, −500 perte de poids, 0 sinon). Protéines/lipides toujours en g/kg de poids de corps, glucides en reste calorique. `sexe` vaut `'H'`/`'F'`/`'A'` (autre/non précisé, offset moyen) — champ requis dans le questionnaire, c'est la seule vraie utilité biologique du sexe ici.
+- **Exercices** : `genderBias(days,sexe)` ajoute, pour `sexe==='F'`, un exercice fessiers supplémentaire sur chaque jour qui travaille déjà le bas du corps (quad/hinge) — un choix de programmation courant, pas une règle rigide ; reste modifiable via le swap. S'applique à tous les templates générés (y compris `template56`) ; le profil migré de Laurent (`PROGRAM_DEFAULT`, jamais passé par `generateProgram`) n'est jamais concerné.
 - Les templates full-body/haut-bas piochent des exercices dans `EXO_POOL` via `EXO_GROUP` (nom → groupe musculaire) : mêmes noms d'exercices que `DAYS_ORIGINAL`, donc `HOWTO`/`ALT` restent valides pour tout programme généré.
 - Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif, nutrition) → validation → nouveau profil créé et activé.
 - Les limites/blessures signalées ne sont **pas** parsées automatiquement (texte libre trop peu fiable) : affichées en rappel dans l'écran de review, à gérer via le swap manuel.

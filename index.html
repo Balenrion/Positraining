@@ -299,6 +299,11 @@
   <div class="card" style="max-height:85vh;overflow-y:auto">
     <h3>Nouveau profil</h3>
     <input id="obPrenom" class="acctin" placeholder="Prénom">
+    <select id="obSexe" class="acctin">
+      <option value="H">Sexe : homme</option>
+      <option value="F">Sexe : femme</option>
+      <option value="A">Sexe : autre / préfère ne pas dire</option>
+    </select>
     <input id="obAge" class="acctin" inputmode="numeric" placeholder="Âge">
     <input id="obPoids" class="acctin" inputmode="decimal" placeholder="Poids actuel (kg)">
     <input id="obTaille" class="acctin" inputmode="numeric" placeholder="Taille (cm)">
@@ -470,24 +475,39 @@ function applyNiveau(days,niveau){
   }));
   return days;
 }
+function genderBias(days,sexe){
+  if(sexe!=='F')return days;
+  days.forEach(d=>{
+    const hasLower=d.ex.some(e=>!e.note&&(EXO_GROUP.quad.includes(e.n)||EXO_GROUP.hinge.includes(e.n)));
+    if(!hasLower)return;
+    const extra=pickExo('glutes',1);
+    if(extra&&!d.ex.some(e=>e.n===extra.n))d.ex.push(Object.assign({},extra));
+  });
+  return days;
+}
 function generateProgram(ob){
   const jours=+ob.joursParSemaine||5;
   let days;
   if(jours<=3)days=templateFullBody3();
   else if(jours===4)days=templateUpperLower4();
   else days=template56(jours);
+  genderBias(days,ob.sexe);
   applyNiveau(days,ob.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
-  const poids=parseFloat(ob.poids)||75;
-  let kcalFactor,deltaKg;
-  if(ob.objectif==='masse'){kcalFactor=34;deltaKg=3;}
-  else if(ob.objectif==='perte'){kcalFactor=26;deltaKg=-4;}
-  else if(ob.objectif==='recomp'){kcalFactor=29;deltaKg=0;}
-  else{kcalFactor=31;deltaKg=0;}
-  const kcal=Math.round(poids*kcalFactor/10)*10;
+  const poids=parseFloat(ob.poids)||75,taille=parseFloat(ob.taille)||170,age=parseFloat(ob.age)||30;
+  const sexOffset=ob.sexe==='H'?5:(ob.sexe==='F'?-161:-78);
+  const bmr=10*poids+6.25*taille-5*age+sexOffset;
+  const activityMul=jours<=3?1.4:jours===4?1.5:jours===5?1.6:1.7;
+  const tdee=bmr*activityMul;
+  let kcalDelta;
+  if(ob.objectif==='masse'){kcalDelta=350;}
+  else if(ob.objectif==='perte'){kcalDelta=-500;}
+  else{kcalDelta=0;}
+  const kcal=Math.round((tdee+kcalDelta)/10)*10;
   const protein=Math.round(poids*2);
   const fat=Math.round(poids*0.9);
   const carbs=Math.max(0,Math.round((kcal-protein*4-fat*9)/4));
+  const deltaKg=ob.objectif==='masse'?3:(ob.objectif==='perte'?-4:0);
   return{
     days,
     goal:Math.round((poids+deltaKg)*10)/10,
@@ -941,6 +961,7 @@ $('#importFile').onchange=ev=>{
 let draftOnboarding=null,draftProgram=null;
 $('#newProfileBtn').onclick=()=>{
   ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
+  $('#obSexe').value='H';
   $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
 };
 $('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
@@ -950,7 +971,7 @@ $('#obGenerate').onclick=()=>{
   if(!prenom){$('#obPrenom').focus();return;}
   const poids=$('#obPoids').value,taille=$('#obTaille').value,age=$('#obAge').value;
   if(!poids||!taille||!age){if(!age)$('#obAge').focus();else if(!poids)$('#obPoids').focus();else $('#obTaille').focus();return;}
-  draftOnboarding={prenom,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim()};
+  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim()};
   draftProgram=generateProgram(draftOnboarding);
   $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
 };
