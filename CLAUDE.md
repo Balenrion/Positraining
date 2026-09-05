@@ -26,18 +26,24 @@ Tout tient dans `index.html`.
 - **Migration automatique** (Init) : si aucun profil n'existe mais que `positraining_v1` (ancien format) existe, un profil « Laurent » est créé à partir de ces données + `PROGRAM_DEFAULT`, sans perte de charges/poids/logs.
 
 ## Générateur de programme
-- `generateProgram(onboarding)` (pur, pas d'effet de bord) : choisit un template selon `joursParSemaine` (≤3 → full-body ×3, 4 → haut/bas ×4, 5-6 → `template56`, la structure historique de Laurent), applique `genderBias` (voir plus bas), ajuste séries/reps/repos selon `niveau` (`applyNiveau`), calcule nutrition et objectif de poids.
+- `generateProgram(onboarding)` (pur, pas d'effet de bord) : choisit un template selon `joursParSemaine` (≤3 → full-body ×3, 4 → haut/bas ×4, 5-6 → `template56`, la structure historique de Laurent), applique `genderBias` puis `applyObjectif` (voir plus bas) puis `applyNiveau` (séries/reps/repos selon `niveau`), calcule nutrition et objectif de poids.
 - **Nutrition** : formule de Mifflin-St Jeor (BMR selon `poids/taille/age/sexe`) × multiplicateur d'activité dérivé de `joursParSemaine` (1.4 à 1.7) = TDEE, puis ajustement additif selon `objectif` (+350 kcal prise de masse, −500 perte de poids, 0 sinon). Protéines/lipides toujours en g/kg de poids de corps, glucides en reste calorique. `sexe` vaut `'H'`/`'F'`/`'A'` (autre/non précisé, offset moyen) — champ requis dans le questionnaire, c'est la seule vraie utilité biologique du sexe ici.
-- **Exercices** : `genderBias(days,sexe)` ajoute, pour `sexe==='F'`, un exercice fessiers supplémentaire sur chaque jour qui travaille déjà le bas du corps (quad/hinge) — un choix de programmation courant, pas une règle rigide ; reste modifiable via le swap. S'applique à tous les templates générés (y compris `template56`) ; le profil migré de Laurent (`PROGRAM_DEFAULT`, jamais passé par `generateProgram`) n'est jamais concerné.
+- **`applyObjectif(days,objectif)` — la séance elle-même s'adapte à l'objectif, pas seulement la nutrition** :
+  - `masse` : aucun changement de repos (préserve récup et surplus calorique) ; cardio minimal (un seul rappel léger ~8 min sur les templates full-body/haut-bas, rien d'ajouté sur `template56` au-delà du `ds` existant).
+  - `perte` : repos réduit ×0.65 (plancher 30 s, style circuit/métabolique) ; cardio ~15 min ajouté sur **chaque** jour, y compris `template56`.
+  - `recomp` : repos ×0.85 ; cardio ~10 min sur chaque jour.
+  - `maintien` : repos inchangé ; cardio ~8 min sur chaque jour.
+  - Les reps ne sont volontairement pas réécrites (formats hétérogènes dans `DAYS_ORIGINAL` — `"12 /côté"`, `"circuit"`, etc. — trop risqué à parser) ; le repos et le volume cardio sont les leviers utilisés pour différencier l'objectif.
+- **Exercices (sexe)** : `genderBias(days,sexe)` ajoute, pour `sexe==='F'`, un exercice fessiers supplémentaire sur chaque jour qui travaille déjà le bas du corps (quad/hinge) — un choix de programmation courant, pas une règle rigide ; reste modifiable via le swap. S'applique à tous les templates générés ; le profil migré de Laurent (`PROGRAM_DEFAULT`, jamais passé par `generateProgram`) n'est jamais concerné.
 - Les templates full-body/haut-bas piochent des exercices dans `EXO_POOL` via `EXO_GROUP` (nom → groupe musculaire) : mêmes noms d'exercices que `DAYS_ORIGINAL`, donc `HOWTO`/`ALT` restent valides pour tout programme généré.
-- Un rappel cardio (`cardioNote()`, note non swappable, ~9 min zone 2) est ajouté à chaque jour des templates full-body/haut-bas (`jours<=4`) ; les templates 5-6 jours en ont déjà un via la séance du soir (`ds`).
-- Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif, nutrition, rappel du nombre de jours de repos) → validation → nouveau profil créé et activé.
+- `cardioNote(minutes)` (note non swappable, durée stockée dans `mins` — utilisée par `exDuration` pour le temps disponible) : voir `applyObjectif` pour qui en reçoit combien.
+- Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif de poids, nutrition, rappel du nombre de jours de repos) → validation → nouveau profil créé et activé.
 - Les limites/blessures signalées ne sont **pas** parsées automatiquement (texte libre trop peu fiable) : affichées en rappel dans l'écran de review, à gérer via le swap manuel.
 
 ## Temps disponible (durée de séance)
 - `state.timeCap` (0/30/45/60/75/90 min) est réglable en haut de la séance du jour (`renderDay`), via des chips réutilisant le style `.day`.
 - `trimDayToTime(exList, capMinutes)` masque les derniers exercices de la liste (jamais les premiers : les mouvements de base restent) tant que la durée estimée dépasse le cap, **sans jamais repasser sous un plancher strict de 30 minutes** — un cap trop serré est ignoré plutôt que de couper davantage. La séance réelle (`day.ex`) n'est jamais modifiée : seul l'affichage (et `sessionProgress`, donc le bouton « Terminer la séance ») porte sur la liste visible tronquée. Changer/agrandir le temps dispo fait immédiatement réapparaître les exercices masqués, logs déjà saisis compris.
-- `exDuration(e)` estime la durée par exercice (`sets × (45 s + repos)` ; notes ~3 min, cardio ~9 min) — une heuristique volontairement simple, pas un chronométrage réel.
+- `exDuration(e)` estime la durée par exercice (`sets × (45 s + repos)` ; notes ~3 min, cardio = `e.mins` minutes, 8 min par défaut) — une heuristique volontairement simple, pas un chronométrage réel.
 - `timeCap` est une préférence d'affichage : incluse dans `STATE_DEFAULTS`, mais **préservée** (pas remise à 0) par le bouton reset, comme `show6`/`view`.
 
 ## Synchro cloud (Supabase) — par profil

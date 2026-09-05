@@ -486,8 +486,22 @@ function genderBias(days,sexe){
   });
   return days;
 }
-function cardioNote(){
-  return{n:'Cardio léger',note:true,tag:'cardio',cue:'8-10 min de vélo, rameur ou marche rapide en fin de séance, en zone où tu peux encore parler — bon pour le cœur et la récup, sans griller tes réserves pour les séries.'};
+function cardioNote(minutes){
+  return{n:'Cardio léger',note:true,tag:'cardio',mins:minutes,cue:`${minutes} min de vélo, rameur ou marche rapide en fin de séance, en zone où tu peux encore parler — bon pour le cœur et la récup, sans griller tes réserves pour les séries.`};
+}
+function applyObjectif(days,objectif){
+  let restMul=1,cardioMin=0,everyDay=false;
+  if(objectif==='perte'){restMul=0.65;cardioMin=15;everyDay=true;}
+  else if(objectif==='recomp'){restMul=0.85;cardioMin=10;everyDay=true;}
+  else if(objectif==='maintien'){cardioMin=8;everyDay=true;}
+  // 'masse' : repos et volume cardio inchangés — préserve récup et surplus calorique, l'essentiel de l'effort va aux séries.
+  if(restMul!==1){
+    days.forEach(d=>d.ex.forEach(e=>{if(!e.note&&e.rest)e.rest=Math.max(30,Math.round((e.rest*restMul)/5)*5);}));
+  }
+  if(everyDay){
+    days.forEach(d=>{if(!d.ex.some(e=>e.note&&e.tag==='cardio'))d.ex.push(cardioNote(cardioMin));});
+  }
+  return days;
 }
 function generateProgram(ob){
   const jours=+ob.joursParSemaine||5;
@@ -495,8 +509,9 @@ function generateProgram(ob){
   if(jours<=3)days=templateFullBody3();
   else if(jours===4)days=templateUpperLower4();
   else days=template56(jours);
-  if(jours<=4)days.forEach(d=>d.ex.push(cardioNote()));
+  if(jours<=4&&ob.objectif==='masse')days.forEach(d=>d.ex.push(cardioNote(8)));
   genderBias(days,ob.sexe);
+  applyObjectif(days,ob.objectif);
   applyNiveau(days,ob.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
   const poids=parseFloat(ob.poids)||75,taille=parseFloat(ob.taille)||170,age=parseFloat(ob.age)||30;
@@ -835,7 +850,7 @@ function sessionProgress(exList){
 /* ---------- Temps disponible (masque la fin de la séance sans y toucher) ---------- */
 const TIMECAP_OPTIONS=[0,30,45,60,75,90];
 function exDuration(e){
-  if(e.note)return e.tag==='cardio'?540:180;
+  if(e.note)return e.tag==='cardio'?(e.mins||8)*60:180;
   return (e.sets||3)*(45+(e.rest||60));
 }
 function dayDuration(exList){return exList.reduce((sum,e)=>sum+exDuration(e),0);}
