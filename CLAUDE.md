@@ -40,14 +40,28 @@ Tout tient dans `index.html`.
 - **Exercices (sexe)** : `genderBias(days,sexe)` ajoute, pour `sexe==='F'`, un exercice fessiers supplémentaire sur chaque jour qui travaille déjà le bas du corps (quad/hinge) — un choix de programmation courant, pas une règle rigide ; reste modifiable via le swap. S'applique à tous les templates générés ; le profil migré de Laurent (`PROGRAM_DEFAULT`, jamais passé par `generateProgram`) n'est jamais concerné.
 - Les templates full-body/haut-bas piochent des exercices dans `EXO_POOL` via `EXO_GROUP` (nom → groupe musculaire) : mêmes noms d'exercices que `DAYS_ORIGINAL`, donc `HOWTO`/`ALT` restent valides pour tout programme généré.
 - `cardioNote(minutes)` (note non swappable, durée stockée dans `mins` — utilisée par `exDuration` pour le temps disponible) : voir `applyObjectif` pour qui en reçoit combien.
-- Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif de poids, nutrition, rappel du nombre de jours de repos) → validation → nouveau profil créé et activé.
-- Les limites/blessures signalées ne sont **pas** parsées automatiquement (texte libre trop peu fiable) : affichées en rappel dans l'écran de review, à gérer via le swap manuel.
+- Flux UI : sheet `#onboard` (questionnaire) → `generateProgram` → sheet `#review` (édition : swap d'exercice via `openSwapDraft`, objectif de poids, nutrition, rappel du nombre de jours de repos, changements liés aux limites) → validation → nouveau profil créé et activé.
+- **Limites (genou, épaule, bas du dos, coude, poignet, cheville)** : chips structurées (`LIMITE_INFO`), traitées par `applyLimites` — voir plus bas. Le textarea `#obLimites` reste pour des précisions libres, mais n'est **que** affiché en rappel (pas structuré, pas fiable à automatiser).
+- **`applyLimites(days,limiteZones)`** : pour chaque zone cochée, exclut les exercices à risque du pool réel (`LIMITE_INFO[].exclude`). Une seule substitution jugée réellement plus sûre existe (bas du dos : RDL/hip thrust lourd → `Leg curl`, qui isole les ischios sans charger le dos) ; les autres zones retirent l'exercice plutôt que de proposer une fausse alternative (dans le pool actuel, les alternatives à un squat restent des squats — pas un vrai gain de sécurité). Même garde-fou de plancher que `applyMuscleFocus` (jamais sous 30 min de `dayDuration`). Appliqué après `applyMuscleFocus` pour avoir le dernier mot sur les groupes/limites. Retourne un journal `[{label,from,to}]` (to=null si simple retrait) affiché tel quel dans la review — pas de diff heuristique, la fonction sait exactement ce qu'elle a changé.
+
+## Progression, échauffement, minuteur auto
+- `suggestWeight(e,lt)` : si la dernière perf (`lt`, déjà utilisé partout via `lastTime`) a atteint ou dépassé la borne haute de `e.reps` (`repsRange`, regex tolérante aux formats non numériques type `"circuit"` → pas de suggestion), suggère `+2,5 kg`. Affiché en plus de la ligne « Dernière fois » existante, jamais à sa place.
+- `warmupSets(e,lt)` : deux paliers (50 %/75 % du poids de référence — dernière perf sinon `e.start`, **attention** : `e.start` contient parfois un `~` ou une fourchette type `"~38-40 kg"`, extraction par regex numérique, pas `parseFloat` direct qui casserait sur le `~`) affichés juste avant la grille de séries. Rien de persisté (pas dans `state.logs`), ni pour les exercices core/note.
+- Le bouton "done" d'une série démarre automatiquement le minuteur de repos (`startTimer(e.rest,nm)`) si `e.rest>0` — pas de réglage on/off séparé, le bouton "Stop" du minuteur suffit.
 
 ## Temps disponible (durée de séance)
 - `state.timeCap` (0/30/45/60/75/90 min) est réglable en haut de la séance du jour (`renderDay`), via des chips réutilisant le style `.day`.
 - `trimDayToTime(exList, capMinutes)` masque les derniers exercices de la liste (jamais les premiers : les mouvements de base restent) tant que la durée estimée dépasse le cap, **sans jamais repasser sous un plancher strict de 30 minutes** — un cap trop serré est ignoré plutôt que de couper davantage. La séance réelle (`day.ex`) n'est jamais modifiée : seul l'affichage (et `sessionProgress`, donc le bouton « Terminer la séance ») porte sur la liste visible tronquée. Changer/agrandir le temps dispo fait immédiatement réapparaître les exercices masqués, logs déjà saisis compris.
 - `exDuration(e)` estime la durée par exercice (`sets × (45 s + repos)` ; notes ~3 min, cardio = `e.mins` minutes, 8 min par défaut) — une heuristique volontairement simple, pas un chronométrage réel.
-- `timeCap` est une préférence d'affichage : incluse dans `STATE_DEFAULTS`, mais **préservée** (pas remise à 0) par le bouton reset, comme `show6`/`view`.
+- `timeCap` est une préférence d'affichage : incluse dans `freshState()`, mais **préservée** (pas remise à 0) par le bouton reset, comme `show6`/`view`.
+
+## Mesures corporelles
+- `state.measures = {waist:[], arm:[], hip:[]}` (même forme que `state.weights` : `{date,cm}`). UI dans l'onglet Poids (`renderWeight`/`measureBlockHtml`), sous le graphique de poids — dernière valeur + delta + 5 dernières entrées par mesure, pas de graphique dédié (reste léger).
+- Le reset (« Effacer mes données ») efface aussi les mesures, comme poids/logs/swaps/done.
+
+## `freshState()` — piège des objets par défaut partagés
+- **Bug corrigé** : `state` par défaut était un objet **const unique** (`STATE_DEFAULTS`) réutilisé partout via `Object.assign({},STATE_DEFAULTS,...)`. Comme `Object.assign` ne copie les tableaux/objets imbriqués (`weights`, `logs`, `swaps`, `done`) que **par référence**, tout état qui n'écrasait pas explicitement un de ces champs gardait la référence partagée — une `.push()` ou une mutation en place (`state.logs[k]=...`) polluait alors `STATE_DEFAULTS` pour de bon, pour le reste de la session (reset, nouveau profil, migration compris).
+- Corrigé en remplaçant `STATE_DEFAULTS` (objet) par `freshState()` (fonction qui retourne un objet neuf à chaque appel, tableaux/objets imbriqués inclus). **Toujours utiliser `freshState()`, jamais un objet littéral partagé, pour tout nouvel état par défaut.** Vérifié : deux appels à `freshState()` puis mutation de l'un ne touchent pas l'autre.
 
 ## Synchro cloud (Supabase) — par profil
 - Client `@supabase/supabase-js` chargé via CDN (`<script src="...supabase-js@2.45.4/dist/umd/supabase.js">`), pas de build.
@@ -56,17 +70,23 @@ Tout tient dans `index.html`.
 - Auth par magic link (`signInWithOtp`, pas de mot de passe). **Un client Supabase par profil actif** (`reconnectCloud`, `auth.storageKey:'sb-auth-'+profileId`) : chaque profil garde sa propre session de connexion dans le même navigateur, sans se marcher dessus au changement de profil.
 - `flush()` déclenche un push cloud débouncé (1,2 s) si connecté. À la connexion (ou au chargement), `cloudPull()` compare `state.updatedAt` local à `updated_at` distant et prend le plus récent (fusion **last-write-wins sur le bundle entier**, pas de merge champ à champ).
 
+## PWA installable (sans service worker)
+- Icône (SVG inline) + manifest générés **en JS** (IIFE tout en haut du script, avant `/* Programme */`) via `encodeURIComponent`/`JSON.stringify`, jamais par concaténation manuelle de data-URI imbriquées (fragile à la main : un `%` mal encodé casse silencieusement le manifest ou l'icône). Posés sur des `<link>` placeholders (`#appIcon`,`#appTouchIcon`,`#appManifest`) dans le `<head>`.
+- Volontairement pas de service worker (décision utilisateur) : garde le format à fichier unique. L'app tourne déjà hors-ligne via `localStorage` une fois chargée ; seule la synchro Supabase a besoin du net et se dégrade déjà proprement.
+- Pas testable dans cet environnement (pas de vrai navigateur) — l'installation réelle (icône, écran de démarrage) est à vérifier sur un téléphone.
+
 ## Ce qui existe déjà
-Profils multi-utilisateurs avec sélecteur local (sans login) ; générateur de programme par questionnaire (full-body/haut-bas/5-6 jours selon jours par semaine et niveau) ; programme historique 5-6 jours + séance légère du soir ; suivi charges + progression (sparklines) ; minuteur de repos ; fiches technique (`HOWTO`) + alternatives (`ALT`) + sélecteur de swap ; onglet Poids (courbe + objectif + verdict de rythme) ; bouton « Terminer la séance » ; onglet Nutrition (cibles calculées par profil) ; Export/Import ; hébergement GitHub Pages ; synchro cloud Supabase par profil (magic link + last-write-wins).
+Profils multi-utilisateurs avec sélecteur local (sans login) ; générateur de programme par questionnaire (full-body/haut-bas/5-6 jours, sexe, objectif, niveau, points faibles/forts, limites/douleurs) ; programme historique 5-6 jours + séance légère du soir ; suivi charges + progression (sparklines) + suggestion de charge + échauffement ; minuteur de repos (auto au pointage d'une série) ; fiches technique (`HOWTO`) + alternatives (`ALT`) + sélecteur de swap ; onglet Poids (courbe + objectif + verdict de rythme + mesures corporelles) ; réglage de temps disponible par séance ; bouton « Terminer la séance » ; onglet Nutrition (cibles calculées par profil) ; Export/Import ; hébergement GitHub Pages ; PWA installable ; synchro cloud Supabase par profil (magic link + last-write-wins).
 
 ## Roadmap (par priorité)
 1. ~~Héberger l'app (GitHub Pages)~~ — fait : `https://balenrion.github.io/Positraining/`.
 2. ~~Synchro cloud multi-appareils via Supabase~~ — fait.
-3. ~~Profils multi-utilisateurs + générateur de programme~~ — fait (voir sections dédiées ci-dessus).
-4. Comptes / login plus riches : actuellement magic link par email uniquement ; envisager mot de passe en option si besoin d'un flux plus rapide sur appareils de confiance.
+3. ~~Profils multi-utilisateurs + générateur de programme~~ — fait.
+4. ~~Progression auto, échauffement, minuteur auto, limites structurées, PWA, mesures~~ — fait (voir sections dédiées ci-dessus).
+5. Comptes / login plus riches : actuellement magic link par email uniquement ; envisager mot de passe en option si besoin d'un flux plus rapide sur appareils de confiance.
 
 ## Conventions
 - Rester en français côté UI.
-- Toute nouvelle donnée persistée : l'ajouter aux valeurs par défaut (`STATE_DEFAULTS` pour `state`, structure de `program` sinon), aux gardes d'init/migration, au reset, ET la couvrir par Export/Import.
+- Toute nouvelle donnée persistée : l'ajouter à `freshState()` (jamais un objet littéral partagé — voir plus haut) pour `state`, à la structure de `program` sinon, aux gardes d'init/migration, au reset, ET la couvrir par Export/Import.
 - Ne jamais muter `DAYS_ORIGINAL`/`EXO_POOL` en place — toujours cloner avant modification (le générateur et les profils en dépendent).
 - Vérifier la syntaxe JS avant de livrer (`node --check` sur le script extrait).
