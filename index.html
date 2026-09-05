@@ -110,6 +110,7 @@
 
   /* Settings sheet */
   .sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:none;align-items:flex-end;}
+  .sheet#swap{z-index:41;}
   .sheet.show{display:flex;}
   .sheet .card{background:var(--surface);width:100%;max-width:520px;margin:0 auto;border-radius:16px 16px 0 0;
      padding:18px 18px calc(20px + env(safe-area-inset-bottom));}
@@ -485,12 +486,16 @@ function genderBias(days,sexe){
   });
   return days;
 }
+function cardioNote(){
+  return{n:'Cardio léger',note:true,tag:'cardio',cue:'8-10 min de vélo, rameur ou marche rapide en fin de séance, en zone où tu peux encore parler — bon pour le cœur et la récup, sans griller tes réserves pour les séries.'};
+}
 function generateProgram(ob){
   const jours=+ob.joursParSemaine||5;
   let days;
   if(jours<=3)days=templateFullBody3();
   else if(jours===4)days=templateUpperLower4();
   else days=template56(jours);
+  if(jours<=4)days.forEach(d=>d.ex.push(cardioNote()));
   genderBias(days,ob.sexe);
   applyNiveau(days,ob.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
@@ -977,11 +982,16 @@ $('#obGenerate').onclick=()=>{
 };
 function renderReview(){
   let html='';
+  const jp=+draftOnboarding.joursParSemaine||5;
+  html+=`<div class="insight ok">${jp} jour(s) d'entraînement/semaine → ${Math.max(0,7-jp)} jour(s) de repos complet dans la semaine, à respecter pour la récupération.</div>`;
   if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
   draftProgram.days.forEach((d,di)=>{
     html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
     d.ex.forEach((e,ei)=>{
-      if(e.note)return;
+      if(e.note){
+        html+=`<div style="padding:6px 0;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px">${e.tag==='cardio'?'🫀':'•'} <b style="color:var(--ink)">${e.n}</b> — ${e.cue}</div>`;
+        return;
+      }
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border)">
         <span>${e.n}<span style="color:var(--faint);font-size:12px"> · ${e.sets}×${e.reps}</span></span>
         <button class="swapbtn" data-di="${di}" data-ei="${ei}">⇄ Changer</button>
@@ -996,8 +1006,14 @@ function renderReview(){
   <div class="opt" style="display:block;flex-direction:column">
     <div class="d"><b>Cibles nutrition / jour</b></div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <input id="revKcal" class="acctin" inputmode="numeric" value="${draftProgram.nutrition.kcal}" placeholder="kcal">
-      <input id="revProt" class="acctin" inputmode="numeric" value="${draftProgram.nutrition.protein}" placeholder="protéines g">
+      <div style="flex:1">
+        <div style="font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Kcal / jour</div>
+        <input id="revKcal" class="acctin" inputmode="numeric" value="${draftProgram.nutrition.kcal}" style="margin-top:0">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Protéines (g)</div>
+        <input id="revProt" class="acctin" inputmode="numeric" value="${draftProgram.nutrition.protein}" style="margin-top:0">
+      </div>
     </div>
   </div>`;
   $('#reviewBody').innerHTML=html;
