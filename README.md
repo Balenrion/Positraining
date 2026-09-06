@@ -6,6 +6,8 @@ Carnet d'entraînement multi-profils : programme (généré selon tes objectifs)
 1. Ouvre `index.html` dans un navigateur (ordinateur ou téléphone), ou l'URL en ligne (voir plus bas).
 2. Sur mobile : menu du navigateur → **Ajouter à l'écran d'accueil**. L'app est installable (icône + écran de démarrage propres) et s'ouvre en plein écran comme une vraie app — sans passer par un app store.
 
+> ⚠️ **iOS : connecte le compte cloud AVANT d'ajouter à l'écran d'accueil.** Sur iPhone, l'app ouverte depuis l'icône peut utiliser un stockage local **séparé** de celui de Safari (comportement connu d'iOS, pas un bug de l'app) — au premier lancement depuis l'icône, tu peux te retrouver face à un profil vide alors que tes données sont toujours dans Safari. Rien n'est perdu : connecte-toi au compte cloud (Réglages ⚙︎ → Compte cloud) **dans Safari d'abord** (ça pousse tes données), puis avec le même email **dans l'app installée** (ça les récupère). Si tu n'utilises pas le cloud, fais un Export avant d'ajouter à l'écran d'accueil, par précaution.
+
 ## Plusieurs personnes, une seule app
 Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son programme et ses données, complètement séparés.
 
