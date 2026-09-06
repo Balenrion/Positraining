@@ -6,7 +6,7 @@ Carnet d'entraînement multi-profils : programme (généré selon tes objectifs)
 1. Ouvre `index.html` dans un navigateur (ordinateur ou téléphone), ou l'URL en ligne (voir plus bas).
 2. Sur mobile : menu du navigateur → **Ajouter à l'écran d'accueil**. L'app est installable (icône + écran de démarrage propres) et s'ouvre en plein écran comme une vraie app — sans passer par un app store.
 
-> ⚠️ **iOS : connecte le compte cloud AVANT d'ajouter à l'écran d'accueil.** Sur iPhone, l'app ouverte depuis l'icône peut utiliser un stockage local **séparé** de celui de Safari (comportement connu d'iOS, pas un bug de l'app) — au premier lancement depuis l'icône, tu peux te retrouver face à un profil vide alors que tes données sont toujours dans Safari. Rien n'est perdu : connecte-toi au compte cloud (Réglages ⚙︎ → Compte cloud) **dans Safari d'abord** (ça pousse tes données), puis avec le même email **dans l'app installée** (ça les récupère). Si tu n'utilises pas le cloud, fais un Export avant d'ajouter à l'écran d'accueil, par précaution.
+> ⚠️ **iOS : fais un Export AVANT d'ajouter à l'écran d'accueil.** Sur iPhone, l'app ouverte depuis l'icône peut utiliser un stockage local **séparé** de celui de Safari (comportement connu d'iOS, pas un bug de l'app) — au premier lancement depuis l'icône, tu peux te retrouver face à un profil vide alors que tes données sont toujours dans Safari. Si ça arrive : Réglages (⚙︎) → **Exporter mes données** dans Safari, puis **Importer une sauvegarde** dans l'app installée.
 
 ## Plusieurs personnes, une seule app
 Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son programme et ses données, complètement séparés.
@@ -18,7 +18,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
   - Tout reste ajustable (changer un exercice, l'objectif de poids, les cibles nutrition) avant de valider.
 - Les chips affichent les profils existants — touche-en un pour basculer dessus. Aucune connexion n'est nécessaire pour changer de profil.
 - **Supprimer ce profil** efface définitivement un profil et ses données (disponible dès qu'il y en a plusieurs).
-- Chaque profil peut, indépendamment, se connecter à son propre compte cloud (voir plus bas) pour synchroniser ses données entre ses propres appareils.
+- Les données de chaque profil restent sur l'appareil ; utilise Export/Import (voir ci-dessous) pour les transférer vers un autre appareil.
 
 ## Pendant la séance
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
@@ -29,30 +29,17 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 - **+ Ajouter un exercice** en bas de la séance pour insérer un mouvement de ton choix (nom, séries, reps, repos) — utile si aucune alternative proposée ne convient. Reste dans ton programme (✕ Retirer pour l'enlever).
 
 ## Où sont mes données ?
-Les données (charges, poids, séances validées, exercices remplacés) sont enregistrées **dans le navigateur** de l'appareil (localStorage), et synchronisées automatiquement dans le cloud si tu es connecté (voir ci-dessous).
+Les données (charges, poids, séances validées, exercices remplacés) sont enregistrées **dans le navigateur** de l'appareil (localStorage). Il n'y a pas de synchro cloud automatique.
 
-- **Sauvegarde / transfert manuel** : Réglages (⚙︎) → **Exporter mes données** télécharge un fichier `.json`. Sur un autre appareil ou un nouveau compte : Réglages → **Importer une sauvegarde**. Reste le filet de secours hors ligne, même avec la synchro cloud activée.
-- ⚠️ Sans compte connecté, fais un export **avant de changer d'appareil** — sinon les données restent sur l'ancien.
+- **Sauvegarde / transfert manuel** : Réglages (⚙︎) → **Exporter mes données** télécharge un fichier `.json`. Sur un autre appareil : Réglages → **Importer une sauvegarde**.
+- ⚠️ Fais un export **avant de changer d'appareil ou de réinstaller l'app** — sinon les données restent sur l'ancien.
 - L'onglet **Poids** suit aussi le tour de taille, de bras et de hanches (utile pour juger une recomposition au-delà du seul chiffre sur la balance).
 
 ## L'app en ligne
 Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positraining/**
 
-## Synchro cloud multi-appareils (Supabase)
-Connecte-toi via Réglages (⚙︎) → **Compte cloud** avec ton email — tu reçois un email avec un lien de connexion **et** un code à 6 chiffres (pas de mot de passe). Une fois connecté sur plusieurs appareils avec le même email, les données **de ce profil** se synchronisent automatiquement (dernière modification gagne). Chaque profil a sa propre connexion : toi et ta femme pouvez chacun vous connecter avec votre email, sans interférer avec les données de l'autre.
-
-> ⚠️ **Depuis l'app installée (PWA) sur iPhone, utilise le code à 6 chiffres, pas le lien.** Un lien cliqué depuis Mail sur iOS s'ouvre toujours dans Safari, jamais dans l'app ajoutée à l'écran d'accueil — le code, lui, se tape directement dans l'app et fonctionne partout.
-
-Mise en place côté projet Supabase (déjà fait pour cette instance, à refaire si tu changes de projet) :
-1. Crée un projet sur [supabase.com](https://supabase.com).
-2. Exécute `supabase-schema.sql` dans le SQL Editor (crée la table `state` + les règles RLS).
-3. Dans **Authentication → URL Configuration**, mets l'URL de l'app (Site URL + Redirect URLs) : `https://balenrion.github.io/Positraining/`.
-4. Renseigne `SUPABASE_URL` et `SUPABASE_ANON_KEY` (clé *publishable*, publique par design) en haut du bloc « Synchro cloud » dans `index.html`.
-5. Dans **Authentication → Email Templates → Magic Link**, vérifie que le modèle contient bien `{{ .Token }}` (en plus du lien) — sinon le code à 6 chiffres n'apparaît jamais dans l'email reçu.
-
 ## Structure du projet
-- `index.html` — toute l'app (HTML + CSS + JavaScript, zéro dépendance externe côté build ; charge le client Supabase via CDN pour la synchro).
-- `supabase-schema.sql` — schéma SQL de la table `state` + RLS, à exécuter une fois dans le projet Supabase.
+- `index.html` — toute l'app (HTML + CSS + JavaScript, zéro dépendance externe, aucun appel réseau).
 
 ## Feuille de route
 - [x] Programme 5-6 jours + séance légère du soir
@@ -63,7 +50,6 @@ Mise en place côté projet Supabase (déjà fait pour cette instance, à refair
 - [x] Onglet nutrition (menus + timing)
 - [x] Export / Import des données
 - [x] Hébergement (GitHub Pages)
-- [x] Synchro cloud (Supabase, magic link)
 - [x] Profils multi-utilisateurs (sélecteur local) + générateur de programme par questionnaire
 - [x] Suggestion de charge, échauffement, minuteur automatique
 - [x] Limites/douleurs en cases à cocher (exclusion/remplacement automatique des exercices à risque)

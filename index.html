@@ -264,19 +264,6 @@
       <button class="close" id="newProfileBtn">+ Nouveau profil</button>
       <button class="danger" id="deleteProfileBtn" style="display:none">Supprimer ce profil</button>
     </div>
-    <div class="acct">
-      <div class="d"><b>Compte cloud</b><br><span id="acctStatus">…</span></div>
-      <div id="acctLoggedOut">
-        <input id="acctEmail" type="email" placeholder="ton@email.com" class="acctin" autocomplete="email">
-        <button class="close" id="acctSendLink">Recevoir un code par email</button>
-        <input id="acctCode" inputmode="numeric" placeholder="Code à 6 chiffres" class="acctin" autocomplete="one-time-code">
-        <button class="close" id="acctVerifyCode">Valider le code</button>
-      </div>
-      <div id="acctLoggedIn" style="display:none">
-        <div class="d">Connecté : <b id="acctEmailShown"></b></div>
-        <button class="close" id="acctLogout">Se déconnecter</button>
-      </div>
-    </div>
     <div class="opt">
       <div class="d"><b>Afficher le 6ᵉ jour</b><br>Bras + rappel pecs + core (variante 6 séances)</div>
       <button class="sw" id="sw6" aria-label="Activer le 6e jour"></button>
@@ -373,7 +360,6 @@
 
 <div class="foot">Reprise progressive → surcharge → décharge. Bats la dernière ligne, une rep à la fois.</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 /* ---------- PWA installable (manifest + icône en data-URI, un seul fichier) ---------- */
 (function(){
@@ -675,7 +661,7 @@ function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.m
 let state=freshState();
 let saveTimer=null;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(flush,250);}
-function flush(){clearTimeout(saveTimer);state.updatedAt=Date.now();persistActiveBundle();cloudPush();}
+function flush(){clearTimeout(saveTimer);state.updatedAt=Date.now();persistActiveBundle();}
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
 addEventListener('pagehide',flush);
 
@@ -715,82 +701,6 @@ async function switchProfile(id){
   applyBundle(b);
   writeNow(ACTIVE_KEY,activeId);
   renderProfileChips();renderAll();setView(state.view||'train');
-  reconnectCloud();
-}
-
-/* ---------- Synchro cloud (Supabase) ---------- */
-const SUPABASE_URL='https://nwirxyyirkidiwaqaxjc.supabase.co';
-const SUPABASE_ANON_KEY='sb_publishable_mCDGXglTY8R8hmD-V3m52g_dym-VSsQ';
-let sb=null,sbUnsub=null,cloudUser=null,cloudPushTimer=null;
-
-function cloudStatus(msg,ok){const el=$('#acctStatus');if(el){el.textContent=msg;el.style.color=ok?'var(--go)':'var(--muted)';}}
-
-function applyRemoteBundle(bundle){
-  applyBundle(bundle);
-  persistActiveBundle();
-  renderProfileChips();renderAll();setView(state.view||'train');
-}
-
-async function cloudPull(){
-  if(!sb||!cloudUser)return;
-  try{
-    const{data,error}=await sb.from('state').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
-    if(error)throw error;
-    if(!data){cloudPush(true);return;}
-    const remoteAt=new Date(data.updated_at).getTime();
-    if(remoteAt>(state.updatedAt||0)){applyRemoteBundle(data.data);cloudStatus('Synchronisé ✓ (données du cloud)',true);}
-    else{cloudPush(true);}
-  }catch(e){cloudStatus('Erreur de synchro au chargement',false);}
-}
-function cloudPush(immediate){
-  if(!sb||!cloudUser)return;
-  clearTimeout(cloudPushTimer);
-  const run=async()=>{
-    try{
-      const{error}=await sb.from('state').upsert({user_id:cloudUser.id,data:bundleFromCurrent(),updated_at:new Date(state.updatedAt).toISOString()});
-      if(error)throw error;
-      cloudStatus('Synchronisé ✓',true);
-    }catch(e){cloudStatus('Erreur de synchro — nouvel essai au prochain enregistrement',false);}
-  };
-  if(immediate)run();else cloudPushTimer=setTimeout(run,1200);
-}
-async function cloudSignIn(email){
-  if(!sb)return;
-  cloudStatus('Envoi…',false);
-  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
-  cloudStatus(error?'Erreur : '+error.message:'Code envoyé — entre-le ci-dessous (ou clique le lien reçu si tu es sur ordinateur/Android).',!error);
-}
-async function cloudVerifyCode(email,code){
-  if(!sb)return;
-  cloudStatus('Vérification du code…',false);
-  const{error}=await sb.auth.verifyOtp({email,token:code,type:'email'});
-  cloudStatus(error?'Code invalide ou expiré : '+error.message:'Connecté ✓',!error);
-}
-async function cloudSignOut(){if(!sb)return;await sb.auth.signOut();}
-function renderAccount(){
-  const out=$('#acctLoggedOut'),inn=$('#acctLoggedIn');
-  if(!sb){if(out)out.style.display='none';if(inn)inn.style.display='none';cloudStatus('Synchro indisponible (client non chargé)',false);return;}
-  if(cloudUser){
-    if(out)out.style.display='none';if(inn)inn.style.display='';
-    const em=$('#acctEmailShown');if(em)em.textContent=cloudUser.email||'';
-    const code=$('#acctCode');if(code)code.value='';
-    cloudStatus('Connecté ✓',true);
-  }else{
-    if(out)out.style.display='';if(inn)inn.style.display='none';
-    cloudStatus('Non connecté — synchro uniquement sur cet appareil.',false);
-  }
-}
-function reconnectCloud(){
-  if(sbUnsub){try{sbUnsub.unsubscribe();}catch(e){}sbUnsub=null;}
-  sb=(window.supabase&&activeId)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:'sb-auth-'+activeId,persistSession:true}}):null;
-  cloudUser=null;
-  if(!sb){renderAccount();return;}
-  const{data}=sb.auth.onAuthStateChange((event,session)=>{
-    cloudUser=session?session.user:null;renderAccount();
-    if(cloudUser)cloudPull();
-  });
-  sbUnsub=data.subscription;
-  sb.auth.getSession().then(({data})=>{cloudUser=data.session?data.session.user:null;renderAccount();if(cloudUser)cloudPull();});
 }
 
 /* ---------- Helpers ---------- */
@@ -1160,19 +1070,6 @@ $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
 $('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
   state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
-$('#acctSendLink').onclick=()=>{
-  const email=($('#acctEmail').value||'').trim();
-  if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
-  cloudSignIn(email);
-};
-$('#acctVerifyCode').onclick=()=>{
-  const email=($('#acctEmail').value||'').trim();
-  const code=($('#acctCode').value||'').trim();
-  if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
-  if(!code){$('#acctCode').focus();return;}
-  cloudVerifyCode(email,code);
-};
-$('#acctLogout').onclick=()=>cloudSignOut();
 $('#exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(bundleFromCurrent())],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -1316,7 +1213,6 @@ $('#reviewValidate').onclick=()=>{
   persistActiveBundle();writeNow(ACTIVE_KEY,activeId);
   $('#review').classList.remove('show');$('#sheet').classList.remove('show');
   renderProfileChips();renderAll();setView('train');
-  reconnectCloud();
 };
 $('#deleteProfileBtn').onclick=async()=>{
   if(profiles.length<=1)return;
@@ -1476,7 +1372,6 @@ document.querySelectorAll('.viewtabs button').forEach(b=>b.onclick=()=>setView(b
   }
   renderProfileChips();
   renderAll();setView(state.view||'train');save();
-  reconnectCloud();
 })();
 </script>
 </body>

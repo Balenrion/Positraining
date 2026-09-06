@@ -20,10 +20,10 @@ Tout tient dans `index.html`.
 ## Stockage (persistant, avec repli mémoire)
 - `writeNow/readVal/delVal` : `window.storage` (runtime artefact Claude) → sinon `localStorage` → sinon mémoire.
 - Clés : `positraining_v1_profiles` (index `[{id,name,createdAt}]`), `positraining_v1_active` (id du profil actif), `positraining_v1_p_<id>` (bundle complet d'un profil). `OLD_KEY='positraining_v1'` n'est lu qu'une fois, pour la migration (voir Init).
-- Sauvegarde debouncée + `flush()` sur `pagehide`/`visibilitychange` → persiste le bundle du profil actif (`persistActiveBundle`) et pousse au cloud (`cloudPush`).
+- Sauvegarde debouncée + `flush()` sur `pagehide`/`visibilitychange` → persiste le bundle du profil actif (`persistActiveBundle`).
 - Export/Import portent sur le bundle complet du profil actif (`onboarding`+`program`+`state`) ; l'ancien format (state seul) reste importable en compat.
 - Les logs sont indexés par `exId__wSEMAINE` ; un exercice remplacé (swap) prend un id suffixé (`exId~slug`) pour garder un historique distinct — dans l'écran de review d'un nouveau profil (avant toute donnée), le swap remplace directement l'exercice (`openSwapDraft`) plutôt que de passer par `state.swaps`.
-- `state.updatedAt` (timestamp ms) mis à jour à chaque `flush()` ; sert de base à la fusion last-write-wins avec le cloud.
+- `state.updatedAt` (timestamp ms) mis à jour à chaque `flush()`.
 - **Migration automatique** (Init) : si aucun profil n'existe mais que `positraining_v1` (ancien format) existe, un profil « Laurent » est créé à partir de ces données + `PROGRAM_DEFAULT`, sans perte de charges/poids/logs.
 
 ## Générateur de programme
@@ -70,28 +70,19 @@ Tout tient dans `index.html`.
 - Corrigé en remplaçant `STATE_DEFAULTS` (objet) par `freshState()` (fonction qui retourne un objet neuf à chaque appel, tableaux/objets imbriqués inclus). **Toujours utiliser `freshState()`, jamais un objet littéral partagé, pour tout nouvel état par défaut.** Vérifié : deux appels à `freshState()` puis mutation de l'un ne touchent pas l'autre.
 - Même correctif appliqué à `program` : `PROGRAM_DEFAULT` (objet, `days:DAYS_ORIGINAL` en référence directe) → `freshProgramDefault()` (clone `DAYS_ORIGINAL` à chaque appel). Devenu nécessaire dès que `program.days` peut être muté (ajout/suppression d'exercice, voir plus haut) — sans ça, une mutation aurait pollué la constante `DAYS_ORIGINAL` partagée par tout le monde (pool d'exercices, migration) pour le reste de la session.
 
-## Synchro cloud (Supabase) — par profil
-- Client `@supabase/supabase-js` chargé via CDN (`<script src="...supabase-js@2.45.4/dist/umd/supabase.js">`), pas de build.
-- Constantes `SUPABASE_URL` / `SUPABASE_ANON_KEY` en dur dans `index.html` (clé publishable, publique par design).
-- Table `state` (une ligne par utilisateur Supabase, `user_id` = `auth.users.id`, colonnes `data jsonb`, `updated_at timestamptz`) + RLS. Schéma dans `supabase-schema.sql` — inchangé, `data` contient désormais le bundle complet (`onboarding`+`program`+`state`) au lieu du seul `state`.
-- Auth par magic link **et** code à 6 chiffres (`signInWithOtp` envoie les deux dans le même email ; `cloudVerifyCode` appelle `sb.auth.verifyOtp({email,token:code,type:'email'})`), pas de mot de passe. Le code existe parce qu'un lien cliqué depuis Mail sur iOS s'ouvre **toujours** dans Safari, jamais dans une PWA ajoutée à l'écran d'accueil — sans lui, impossible de se connecter au cloud depuis l'app installée (retour utilisateur direct). Nécessite que le modèle d'email Supabase (Authentication → Email Templates → Magic Link) inclue `{{ .Token }}`, sinon le code n'apparaît jamais dans l'email reçu.
-- **Un client Supabase par profil actif** (`reconnectCloud`, `auth.storageKey:'sb-auth-'+profileId`) : chaque profil garde sa propre session de connexion dans le même navigateur, sans se marcher dessus au changement de profil.
-- `flush()` déclenche un push cloud débouncé (1,2 s) si connecté. À la connexion (ou au chargement), `cloudPull()` compare `state.updatedAt` local à `updated_at` distant et prend le plus récent (fusion **last-write-wins sur le bundle entier**, pas de merge champ à champ).
-
 ## PWA installable (sans service worker)
 - Icône (SVG inline) + manifest générés **en JS** (IIFE tout en haut du script, avant `/* Programme */`) via `encodeURIComponent`/`JSON.stringify`, jamais par concaténation manuelle de data-URI imbriquées (fragile à la main : un `%` mal encodé casse silencieusement le manifest ou l'icône). Posés sur des `<link>` placeholders (`#appIcon`,`#appTouchIcon`,`#appManifest`) dans le `<head>`.
-- Volontairement pas de service worker (décision utilisateur) : garde le format à fichier unique. L'app tourne déjà hors-ligne via `localStorage` une fois chargée ; seule la synchro Supabase a besoin du net et se dégrade déjà proprement.
+- Volontairement pas de service worker (décision utilisateur) : garde le format à fichier unique. L'app tourne entièrement hors-ligne via `localStorage` une fois chargée — aucun appel réseau dans l'app.
 - Pas testable dans cet environnement (pas de vrai navigateur) — l'installation réelle (icône, écran de démarrage) est à vérifier sur un téléphone.
 
 ## Ce qui existe déjà
-Profils multi-utilisateurs avec sélecteur local (sans login) ; générateur de programme par questionnaire (full-body/haut-bas/5-6 jours, sexe, objectif, niveau, points faibles/forts, limites/douleurs) ; programme historique 5-6 jours + séance légère du soir ; suivi charges + progression (sparklines) + suggestion de charge + échauffement ; minuteur de repos (auto au pointage d'une série) ; fiches technique (`HOWTO`) + alternatives (`ALT`) + sélecteur de swap ; onglet Poids (courbe + objectif + verdict de rythme + mesures corporelles) ; réglage de temps disponible par séance ; bouton « Terminer la séance » ; onglet Nutrition (cibles calculées par profil) ; Export/Import ; hébergement GitHub Pages ; PWA installable ; synchro cloud Supabase par profil (magic link + last-write-wins).
+Profils multi-utilisateurs avec sélecteur local (sans login) ; générateur de programme par questionnaire (full-body/haut-bas/5-6 jours, sexe, objectif, niveau, points faibles/forts, limites/douleurs) ; programme historique 5-6 jours + séance légère du soir ; suivi charges + progression (sparklines) + suggestion de charge + échauffement ; minuteur de repos (auto au pointage d'une série) ; fiches technique (`HOWTO`) + alternatives (`ALT`) + sélecteur de swap ; onglet Poids (courbe + objectif + verdict de rythme + mesures corporelles) ; réglage de temps disponible par séance ; bouton « Terminer la séance » ; onglet Nutrition (cibles calculées par profil) ; Export/Import ; hébergement GitHub Pages ; PWA installable.
 
 ## Roadmap (par priorité)
 1. ~~Héberger l'app (GitHub Pages)~~ — fait : `https://balenrion.github.io/Positraining/`.
-2. ~~Synchro cloud multi-appareils via Supabase~~ — fait.
-3. ~~Profils multi-utilisateurs + générateur de programme~~ — fait.
-4. ~~Progression auto, échauffement, minuteur auto, limites structurées, PWA, mesures~~ — fait (voir sections dédiées ci-dessus).
-5. Comptes / login plus riches : actuellement magic link par email uniquement ; envisager mot de passe en option si besoin d'un flux plus rapide sur appareils de confiance.
+2. ~~Profils multi-utilisateurs + générateur de programme~~ — fait.
+3. ~~Progression auto, échauffement, minuteur auto, limites structurées, PWA, mesures~~ — fait (voir sections dédiées ci-dessus).
+4. ~~Synchro cloud multi-appareils via Supabase~~ — implémentée puis **retirée** : le login (magic link, puis code à 6 chiffres en solution de repli) s'est heurté à deux limitations iOS irréductibles (lien qui ouvre toujours Safari plutôt que la PWA installée ; puis config SMTP externe obligatoire côté Supabase pour faire apparaître le code dans l'email) jugées trop contraignantes par l'utilisateur pour un usage mono-appareil. Tout le code associé (client Supabase, table `state`, sheet « Compte cloud ») a été supprimé ; `supabase-schema.sql` n'est plus référencé. Export/Import reste le seul mécanisme de sauvegarde/transfert. À reconsidérer seulement si un vrai besoin multi-appareils réapparaît.
 
 ## Conventions
 - Rester en français côté UI.
