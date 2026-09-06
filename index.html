@@ -268,7 +268,9 @@
       <div class="d"><b>Compte cloud</b><br><span id="acctStatus">…</span></div>
       <div id="acctLoggedOut">
         <input id="acctEmail" type="email" placeholder="ton@email.com" class="acctin" autocomplete="email">
-        <button class="close" id="acctSendLink">Recevoir un lien de connexion</button>
+        <button class="close" id="acctSendLink">Recevoir un code par email</button>
+        <input id="acctCode" inputmode="numeric" placeholder="Code à 6 chiffres" class="acctin" autocomplete="one-time-code">
+        <button class="close" id="acctVerifyCode">Valider le code</button>
       </div>
       <div id="acctLoggedIn" style="display:none">
         <div class="d">Connecté : <b id="acctEmailShown"></b></div>
@@ -754,9 +756,15 @@ function cloudPush(immediate){
 }
 async function cloudSignIn(email){
   if(!sb)return;
-  cloudStatus('Envoi du lien…',false);
+  cloudStatus('Envoi…',false);
   const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
-  cloudStatus(error?'Erreur : '+error.message:'Lien envoyé — vérifie ta boîte mail ✉︎',!error);
+  cloudStatus(error?'Erreur : '+error.message:'Code envoyé — entre-le ci-dessous (ou clique le lien reçu si tu es sur ordinateur/Android).',!error);
+}
+async function cloudVerifyCode(email,code){
+  if(!sb)return;
+  cloudStatus('Vérification du code…',false);
+  const{error}=await sb.auth.verifyOtp({email,token:code,type:'email'});
+  cloudStatus(error?'Code invalide ou expiré : '+error.message:'Connecté ✓',!error);
 }
 async function cloudSignOut(){if(!sb)return;await sb.auth.signOut();}
 function renderAccount(){
@@ -765,6 +773,7 @@ function renderAccount(){
   if(cloudUser){
     if(out)out.style.display='none';if(inn)inn.style.display='';
     const em=$('#acctEmailShown');if(em)em.textContent=cloudUser.email||'';
+    const code=$('#acctCode');if(code)code.value='';
     cloudStatus('Connecté ✓',true);
   }else{
     if(out)out.style.display='';if(inn)inn.style.display='none';
@@ -1155,6 +1164,13 @@ $('#acctSendLink').onclick=()=>{
   const email=($('#acctEmail').value||'').trim();
   if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
   cloudSignIn(email);
+};
+$('#acctVerifyCode').onclick=()=>{
+  const email=($('#acctEmail').value||'').trim();
+  const code=($('#acctCode').value||'').trim();
+  if(!email||!email.includes('@')){$('#acctEmail').focus();return;}
+  if(!code){$('#acctCode').focus();return;}
+  cloudVerifyCode(email,code);
 };
 $('#acctLogout').onclick=()=>cloudSignOut();
 $('#exportBtn').onclick=()=>{

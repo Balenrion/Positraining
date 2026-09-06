@@ -39,13 +39,16 @@ Les données (charges, poids, séances validées, exercices remplacés) sont enr
 Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positraining/**
 
 ## Synchro cloud multi-appareils (Supabase)
-Connecte-toi via Réglages (⚙︎) → **Compte cloud** avec ton email — tu reçois un lien de connexion (pas de mot de passe). Une fois connecté sur plusieurs appareils avec le même email, les données **de ce profil** se synchronisent automatiquement (dernière modification gagne). Chaque profil a sa propre connexion : toi et ta femme pouvez chacun vous connecter avec votre email, sans interférer avec les données de l'autre.
+Connecte-toi via Réglages (⚙︎) → **Compte cloud** avec ton email — tu reçois un email avec un lien de connexion **et** un code à 6 chiffres (pas de mot de passe). Une fois connecté sur plusieurs appareils avec le même email, les données **de ce profil** se synchronisent automatiquement (dernière modification gagne). Chaque profil a sa propre connexion : toi et ta femme pouvez chacun vous connecter avec votre email, sans interférer avec les données de l'autre.
+
+> ⚠️ **Depuis l'app installée (PWA) sur iPhone, utilise le code à 6 chiffres, pas le lien.** Un lien cliqué depuis Mail sur iOS s'ouvre toujours dans Safari, jamais dans l'app ajoutée à l'écran d'accueil — le code, lui, se tape directement dans l'app et fonctionne partout.
 
 Mise en place côté projet Supabase (déjà fait pour cette instance, à refaire si tu changes de projet) :
 1. Crée un projet sur [supabase.com](https://supabase.com).
 2. Exécute `supabase-schema.sql` dans le SQL Editor (crée la table `state` + les règles RLS).
 3. Dans **Authentication → URL Configuration**, mets l'URL de l'app (Site URL + Redirect URLs) : `https://balenrion.github.io/Positraining/`.
 4. Renseigne `SUPABASE_URL` et `SUPABASE_ANON_KEY` (clé *publishable*, publique par design) en haut du bloc « Synchro cloud » dans `index.html`.
+5. Dans **Authentication → Email Templates → Magic Link**, vérifie que le modèle contient bien `{{ .Token }}` (en plus du lien) — sinon le code à 6 chiffres n'apparaît jamais dans l'email reçu.
 
 ## Structure du projet
 - `index.html` — toute l'app (HTML + CSS + JavaScript, zéro dépendance externe côté build ; charge le client Supabase via CDN pour la synchro).
