@@ -7,6 +7,7 @@ Tout tient dans `index.html`.
 - **Un seul fichier** : `index.html` (HTML + CSS + JS vanilla, aucune dépendance, aucun build).
 - **Mobile-first**, thème sombre « athlétique », police Oswald pour les chiffres. UI **en français**.
 - Pas de framework. Garder ce format autonome sauf décision explicite de migrer.
+- **Usage 100 % mobile** (confirmé par l'utilisateur) : sur tout nouvel élément (ligne de champs côte à côte, sheet, chips), vérifier qu'il tient sur un écran étroit (~375px de large, soit ~310px une fois les paddings `.wrap`/`.card` déduits). Piège classique : des `<input>` en enfants directs d'un `display:flex` peuvent refuser de rétrécir sous leur largeur intrinsèque et déborder — toujours les envelopper dans un `<div style="flex:1;min-width:0">` (voir `#addex`, ou `revKcal`/`revProt` dans la review) plutôt que de mettre `flex`/`width:100%` sur l'input directement.
 
 ## Modèle de données : profils
 - Un **profil** = une personne = `{onboarding, program, state}` :
