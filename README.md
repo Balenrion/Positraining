@@ -21,6 +21,8 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 - Les données de chaque profil restent sur l'appareil ; utilise Export/Import (voir ci-dessous) pour les transférer vers un autre appareil.
 
 ## Pendant la séance
+- **Séance / Poids / Nutrition** se change via la barre en bas de l'écran, accessible au pouce sans avoir à remonter.
+- **Glisse à gauche/droite** sur la séance pour passer au jour suivant/précédent, sans repasser par les onglets du haut.
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
 - Le **minuteur de repos démarre automatiquement** dès que tu coches une série faite.
@@ -56,4 +58,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] App installable (PWA)
 - [x] Suivi de mesures corporelles (taille, bras, hanches)
 - [x] Passer un exercice (par semaine) + ajouter un exercice personnalisé
-- [ ] Comptes / login plus riches (ex. mot de passe en option)
+- [x] Barre de navigation fixe en bas, swipe entre jours, retour tactile sur les actions clés

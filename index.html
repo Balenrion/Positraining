@@ -25,7 +25,7 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);}
-  body{padding-bottom:96px; line-height:1.4;}
+  body{padding-bottom:calc(78px + env(safe-area-inset-bottom)); line-height:1.4;}
   .wrap{max-width:520px;margin:0 auto;padding:0 14px;}
 
   /* Header */
@@ -104,10 +104,11 @@
   .unit span:nth-child(2),.unit span:nth-child(4){text-align:left;padding-left:4px;}
 
   /* Rest timer */
-  .timer{position:fixed;left:0;right:0;bottom:0;z-index:30;transform:translateY(120%);transition:transform .25s ease;}
-  .timer.show{transform:translateY(0);}
+  .timer{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:26;
+     transform:translateY(220px);transition:transform .25s ease;pointer-events:none;}
+  .timer.show{transform:translateY(0);pointer-events:auto;}
   .timer .inner{max-width:520px;margin:0 auto;background:var(--raised);border-top:1px solid var(--border);
-     display:flex;align-items:center;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
+     display:flex;align-items:center;gap:12px;padding:12px 16px;}
   .timer .big{font-family:var(--num);font-weight:700;font-size:34px;letter-spacing:.02em;min-width:92px;
      font-variant-numeric:tabular-nums;}
   .timer.warn .big{color:var(--go);}
@@ -139,10 +140,15 @@
      width:100%;margin-top:8px;font-weight:600;cursor:pointer;}
   .foot{text-align:center;color:var(--faint);font-size:11px;padding:22px 0 6px;}
 
-  /* View tabs */
-  .viewtabs{display:flex;gap:4px;margin:10px 14px 0;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:3px;}
-  .viewtabs button{flex:1;background:none;border:0;color:var(--muted);font-family:var(--num);font-weight:600;font-size:13px;letter-spacing:.03em;padding:8px;border-radius:8px;cursor:pointer;text-transform:uppercase;}
-  .viewtabs button.on{background:var(--raised);color:var(--ink);}
+  /* Bottom nav */
+  .bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--raised);
+     border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
+  .bottomnav .inner{max-width:520px;margin:0 auto;display:flex;}
+  .navbtn{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+     padding:8px 4px 7px;color:var(--faint);font-family:var(--ui);font-size:10.5px;font-weight:600;
+     letter-spacing:.02em;cursor:pointer;}
+  .navbtn .ic{font-size:20px;line-height:1;}
+  .navbtn.on{color:var(--go);}
 
   /* Note / rehab cards */
   .ex.note{border-style:dashed;border-color:#3a4150;background:transparent;}
@@ -236,7 +242,6 @@
 <body>
 <header>
   <div class="brand"><b>POSI<span>·</span>TRAINING</b><button class="cog" id="cog" aria-label="Réglages">⚙︎</button></div>
-  <div class="viewtabs"><button data-v="train" class="on">Séance</button><button data-v="weight">Poids</button><button data-v="nutri">Nutrition</button></div>
   <div class="weeks" id="weeks"></div>
   <div class="days" id="days"></div>
 </header>
@@ -254,6 +259,14 @@
     <button id="tstop">Stop</button>
   </div>
 </div>
+
+<nav class="bottomnav" id="bottomnav">
+  <div class="inner">
+    <button class="navbtn on" data-v="train"><span class="ic">🏋️</span>Séance</button>
+    <button class="navbtn" data-v="weight"><span class="ic">⚖️</span>Poids</button>
+    <button class="navbtn" data-v="nutri"><span class="ic">🍽️</span>Nutrition</button>
+  </div>
+</nav>
 
 <div class="sheet" id="sheet">
   <div class="card">
@@ -890,6 +903,15 @@ function renderDays(){
     el.appendChild(b);
   });
 }
+function visibleDays(){return DAYS.filter(d=>!d.opt||state.show6);}
+function goDay(delta){
+  const list=visibleDays();
+  const idx=list.findIndex(d=>d.id===state.day);
+  const next=idx===-1?null:list[idx+delta];
+  if(!next)return;
+  state.day=next.id;save();renderAll();
+  if(navigator.vibrate)navigator.vibrate(10);
+}
 function sessionProgress(exList){
   let filled=0,total=0;
   exList.forEach(e=>{
@@ -1000,7 +1022,7 @@ function renderDay(){
       const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,state.week);
       row.querySelector('.w').oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId);};
       row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId);};
-      row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d&&e.rest>0)startTimer(e.rest,nm);};
+      row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}};
     });
     app.appendChild(card);
   });
@@ -1199,6 +1221,7 @@ function openSwapDraft(e,onPick){
 $('#reviewCancel').onclick=()=>$('#review').classList.remove('show');
 $('#review').onclick=e=>{if(e.target.id==='review')$('#review').classList.remove('show');};
 $('#reviewValidate').onclick=()=>{
+  if(navigator.vibrate)navigator.vibrate(20);
   draftProgram.goal=parseFloat(($('#revGoal').value||'').replace(',','.'))||draftProgram.goal;
   draftProgram.nutrition.kcal=parseInt($('#revKcal').value)||draftProgram.nutrition.kcal;
   draftProgram.nutrition.protein=parseInt($('#revProt').value)||draftProgram.nutrition.protein;
@@ -1339,11 +1362,28 @@ function setView(v){state.view=v;save();
   ['#weeks','#phase','#days','#app'].forEach(s=>{const el=$(s);if(el)el.style.display=train?'':'none';});
   $('#weightView').style.display=v==='weight'?'':'none';
   $('#nutriView').style.display=v==='nutri'?'':'none';
-  document.querySelectorAll('.viewtabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   if(v==='weight')renderWeight();
   if(v==='nutri')renderNutri();
 }
-document.querySelectorAll('.viewtabs button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+
+/* ---------- Swipe entre jours (séance uniquement) ---------- */
+(function(){
+  const app=$('#app');
+  if(!app)return;
+  let sx=0,sy=0,tracking=false;
+  app.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1){tracking=false;return;}
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  app.addEventListener('touchend',e=>{
+    if(!tracking)return;tracking=false;
+    if(state.view!=='train')return;
+    const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)>60&&Math.abs(dy)<50)goDay(dx<0?1:-1);
+  },{passive:true});
+})();
 
 /* ---------- Init ---------- */
 (async()=>{
