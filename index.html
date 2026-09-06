@@ -186,9 +186,11 @@
   .altl li{font-size:13px;color:var(--muted);margin-bottom:5px;line-height:1.35;}
 
   /* Swap selector */
-  .exbtns{display:flex;gap:16px;padding:6px 13px 2px;}
-  .exbtns .howbtn,.exbtns .swapbtn{padding:4px 0;}
+  .exbtns{display:flex;gap:16px;padding:6px 13px 2px;flex-wrap:wrap;}
+  .exbtns .howbtn,.exbtns .swapbtn,.exbtns .skipbtn,.exbtns .rmbtn{padding:4px 0;}
   .swapbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--ramp);}
+  .skipbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--deload);}
+  .rmbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:#e88;}
   .swtag{display:inline-block;font-family:var(--num);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--ramp);background:#16202e;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
   .ex.swapped{border-color:#2a3a52;}
   .swapsub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.45;}
@@ -350,6 +352,20 @@
     <div id="reviewBody"></div>
     <button class="close" id="reviewValidate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Valider et commencer</button>
     <button class="close" id="reviewCancel">Annuler</button>
+  </div>
+</div>
+
+<div class="sheet" id="addex">
+  <div class="card">
+    <h3>Ajouter un exercice</h3>
+    <input id="axName" class="acctin" placeholder="Nom de l'exercice">
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input id="axSets" class="acctin" inputmode="numeric" placeholder="Séries" value="3" style="margin-top:0">
+      <input id="axReps" class="acctin" placeholder="Reps (ex. 10-12)" value="10-12" style="margin-top:0">
+      <input id="axRest" class="acctin" inputmode="numeric" placeholder="Repos (s)" value="60" style="margin-top:0">
+    </div>
+    <button class="close" id="axAdd" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Ajouter à la séance</button>
+    <button class="close" id="axCancel">Annuler</button>
   </div>
 </div>
 
@@ -652,8 +668,8 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]}};}
-const PROGRAM_DEFAULT={days:DAYS_ORIGINAL,goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};
+function freshState(){return{week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]}};}
+function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
 let saveTimer=null;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(flush,250);}
@@ -666,17 +682,17 @@ const PROFILES_KEY='positraining_v1_profiles';
 const ACTIVE_KEY='positraining_v1_active';
 function profileKey(id){return 'positraining_v1_p_'+id;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
-let profiles=[],activeId=null,onboarding=null,program=PROGRAM_DEFAULT;
+let profiles=[],activeId=null,onboarding=null,program=freshProgramDefault();
 async function loadProfilesIndex(){const raw=await readVal(PROFILES_KEY);profiles=raw?JSON.parse(raw):[];}
 function saveProfilesIndex(){writeNow(PROFILES_KEY,JSON.stringify(profiles));}
 async function loadProfileBundle(id){const raw=await readVal(profileKey(id));return raw?JSON.parse(raw):null;}
 function bundleFromCurrent(){return{onboarding,program,state};}
 function applyBundle(b){
   onboarding=b.onboarding||null;
-  program=b.program||PROGRAM_DEFAULT;
+  program=b.program||freshProgramDefault();
   DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};
 }
 function persistActiveBundle(){
   if(!activeId)return;
@@ -951,8 +967,10 @@ function renderDays(){
 function sessionProgress(exList){
   let filled=0,total=0;
   exList.forEach(e=>{
-    if(e.note)return;total++;
+    if(e.note)return;
     const sw=state.swaps[e.id],eid=sw?e.id+'~'+slug(sw):e.id;
+    if(state.skips[logKey(eid,state.week)])return;
+    total++;
     const arr=getLog(eid,state.week);
     if(arr&&arr.some(s=>String(s.w).trim()!==''||String(s.r).trim()!==''))filled++;
   });
@@ -1002,6 +1020,13 @@ function renderDay(){
     }
     const nm=state.swaps[e.id]||e.n, sw=state.swaps[e.id];
     const eid=sw?e.id+'~'+slug(sw):e.id;
+    const skipKey=logKey(eid,state.week);
+    if(state.skips[skipKey]){
+      const c=document.createElement('div');c.className='ex note';
+      c.innerHTML=`<div class="exhead"><div class="idx">${i+1}</div><div class="name">${nm}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">Passé cette semaine. <button class="skipbtn" style="padding:0">↩ Reprendre</button></div>`;
+      c.querySelector('.skipbtn').onclick=()=>{delete state.skips[skipKey];save();renderDay();};
+      app.appendChild(c);return;
+    }
     const key=logKey(eid,state.week);
     if(!state.logs[key])state.logs[key]=Array.from({length:e.sets},()=>({w:'',r:'',d:false}));
     const rows=state.logs[key];
@@ -1020,7 +1045,7 @@ function renderDay(){
     if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b> — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
     const warm=warmupSets(e,lt);
     if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
-    html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button><button class="swapbtn">⇄ Changer</button></div>`;
+    html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button><button class="swapbtn">⇄ Changer</button><button class="skipbtn">⏭ Passer</button>${e.custom?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
     html+=`<div class="sets"><div class="unit"><span></span><span>kg</span><span></span><span>reps</span><span></span></div>`;
     rows.forEach((s,si)=>{
       html+=`<div class="setrow" data-ex="${eid}" data-si="${si}">
@@ -1036,6 +1061,13 @@ function renderDay(){
 
     const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
     const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=()=>openSwap(e);
+    const skb=card.querySelector('.skipbtn');if(skb)skb.onclick=()=>{state.skips[skipKey]=true;save();renderDay();};
+    const rmb=card.querySelector('.rmbtn');if(rmb)rmb.onclick=()=>{
+      if(!confirm('Retirer cet exercice de la séance ? (irréversible)'))return;
+      const dayIdx=DAYS.findIndex(d=>d.id===day.id);
+      DAYS[dayIdx].ex=DAYS[dayIdx].ex.filter(x=>x.id!==e.id);
+      persistActiveBundle();flush();renderDay();
+    };
     const restChip=card.querySelector('.rest');
     if(restChip)restChip.onclick=()=>startTimer(parseInt(restChip.dataset.rest),restChip.dataset.name);
     card.querySelectorAll('.setrow').forEach(row=>{
@@ -1047,6 +1079,10 @@ function renderDay(){
     app.appendChild(card);
   });
 
+  const addBtn=document.createElement('button');addBtn.className='close';addBtn.style.marginTop='10px';addBtn.textContent='+ Ajouter un exercice';
+  addBtn.onclick=()=>openAddEx(day.id);
+  app.appendChild(addBtn);
+
   const prog=sessionProgress(visible),dk=day.id+'__w'+state.week,dn=state.done[dk];
   const full=prog.total>0&&prog.filled===prog.total;
   const bar=document.createElement('div');bar.className='finish';
@@ -1054,6 +1090,27 @@ function renderDay(){
   bar.querySelector('button').onclick=()=>{if(state.done[dk])delete state.done[dk];else state.done[dk]=today();flush();renderDays();renderDay();};
   app.appendChild(bar);
 }
+let addExDayId=null;
+function openAddEx(dayId){
+  addExDayId=dayId;
+  $('#axName').value='';$('#axSets').value='3';$('#axReps').value='10-12';$('#axRest').value='60';
+  $('#addex').classList.add('show');
+}
+$('#axCancel').onclick=()=>$('#addex').classList.remove('show');
+$('#addex').onclick=e=>{if(e.target.id==='addex')$('#addex').classList.remove('show');};
+$('#axAdd').onclick=()=>{
+  const name=($('#axName').value||'').trim();
+  if(!name){$('#axName').focus();return;}
+  const sets=Math.max(1,parseInt($('#axSets').value)||3);
+  const reps=($('#axReps').value||'10-12').trim();
+  const rest=Math.max(0,parseInt($('#axRest').value)||60);
+  const dayIdx=DAYS.findIndex(d=>d.id===addExDayId);
+  if(dayIdx===-1)return;
+  DAYS[dayIdx].ex.push({n:name,sets,reps,rest,cue:'Exercice ajouté manuellement.',custom:true,id:addExDayId+'_c'+uid()});
+  persistActiveBundle();flush();
+  $('#addex').classList.remove('show');
+  renderDay();
+};
 function refreshSpark(card,exId){
   const svg=sparkline(series(exId));const head=card.querySelector('.exhead');
   const old=head.querySelector('.spark');
@@ -1111,7 +1168,7 @@ $('#importFile').onchange=ev=>{
     }else{
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};
     state.updatedAt=Date.now();
     DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
@@ -1381,11 +1438,12 @@ document.querySelectorAll('.viewtabs button').forEach(b=>b.onclick=()=>setView(b
     if(!migrated.weights)migrated.weights=[];
     if(!migrated.swaps)migrated.swaps={};
     if(!migrated.done)migrated.done={};
+    if(!migrated.skips)migrated.skips={};
     if(!migrated.measures)migrated.measures={waist:[],arm:[],hip:[]};
     if(!migrated.weights.length&&!migrated.wseed){migrated.weights=[{date:today(),kg:86.8}];migrated.wseed=true;}
     profiles=[{id,name:'Laurent',createdAt:Date.now()}];
     saveProfilesIndex();
-    activeId=id;onboarding=null;program=PROGRAM_DEFAULT;state=migrated;
+    activeId=id;onboarding=null;program=freshProgramDefault();state=migrated;
     DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     persistActiveBundle();
   }else{

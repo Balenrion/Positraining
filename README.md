@@ -23,6 +23,8 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
 - Le **minuteur de repos démarre automatiquement** dès que tu coches une série faite.
 - Un réglage de **temps disponible** (30 à 90 min) en haut de la séance masque les derniers exercices si besoin, sans jamais descendre sous 30 minutes.
+- Pas de machine dispo, ou muscle trop douloureux ? **⏭ Passer** sur la carte de l'exercice — il ne compte plus dans la progression de la séance et revient normalement la semaine suivante.
+- **+ Ajouter un exercice** en bas de la séance pour insérer un mouvement de ton choix (nom, séries, reps, repos) — utile si aucune alternative proposée ne convient. Reste dans ton programme (✕ Retirer pour l'enlever).
 
 ## Où sont mes données ?
 Les données (charges, poids, séances validées, exercices remplacés) sont enregistrées **dans le navigateur** de l'appareil (localStorage), et synchronisées automatiquement dans le cloud si tu es connecté (voir ci-dessous).
@@ -62,4 +64,5 @@ Mise en place côté projet Supabase (déjà fait pour cette instance, à refair
 - [x] Limites/douleurs en cases à cocher (exclusion/remplacement automatique des exercices à risque)
 - [x] App installable (PWA)
 - [x] Suivi de mesures corporelles (taille, bras, hanches)
+- [x] Passer un exercice (par semaine) + ajouter un exercice personnalisé
 - [ ] Comptes / login plus riches (ex. mot de passe en option)
