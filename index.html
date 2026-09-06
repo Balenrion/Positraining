@@ -29,7 +29,7 @@
   .wrap{max-width:520px;margin:0 auto;padding:0 14px;}
 
   /* Header */
-  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 72%,rgba(19,21,25,0));padding:12px 0 8px;}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 72%,rgba(19,21,25,0));padding:calc(12px + env(safe-area-inset-top)) 0 8px;}
   .brand{display:flex;align-items:baseline;justify-content:space-between;padding:0 14px;}
   .brand b{font-family:var(--num);font-weight:700;font-size:20px;letter-spacing:.03em;text-transform:uppercase;}
   .brand b span{color:var(--go);}
