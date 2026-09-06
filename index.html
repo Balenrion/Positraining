@@ -787,6 +787,13 @@ function reconnectCloud(){
 /* ---------- Helpers ---------- */
 const $=s=>document.querySelector(s);
 function logKey(exId,w){return exId+'__w'+w;}
+function fmtRest(sec){
+  if(sec<60)return sec+' s';
+  const m=Math.floor(sec/60),r=sec%60;
+  if(r===0)return m+' min';
+  if(r===30)return m+'½ min';
+  return m+' min '+r+' s';
+}
 function getLog(exId,w){return state.logs[logKey(exId,w)]||null;}
 function bestSet(arr){if(!arr)return null;let b=null;arr.forEach(s=>{const w=parseFloat(s.w),r=parseInt(s.r);if(!isNaN(w)&&!isNaN(r)){if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};}});return b;}
 function lastTime(exId,curW){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(exId,k));if(b)return{w:k,b};}return null;}
@@ -1038,7 +1045,7 @@ function renderDay(){
     let html=`<div class="exhead"><div class="idx">${i+1}</div>
       <div class="name">${nm}${e.tag?`<span class="tag">${e.tag}</span>`:''}${sw?`<span class="swtag">⇄ au lieu de ${e.n}</span>`:''}</div>${spk}</div>
       <div class="meta"><span class="chip">${e.sets}×${e.reps}</span>`;
-    if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${e.rest>=60?(e.rest/60).toString().replace('.5','\u00bd')+' min':e.rest+' s'} ⏱</span>`;
+    if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${fmtRest(e.rest)} ⏱</span>`;
     if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
     html+=`</div>`;
     const sugg=suggestWeight(e,lt);
