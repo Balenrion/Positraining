@@ -46,7 +46,7 @@
   .wk.on .n{color:var(--pc,var(--go));}
 
   /* Phase banner */
-  .phase{margin:8px 14px 2px;border-left:3px solid var(--pc,var(--go));background:var(--surface);
+  .phase{margin:14px 0 2px;border-left:3px solid var(--pc,var(--go));background:var(--surface);
          border-radius:0 10px 10px 0;padding:9px 12px;}
   .phase h2{margin:0;font-family:var(--num);font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--pc,var(--go));text-transform:uppercase;}
   .phase p{margin:3px 0 0;font-size:12.5px;color:var(--muted);}
@@ -236,10 +236,10 @@
   <div class="brand"><b>POSI<span>·</span>TRAINING</b><button class="cog" id="cog" aria-label="Réglages">⚙︎</button></div>
   <div class="viewtabs"><button data-v="train" class="on">Séance</button><button data-v="weight">Poids</button><button data-v="nutri">Nutrition</button></div>
   <div class="weeks" id="weeks"></div>
-  <div class="phase" id="phase"><h2></h2><p></p></div>
   <div class="days" id="days"></div>
 </header>
 
+<div class="wrap"><div class="phase" id="phase"><h2></h2><p></p></div></div>
 <main class="wrap" id="app"></main>
 <main class="wrap" id="weightView" style="display:none"></main>
 <main class="wrap" id="nutriView" style="display:none"></main>
