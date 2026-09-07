@@ -942,6 +942,14 @@ function trimDayToTime(exList,capMinutes){
   }
   return list;
 }
+function autoCheckSet(s,row,rest,nm){
+  if(s.d)return;
+  if(String(s.w).trim()===''&&String(s.r).trim()==='')return;
+  s.d=true;
+  const btn=row.querySelector('.done');if(btn)btn.classList.add('on');
+  if(navigator.vibrate)navigator.vibrate(15);
+  if(rest>0)startTimer(rest,nm);
+}
 function renderDay(){
   const day=DAYS.find(d=>d.id===state.day)||DAYS[0];
   const cap=state.timeCap||0;
@@ -1020,8 +1028,8 @@ function renderDay(){
     if(restChip)restChip.onclick=()=>startTimer(parseInt(restChip.dataset.rest),restChip.dataset.name);
     card.querySelectorAll('.setrow').forEach(row=>{
       const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,state.week);
-      row.querySelector('.w').oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId);};
-      row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId);};
+      row.querySelector('.w').oninput=ev=>{const s=state.logs[k][si];s.w=ev.target.value;autoCheckSet(s,row,e.rest,nm);save();refreshSpark(card,exId);};
+      row.querySelector('.r').oninput=ev=>{const s=state.logs[k][si];s.r=ev.target.value;autoCheckSet(s,row,e.rest,nm);save();refreshSpark(card,exId);};
       row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}};
     });
     app.appendChild(card);

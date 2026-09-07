@@ -25,7 +25,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 - **Glisse à gauche/droite** sur la séance pour passer au jour suivant/précédent, sans repasser par les onglets du haut.
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
-- Le **minuteur de repos démarre automatiquement** dès que tu coches une série faite.
+- Une série se **coche toute seule** dès que tu saisis le poids ou les reps — plus besoin de taper sur le ✓. Le **minuteur de repos démarre automatiquement** à ce moment-là. Une erreur de saisie ? Le ✓ reste cliquable pour décocher.
 - Un réglage de **temps disponible** (30 à 90 min) en haut de la séance masque les derniers exercices si besoin, sans jamais descendre sous 30 minutes.
 - Pas de machine dispo, ou muscle trop douloureux ? **⏭ Passer** sur la carte de l'exercice — il ne compte plus dans la progression de la séance et revient normalement la semaine suivante.
 - **+ Ajouter un exercice** en bas de la séance pour insérer un mouvement de ton choix (nom, séries, reps, repos) — utile si aucune alternative proposée ne convient. Reste dans ton programme (✕ Retirer pour l'enlever).
