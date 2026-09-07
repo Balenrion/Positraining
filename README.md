@@ -23,7 +23,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 ## Accueil
 La barre en bas de l'écran (accessible au pouce) donne accès à **Accueil / Séance / Poids / Nutrition / Agenda**. L'accueil propose 3 raccourcis :
 - **Reprendre le programme** → va directement à la séance du jour.
-- **Abdos express** (20 min max) → une petite séance d'abdos à cocher au fur et à mesure. Si le réglage **Protéger le périnée** (Réglages ⚙︎, à activer par profil) est actif, les exercices proposés évitent toute pression abdominale (pas de crunch ni de relevé de jambes) — utile en post-partum, en cas de gêne ou de désir de grossesse. Le bouton et l'écran sont identiques pour tout le monde, seuls les exercices changent selon ce réglage.
+- **Abdos express** → choisis la durée (10/15/20 min) et si tu veux des **exercices adaptés périnée** (sans pression abdominale — pas de crunch ni de relevé de jambes ; utile en post-partum, en cas de gêne ou de désir de grossesse), puis **C'est parti**. Le bouton et l'écran de réglages sont identiques pour tout le monde, seul ce choix (fait à chaque lancement) change les exercices proposés.
 - **Cardio** → choisis un type de séance (course, vélo, rameur…) et une durée, elle est enregistrée et visible dans l'Agenda.
 
 ## Agenda

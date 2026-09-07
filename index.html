@@ -334,10 +334,6 @@
       <button class="sw" id="sw6" aria-label="Activer le 6e jour"></button>
     </div>
     <div class="opt">
-      <div class="d"><b>Protéger le périnée</b><br>La séance abdos express de l'accueil propose des exercices sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
-      <button class="sw" id="swPerineum" aria-label="Activer la protection du périnée"></button>
-    </div>
-    <div class="opt">
       <div class="d"><b>Sauvegarde automatique</b><br>Tes charges sont enregistrées sur cet appareil.</div>
       <span style="font-family:var(--num);color:var(--go);font-weight:600">ON</span>
     </div>
@@ -351,9 +347,9 @@
 
 <div class="sheet" id="absSheet">
   <div class="card" style="max-height:85vh;overflow-y:auto">
-    <h3>Abdos express · 20 min max</h3>
+    <h3 id="absTitle">Abdos express</h3>
     <div id="absBody"></div>
-    <button class="close" id="absDone" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">✓ Terminer</button>
+    <button class="close" id="absMain" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">C'est parti</button>
     <button class="close" id="absCancel">Fermer</button>
   </div>
 </div>
@@ -1197,12 +1193,11 @@ $('#tstop').onclick=()=>{clearInterval(tId);$('#timer').classList.remove('show')
 $('#tadd').onclick=()=>{tLeft+=15;$('#tval').textContent=fmt(tLeft);$('#timer').classList.remove('warn');};
 
 /* ---------- Réglages ---------- */
-$('#cog').onclick=()=>{$('#sw6').classList.toggle('on',state.show6);$('#swPerineum').classList.toggle('on',state.perineumCare);$('#sheet').classList.add('show');};
+$('#cog').onclick=()=>{$('#sw6').classList.toggle('on',state.show6);$('#sheet').classList.add('show');};
 $('#closeSheet').onclick=()=>$('#sheet').classList.remove('show');
 $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('show');};
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
-$('#swPerineum').onclick=()=>{state.perineumCare=!state.perineumCare;$('#swPerineum').classList.toggle('on',state.perineumCare);save();};
 $('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
   state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap,perineumCare:state.perineumCare});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
 $('#exportBtn').onclick=()=>{
@@ -1488,7 +1483,7 @@ function renderHome(){
       </button>
       <button class="homebtn" id="homeAbs">
         <span class="hic">🔥</span>
-        <span class="ht"><b>Abdos express</b><span>20 min max${state.perineumCare?' · exercices adaptés':''}</span></span>
+        <span class="ht"><b>Abdos express</b><span>Choisis la durée</span></span>
         <span class="harrow">›</span>
       </button>
       <button class="homebtn" id="homeCardio">
@@ -1502,17 +1497,43 @@ function renderHome(){
   $('#homeCardio').onclick=()=>openCardioLog();
 }
 
-/* ---------- Abdos express (sheet) ---------- */
+/* ---------- Abdos express (sheet : réglages puis exercices) ---------- */
+const ABS_DURATIONS=[10,15,20];
+let absSetup={minutes:20,safe:false};
+let absStarted=false;
 let absLocalDone=new Set();
 function openAbsSession(){
+  absSetup={minutes:20,safe:state.perineumCare};
+  absStarted=false;
   absLocalDone=new Set();
-  renderAbsSession();
-  $('#absDone').textContent='✓ Terminer';
+  renderAbsSheet();
   $('#absSheet').classList.add('show');
 }
+function renderAbsSheet(){absStarted?renderAbsSession():renderAbsSetup();}
+function renderAbsSetup(){
+  $('#absTitle').textContent='Abdos express';
+  $('#absMain').textContent="C'est parti";
+  $('#absBody').innerHTML=`
+    <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Durée</div>
+    <div class="qxdur" id="absDurChips">${ABS_DURATIONS.map(m=>`<button type="button" class="day${absSetup.minutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('')}</div>
+    <div class="opt" style="border-top:0;padding-top:16px">
+      <div class="d"><b>Exercices adaptés périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
+      <button class="sw${absSetup.safe?' on':''}" id="absSafeSw" aria-label="Activer les exercices adaptés"></button>
+    </div>`;
+  $('#absDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.minutes=+b.dataset.m;renderAbsSetup();});
+  $('#absSafeSw').onclick=()=>{absSetup.safe=!absSetup.safe;renderAbsSetup();};
+}
+function trimCoreToTime(list,capMinutes){
+  const capSec=capMinutes*60;
+  let out=list;
+  while(out.length>1&&coreDuration(out)>capSec)out=out.slice(0,-1);
+  return out;
+}
 function renderAbsSession(){
-  const list=state.perineumCare?CORE_SAFE:CORE_STANDARD;
-  const note=state.perineumCare?`<div class="qxnote">${CORE_SAFE_NOTE}</div>`:'';
+  $('#absTitle').textContent=`Abdos express · ${absSetup.minutes} min`;
+  $('#absMain').textContent='✓ Terminer';
+  const list=trimCoreToTime(absSetup.safe?CORE_SAFE:CORE_STANDARD,absSetup.minutes);
+  const note=absSetup.safe?`<div class="qxnote">${CORE_SAFE_NOTE}</div>`:'';
   $('#absBody').innerHTML=note+list.map((x,i)=>`
     <div class="qx">
       <div class="qn"><b>${x.n}</b><span>${x.sets}×${x.reps} · repos ${fmtRest(x.rest)}</span>${x.cue?`<span>${x.cue}</span>`:''}</div>
@@ -1527,9 +1548,14 @@ function renderAbsSession(){
 }
 $('#absCancel').onclick=()=>$('#absSheet').classList.remove('show');
 $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};
-$('#absDone').onclick=()=>{
-  const list=state.perineumCare?CORE_SAFE:CORE_STANDARD;
-  state.extraSessions.push({date:today(),type:'abs',label:'Abdos express'+(state.perineumCare?' (adapté)':''),minutes:Math.round(coreDuration(list)/60)});
+$('#absMain').onclick=()=>{
+  if(!absStarted){
+    absStarted=true;
+    state.perineumCare=absSetup.safe;save();
+    renderAbsSheet();
+    return;
+  }
+  state.extraSessions.push({date:today(),type:'abs',label:'Abdos express'+(absSetup.safe?' (adapté)':''),minutes:absSetup.minutes});
   flush();
   if(navigator.vibrate)navigator.vibrate(20);
   $('#absSheet').classList.remove('show');
