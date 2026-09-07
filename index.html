@@ -618,9 +618,11 @@ const CARDIO_TYPES=[
 ];
 const CARDIO_DURATIONS=[10,15,20,30,45,60];
 const CARDIO_GOALS=[
- {key:'raffermir',label:'Raffermir',type:'velo',minutes:30,note:'Vélo à allure modérée et régulière : bon compromis intensité/impact pour raffermir sans marteler les articulations.'},
- {key:'cellulite',label:'Perdre de la cellulite',type:'marche',minutes:45,note:'Marche rapide sur une durée longue, en endurance fondamentale — la filière qui mobilise le plus les graisses de stockage.'},
- {key:'cardio',label:'Améliorer le cardio',type:'course',minutes:20,note:'Course à pied, plus intense sur une durée plus courte, pour développer ta capacité cardiovasculaire.'},
+ {key:'recup',label:'Récupération active',type:'marche',minutes:20,note:'Marche tranquille, plat ou tapis incliné à 0-2 %, 4-5 km/h : fait circuler le sang et aide la récupération sans ajouter de fatigue.'},
+ {key:'raffermir',label:'Raffermir',type:'velo',minutes:30,note:'Vélo à allure modérée et régulière (résistance 4-5/10, ~70-80 tr/min) : bon compromis intensité/impact pour raffermir sans marteler les articulations.'},
+ {key:'cellulite',label:'Perdre de la cellulite',type:'marche',minutes:45,note:'Marche rapide, tapis incliné à 8-12 %, 5,5-6,5 km/h, en endurance fondamentale (tu peux tenir une conversation) — la filière qui mobilise le plus les graisses de stockage.'},
+ {key:'cardio',label:'Améliorer le cardio',type:'course',minutes:20,note:'Course à pied à rythme soutenu (7,5-9,5 km/h selon ton niveau), essoufflé·e mais capable de dire quelques mots, pour développer ta capacité cardiovasculaire.'},
+ {key:'fractionne',label:'Fractionné / HIIT',type:'rameur',minutes:15,note:'Fractionné 30 s à fond / 90 s récupération, 8 à 10 répétitions (rameur, vélo ou course) : développe ta capacité à répéter des efforts intenses. Arrête si douleur ou vertige.'},
  {key:'libre',label:'Autre / libre',type:'autre',minutes:20,note:'Choisis librement le type et la durée ci-dessous.'}
 ];
 const CARDIO_FEELINGS=[{key:'facile',label:'🙂 Facile'},{key:'modere',label:'😐 Modéré'},{key:'difficile',label:'😓 Difficile'}];
@@ -1621,7 +1623,8 @@ function renderCardioFinishStep(){
     <div class="qxdur" id="cardioActualChips"></div>
     <input id="cardioActualCustom" class="acctin" inputmode="numeric" placeholder="ou minutes personnalisées">
     <div class="d" style="font-size:13px;color:var(--muted);margin:16px 0 8px">Ressenti (optionnel)</div>
-    <div id="cardioFeelChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>`;
+    <div id="cardioFeelChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <input id="cardioNotes" class="acctin" placeholder="Notes (optionnel) : inclinaison, vitesse, résistance…" style="margin-top:16px">`;
   renderCardioActualChips();
   renderCardioFeelChips();
   $('#cardioActualCustom').oninput=()=>{if(($('#cardioActualCustom').value||'').trim()!==''){cardioFlow.actualMinutes=0;renderCardioActualChips();}};
@@ -1654,7 +1657,8 @@ $('#cardioMain').onclick=()=>{
   const minutes=custom>0?custom:cardioFlow.actualMinutes;
   if(!minutes||minutes<=0){$('#cardioActualCustom').focus();return;}
   const label=(CARDIO_TYPES.find(t=>t.key===cardioFlow.type)||{}).label||'Cardio';
-  state.extraSessions.push({date:today(),type:'cardio',label,minutes,feel:cardioFlow.feel||null});
+  const notes=($('#cardioNotes').value||'').trim();
+  state.extraSessions.push({date:today(),type:'cardio',label,minutes,feel:cardioFlow.feel||null,notes:notes||null});
   flush();
   if(navigator.vibrate)navigator.vibrate(20);
   $('#cardioSheet').classList.remove('show');
@@ -1679,7 +1683,8 @@ function monthSessions(y,m){
     const d=new Date(s.date+'T00:00:00');
     if(d.getFullYear()!==y||d.getMonth()!==m)return;
     const feel=s.feel?' · '+((CARDIO_FEELINGS.find(f=>f.key===s.feel)||{}).label||''):'';
-    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:(s.minutes?s.minutes+' min':'')+feel});
+    const notes=s.notes?' · '+s.notes:'';
+    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:(s.minutes?s.minutes+' min':'')+feel+notes});
   });
   return map;
 }
@@ -1767,7 +1772,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.
     applyBundle(b);
   }
   renderProfileChips();
-  renderAll();setView(state.view||'train');save();
+  renderAll();setView('home');save();
 })();
 </script>
 </body>
