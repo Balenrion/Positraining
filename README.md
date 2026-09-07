@@ -20,6 +20,15 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 - **Supprimer ce profil** efface définitivement un profil et ses données (disponible dès qu'il y en a plusieurs).
 - Les données de chaque profil restent sur l'appareil ; utilise Export/Import (voir ci-dessous) pour les transférer vers un autre appareil.
 
+## Accueil
+La barre en bas de l'écran (accessible au pouce) donne accès à **Accueil / Séance / Poids / Nutrition / Agenda**. L'accueil propose 3 raccourcis :
+- **Reprendre le programme** → va directement à la séance du jour.
+- **Abdos express** (20 min max) → une petite séance d'abdos à cocher au fur et à mesure. Si le réglage **Protéger le périnée** (Réglages ⚙︎, à activer par profil) est actif, les exercices proposés évitent toute pression abdominale (pas de crunch ni de relevé de jambes) — utile en post-partum, en cas de gêne ou de désir de grossesse. Le bouton et l'écran sont identiques pour tout le monde, seuls les exercices changent selon ce réglage.
+- **Cardio** → choisis un type de séance (course, vélo, rameur…) et une durée, elle est enregistrée et visible dans l'Agenda.
+
+## Agenda
+Un calendrier du mois avec un point sur chaque jour où une séance a été faite (programme, abdos express ou cardio), et la liste détaillée en dessous. Navigue avec les flèches ‹ › pour consulter les mois précédents.
+
 ## Pendant la séance
 - **Séance / Poids / Nutrition** se change via la barre en bas de l'écran, accessible au pouce sans avoir à remonter.
 - **Glisse à gauche/droite** sur la séance pour passer au jour suivant/précédent, sans repasser par les onglets du haut.
@@ -59,3 +68,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Suivi de mesures corporelles (taille, bras, hanches)
 - [x] Passer un exercice (par semaine) + ajouter un exercice personnalisé
 - [x] Barre de navigation fixe en bas, swipe entre jours, retour tactile sur les actions clés
+- [x] Page d'accueil (reprendre le programme, abdos express avec variante périnée-safe, cardio express) + agenda calendrier

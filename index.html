@@ -144,10 +144,10 @@
   .bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--raised);
      border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
   .bottomnav .inner{max-width:520px;margin:0 auto;display:flex;}
-  .navbtn{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;
-     padding:8px 4px 7px;color:var(--faint);font-family:var(--ui);font-size:10.5px;font-weight:600;
-     letter-spacing:.02em;cursor:pointer;}
-  .navbtn .ic{font-size:20px;line-height:1;}
+  .navbtn{flex:1;min-width:0;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+     padding:7px 2px 7px;color:var(--faint);font-family:var(--ui);font-size:9.5px;font-weight:600;
+     letter-spacing:0;white-space:nowrap;cursor:pointer;}
+  .navbtn .ic{font-size:18px;line-height:1;}
   .navbtn.on{color:var(--go);}
 
   /* Note / rehab cards */
@@ -237,6 +237,54 @@
   .ncmp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.7;}
   .ncmp b{color:var(--ink);}
   .nnote{font-size:12px;color:var(--faint);line-height:1.5;padding:14px 2px 4px;}
+
+  /* Accueil */
+  .homehi{margin:18px 2px 4px;}
+  .homehi h1{margin:0;font-family:var(--num);font-weight:700;font-size:26px;letter-spacing:.02em;}
+  .homehi p{margin:4px 0 0;color:var(--muted);font-size:13px;}
+  .homegrid{display:flex;flex-direction:column;gap:12px;margin:20px 0 8px;}
+  .homebtn{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);
+     border-radius:16px;padding:16px;cursor:pointer;color:var(--ink);text-align:left;width:100%;}
+  .homebtn .hic{font-size:24px;flex:0 0 auto;width:46px;height:46px;border-radius:12px;background:var(--raised);
+     display:flex;align-items:center;justify-content:center;}
+  .homebtn .ht{flex:1;min-width:0;}
+  .homebtn .ht b{display:block;font-size:15px;font-weight:600;}
+  .homebtn .ht span{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
+  .homebtn .harrow{color:var(--faint);font-size:19px;flex:0 0 auto;}
+  .homebtn.primary{border-color:var(--go);background:#1a2513;}
+  .homebtn.primary .hic{background:var(--go);color:#12141a;}
+
+  /* Séances express (abdos / cardio) */
+  .qx{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--raised);
+     border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+  .qx .qn{flex:1;min-width:0;}
+  .qx .qn b{display:block;font-size:14px;}
+  .qx .qn span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35;}
+  .qxnote{font-size:12.5px;color:var(--muted);background:var(--raised);border-left:3px solid var(--ramp);
+     border-radius:0 9px 9px 0;padding:10px 12px;margin-bottom:14px;line-height:1.4;}
+  .qxdur{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px;}
+
+  /* Agenda */
+  .agmonth{display:flex;align-items:center;justify-content:space-between;margin:16px 0 12px;}
+  .agmonth button{background:var(--surface);border:1px solid var(--border);color:var(--ink);border-radius:9px;
+     width:36px;height:36px;font-size:16px;cursor:pointer;}
+  .agmonth b{font-family:var(--num);font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:uppercase;}
+  .agcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:18px;}
+  .agdow{text-align:center;font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;padding-bottom:4px;}
+  .agday{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+     border-radius:9px;background:var(--surface);border:1px solid var(--border);font-family:var(--num);
+     font-size:13px;color:var(--muted);gap:3px;}
+  .agday.today{border-color:var(--go-dim);color:var(--ink);}
+  .agday.has{background:#1a2513;border-color:var(--go-dim);color:var(--ink);font-weight:600;}
+  .agday .dot{width:5px;height:5px;border-radius:50%;background:var(--go);}
+  .agday.empty{background:transparent;border-color:transparent;}
+  .agrow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--border);}
+  .agrow:first-child{border-top:0;}
+  .agrow .agd{font-family:var(--num);font-weight:600;font-size:13px;color:var(--muted);flex:0 0 40px;}
+  .agrow .agi{font-size:16px;flex:0 0 auto;}
+  .agrow .agt{flex:1;font-size:13.5px;}
+  .agrow .agt span{display:block;font-size:11px;color:var(--faint);margin-top:1px;}
+  .agempty{text-align:center;color:var(--faint);font-size:13px;padding:24px 0;}
 </style>
 </head>
 <body>
@@ -247,9 +295,11 @@
 </header>
 
 <div class="wrap"><div class="phase" id="phase"><h2></h2><p></p></div></div>
+<main class="wrap" id="homeView" style="display:none"></main>
 <main class="wrap" id="app"></main>
 <main class="wrap" id="weightView" style="display:none"></main>
 <main class="wrap" id="nutriView" style="display:none"></main>
+<main class="wrap" id="agendaView" style="display:none"></main>
 
 <div class="timer" id="timer">
   <div class="inner">
@@ -262,9 +312,11 @@
 
 <nav class="bottomnav" id="bottomnav">
   <div class="inner">
-    <button class="navbtn on" data-v="train"><span class="ic">🏋️</span>Séance</button>
+    <button class="navbtn on" data-v="home"><span class="ic">🏠</span>Accueil</button>
+    <button class="navbtn" data-v="train"><span class="ic">🏋️</span>Séance</button>
     <button class="navbtn" data-v="weight"><span class="ic">⚖️</span>Poids</button>
     <button class="navbtn" data-v="nutri"><span class="ic">🍽️</span>Nutrition</button>
+    <button class="navbtn" data-v="agenda"><span class="ic">📅</span>Agenda</button>
   </div>
 </nav>
 
@@ -282,6 +334,10 @@
       <button class="sw" id="sw6" aria-label="Activer le 6e jour"></button>
     </div>
     <div class="opt">
+      <div class="d"><b>Protéger le périnée</b><br>La séance abdos express de l'accueil propose des exercices sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
+      <button class="sw" id="swPerineum" aria-label="Activer la protection du périnée"></button>
+    </div>
+    <div class="opt">
       <div class="d"><b>Sauvegarde automatique</b><br>Tes charges sont enregistrées sur cet appareil.</div>
       <span style="font-family:var(--num);color:var(--go);font-weight:600">ON</span>
     </div>
@@ -290,6 +346,24 @@
     <button class="close" id="importBtn">⤒ Importer une sauvegarde</button>
     <button class="danger" id="reset">Effacer toutes mes données</button>
     <button class="close" id="closeSheet">Fermer</button>
+  </div>
+</div>
+
+<div class="sheet" id="absSheet">
+  <div class="card" style="max-height:85vh;overflow-y:auto">
+    <h3>Abdos express · 20 min max</h3>
+    <div id="absBody"></div>
+    <button class="close" id="absDone" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">✓ Terminer</button>
+    <button class="close" id="absCancel">Fermer</button>
+  </div>
+</div>
+
+<div class="sheet" id="cardioSheet">
+  <div class="card">
+    <h3>Séance cardio</h3>
+    <div id="cardioBody"></div>
+    <button class="close" id="cardioSave" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">✓ Enregistrer</button>
+    <button class="close" id="cardioCancel">Fermer</button>
   </div>
 </div>
 
@@ -518,6 +592,36 @@ const LIMITE_INFO=[
  {key:'poignet',label:'Poignet',exclude:['Tirage vertical prise large','Rowing haltère un bras']},
  {key:'cheville',label:'Cheville',exclude:['Hack squat','Mollets debout']}
 ];
+
+/* ---------- Abdos express (accueil) ---------- */
+const CORE_STANDARD=[
+ {n:'Crunch classique',sets:3,reps:'15',rest:30,cue:'Contrôle la descente, ne tire pas sur la nuque.'},
+ {n:'Relevé de jambes allongé',sets:3,reps:'12',rest:45,cue:'Bas du dos plaqué au sol, ne creuse pas les lombaires.'},
+ {n:'Gainage (planche)',sets:3,reps:'30-40 s',rest:30,cue:'Corps aligné tête-bassin-talons, respire normalement.'},
+ {n:'Mountain climbers',sets:3,reps:'20',rest:30,cue:'Rythme contrôlé, bassin stable.'},
+ {n:'Gainage latéral',sets:2,reps:'30 s / côté',rest:30,cue:'Hanche haute, pas d’affaissement.'}
+];
+const CORE_SAFE=[
+ {n:'Respiration abdominale (transverse)',sets:3,reps:'8 respirations',rest:30,cue:'Expire longuement en rentrant le nombril vers la colonne, sans bloquer ta respiration.'},
+ {n:'Dead bug',sets:3,reps:'10 / côté',rest:30,cue:'Bas du dos plaqué au sol, bras et jambe opposés descendent lentement.'},
+ {n:'Bird-dog',sets:3,reps:'10 / côté',rest:30,cue:'Bassin stable et horizontal, pas de cambrure du bas du dos.'},
+ {n:'Pont fessier',sets:3,reps:'12',rest:30,cue:'Contracte fessiers ET plancher pelvien en montant, redescends lentement.'},
+ {n:'Planche modifiée (genoux au sol)',sets:3,reps:'20-30 s',rest:30,cue:'Respiration fluide, pas d’apnée. Arrête si pression ou gêne.'}
+];
+const CORE_SAFE_NOTE='Ces exercices évitent la pression abdominale (pas de crunch ni de relevé de jambes classique). En cas de gêne, de fuite ou de sensation de pesanteur, consulte un·e kiné périnéal·e avant de continuer.';
+function coreDuration(list){return list.reduce((sum,x)=>sum+x.sets*(45+x.rest),0);}
+
+/* ---------- Cardio express (accueil) ---------- */
+const CARDIO_TYPES=[
+ {key:'course',label:'Course à pied'},
+ {key:'velo',label:'Vélo'},
+ {key:'rameur',label:'Rameur'},
+ {key:'elliptique',label:'Elliptique'},
+ {key:'marche',label:'Marche rapide'},
+ {key:'autre',label:'Autre'}
+];
+const CARDIO_DURATIONS=[10,15,20,30,45,60];
+
 function applyLimites(days,limiteZones){
   const changes=[];
   (limiteZones||[]).forEach(key=>{
@@ -669,7 +773,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'train',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]}};}
+function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,extraSessions:[]};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
 let saveTimer=null;
@@ -693,7 +797,7 @@ function applyBundle(b){
   program=b.program||freshProgramDefault();
   DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];
 }
 function persistActiveBundle(){
   if(!activeId)return;
@@ -1093,13 +1197,14 @@ $('#tstop').onclick=()=>{clearInterval(tId);$('#timer').classList.remove('show')
 $('#tadd').onclick=()=>{tLeft+=15;$('#tval').textContent=fmt(tLeft);$('#timer').classList.remove('warn');};
 
 /* ---------- Réglages ---------- */
-$('#cog').onclick=()=>{$('#sw6').classList.toggle('on',state.show6);$('#sheet').classList.add('show');};
+$('#cog').onclick=()=>{$('#sw6').classList.toggle('on',state.show6);$('#swPerineum').classList.toggle('on',state.perineumCare);$('#sheet').classList.add('show');};
 $('#closeSheet').onclick=()=>$('#sheet').classList.remove('show');
 $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('show');};
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
+$('#swPerineum').onclick=()=>{state.perineumCare=!state.perineumCare;$('#swPerineum').classList.toggle('on',state.perineumCare);save();};
 $('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
-  state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
+  state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap,perineumCare:state.perineumCare});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
 $('#exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(bundleFromCurrent())],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -1118,7 +1223,7 @@ $('#importFile').onchange=ev=>{
     }else{
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];
     state.updatedAt=Date.now();
     DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
@@ -1365,14 +1470,169 @@ function renderNutri(){
 
   <div class="nnote">Prise de masse propre = surplus modéré. Si tu montes de plus de 0,45 kg/sem, enlève 150-200 kcal ; trop lent, ajoute-en autant. Tes abdos se révèlent en sèche, pas pendant la prise.</div>`;
 }
+
+/* ---------- Accueil ---------- */
+function renderHome(){
+  const el=$('#homeView');if(!el)return;
+  const profName=(profiles.find(p=>p.id===activeId)||{}).name;
+  const prenom=(onboarding&&onboarding.prenom)||profName||'Champion';
+  const day=DAYS.find(d=>d.id===state.day)||DAYS[0];
+  const dn=state.done[day.id+'__w'+state.week];
+  el.innerHTML=`
+    <div class="homehi"><h1>Salut ${prenom}</h1><p>Prêt·e pour la suite ?</p></div>
+    <div class="homegrid">
+      <button class="homebtn primary" id="homeResume">
+        <span class="hic">▶</span>
+        <span class="ht"><b>Reprendre le programme</b><span>${day.t} · ${day.s}${dn?' · déjà validée ✓':''}</span></span>
+        <span class="harrow">›</span>
+      </button>
+      <button class="homebtn" id="homeAbs">
+        <span class="hic">🔥</span>
+        <span class="ht"><b>Abdos express</b><span>20 min max${state.perineumCare?' · exercices adaptés':''}</span></span>
+        <span class="harrow">›</span>
+      </button>
+      <button class="homebtn" id="homeCardio">
+        <span class="hic">🏃</span>
+        <span class="ht"><b>Cardio</b><span>Choisis le type et la durée</span></span>
+        <span class="harrow">›</span>
+      </button>
+    </div>`;
+  $('#homeResume').onclick=()=>setView('train');
+  $('#homeAbs').onclick=()=>openAbsSession();
+  $('#homeCardio').onclick=()=>openCardioLog();
+}
+
+/* ---------- Abdos express (sheet) ---------- */
+let absLocalDone=new Set();
+function openAbsSession(){
+  absLocalDone=new Set();
+  renderAbsSession();
+  $('#absDone').textContent='✓ Terminer';
+  $('#absSheet').classList.add('show');
+}
+function renderAbsSession(){
+  const list=state.perineumCare?CORE_SAFE:CORE_STANDARD;
+  const note=state.perineumCare?`<div class="qxnote">${CORE_SAFE_NOTE}</div>`:'';
+  $('#absBody').innerHTML=note+list.map((x,i)=>`
+    <div class="qx">
+      <div class="qn"><b>${x.n}</b><span>${x.sets}×${x.reps} · repos ${fmtRest(x.rest)}</span>${x.cue?`<span>${x.cue}</span>`:''}</div>
+      <button class="done${absLocalDone.has(i)?' on':''}" data-i="${i}">✓</button>
+    </div>`).join('');
+  $('#absBody').querySelectorAll('.done').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i;
+    if(absLocalDone.has(i))absLocalDone.delete(i);else absLocalDone.add(i);
+    b.classList.toggle('on',absLocalDone.has(i));
+    if(navigator.vibrate)navigator.vibrate(15);
+  });
+}
+$('#absCancel').onclick=()=>$('#absSheet').classList.remove('show');
+$('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};
+$('#absDone').onclick=()=>{
+  const list=state.perineumCare?CORE_SAFE:CORE_STANDARD;
+  state.extraSessions.push({date:today(),type:'abs',label:'Abdos express'+(state.perineumCare?' (adapté)':''),minutes:Math.round(coreDuration(list)/60)});
+  flush();
+  if(navigator.vibrate)navigator.vibrate(20);
+  $('#absSheet').classList.remove('show');
+  if(state.view==='home')renderHome();
+  if(state.view==='agenda')renderAgenda();
+};
+
+/* ---------- Cardio express (sheet) ---------- */
+let cardioSel={type:'course',dur:20};
+function openCardioLog(){
+  cardioSel={type:'course',dur:20};
+  renderCardioLog();
+  $('#cardioSheet').classList.add('show');
+}
+function renderCardioLog(){
+  $('#cardioBody').innerHTML=`
+    <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Type de séance</div>
+    <div id="cardioTypeChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div class="d" style="font-size:13px;color:var(--muted);margin:16px 0 8px">Durée</div>
+    <div class="qxdur" id="cardioDurChips"></div>
+    <input id="cardioCustomDur" class="acctin" inputmode="numeric" placeholder="ou minutes personnalisées">`;
+  renderCardioChips();
+  $('#cardioCustomDur').oninput=()=>{if(($('#cardioCustomDur').value||'').trim()!==''){cardioSel.dur=0;renderCardioChips();}};
+}
+function renderCardioChips(){
+  $('#cardioTypeChips').innerHTML=CARDIO_TYPES.map(t=>`<button type="button" class="day${cardioSel.type===t.key?' on':''}" data-k="${t.key}" style="padding:6px 11px"><span class="t">${t.label}</span></button>`).join('');
+  $('#cardioTypeChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioSel.type=b.dataset.k;renderCardioChips();});
+  $('#cardioDurChips').innerHTML=CARDIO_DURATIONS.map(m=>`<button type="button" class="day${cardioSel.dur===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
+  $('#cardioDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioSel.dur=+b.dataset.m;$('#cardioCustomDur').value='';renderCardioChips();});
+}
+$('#cardioCancel').onclick=()=>$('#cardioSheet').classList.remove('show');
+$('#cardioSheet').onclick=e=>{if(e.target.id==='cardioSheet')$('#cardioSheet').classList.remove('show');};
+$('#cardioSave').onclick=()=>{
+  const custom=parseInt($('#cardioCustomDur').value);
+  const minutes=custom>0?custom:cardioSel.dur;
+  if(!minutes||minutes<=0){$('#cardioCustomDur').focus();return;}
+  const label=(CARDIO_TYPES.find(t=>t.key===cardioSel.type)||{}).label||'Cardio';
+  state.extraSessions.push({date:today(),type:'cardio',label,minutes});
+  flush();
+  if(navigator.vibrate)navigator.vibrate(20);
+  $('#cardioSheet').classList.remove('show');
+  if(state.view==='home')renderHome();
+  if(state.view==='agenda')renderAgenda();
+};
+
+/* ---------- Agenda ---------- */
+let agendaYM=null;
+function monthSessions(y,m){
+  const map={};
+  Object.entries(state.done).forEach(([key,dateIso])=>{
+    if(!dateIso)return;
+    const d=new Date(dateIso+'T00:00:00');
+    if(d.getFullYear()!==y||d.getMonth()!==m)return;
+    const dayId=key.split('__w')[0];
+    const dayDef=DAYS.find(x=>x.id===dayId);
+    const label=dayDef?`${dayDef.t} · ${dayDef.s}`:'Séance';
+    (map[dateIso]=map[dateIso]||[]).push({icon:'🏋️',label,sub:'Programme'});
+  });
+  (state.extraSessions||[]).forEach(s=>{
+    const d=new Date(s.date+'T00:00:00');
+    if(d.getFullYear()!==y||d.getMonth()!==m)return;
+    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:s.minutes?s.minutes+' min':''});
+  });
+  return map;
+}
+function renderAgenda(){
+  const el=$('#agendaView');if(!el)return;
+  if(!agendaYM){const t=new Date();agendaYM={y:t.getFullYear(),m:t.getMonth()};}
+  const {y,m}=agendaYM;
+  const map=monthSessions(y,m);
+  const first=new Date(y,m,1);
+  const startOffset=(first.getDay()+6)%7;
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const todayIso=today();
+  const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  let cal=['L','M','M','J','V','S','D'].map(l=>`<div class="agdow">${l}</div>`).join('');
+  for(let i=0;i<startOffset;i++)cal+=`<div class="agday empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const has=map[iso]&&map[iso].length;
+    const isToday=iso===todayIso;
+    cal+=`<div class="agday${has?' has':''}${isToday?' today':''}">${d}${has?'<span class="dot"></span>':''}</div>`;
+  }
+  const entries=Object.keys(map).sort().reverse().flatMap(iso=>map[iso].map(s=>({iso,...s})));
+  const list=entries.length?entries.map(s=>`<div class="agrow"><div class="agd">${fmtDate(s.iso)}</div><div class="agi">${s.icon}</div><div class="agt">${s.label}${s.sub?`<span>${s.sub}</span>`:''}</div></div>`).join(''):'<div class="agempty">Aucune séance ce mois-ci.</div>';
+  el.innerHTML=`<div class="agmonth"><button id="agPrev">‹</button><b>${monthNames[m]} ${y}</b><button id="agNext">›</button></div>
+    <div class="agcal">${cal}</div>${list}`;
+  $('#agPrev').onclick=()=>{agendaYM.m--;if(agendaYM.m<0){agendaYM.m=11;agendaYM.y--;}renderAgenda();};
+  $('#agNext').onclick=()=>{agendaYM.m++;if(agendaYM.m>11){agendaYM.m=0;agendaYM.y++;}renderAgenda();};
+}
+
 function setView(v){state.view=v;save();
   const train=v==='train';
   ['#weeks','#phase','#days','#app'].forEach(s=>{const el=$(s);if(el)el.style.display=train?'':'none';});
+  $('#homeView').style.display=v==='home'?'':'none';
   $('#weightView').style.display=v==='weight'?'':'none';
   $('#nutriView').style.display=v==='nutri'?'':'none';
+  $('#agendaView').style.display=v==='agenda'?'':'none';
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='home')renderHome();
   if(v==='weight')renderWeight();
   if(v==='nutri')renderNutri();
+  if(v==='agenda')renderAgenda();
 }
 document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.v));
 
