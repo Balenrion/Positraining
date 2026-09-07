@@ -356,9 +356,9 @@
 
 <div class="sheet" id="cardioSheet">
   <div class="card">
-    <h3>Séance cardio</h3>
+    <h3 id="cardioTitle">Séance cardio</h3>
     <div id="cardioBody"></div>
-    <button class="close" id="cardioSave" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">✓ Enregistrer</button>
+    <button class="close" id="cardioMain" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Continuer</button>
     <button class="close" id="cardioCancel">Fermer</button>
   </div>
 </div>
@@ -617,6 +617,13 @@ const CARDIO_TYPES=[
  {key:'autre',label:'Autre'}
 ];
 const CARDIO_DURATIONS=[10,15,20,30,45,60];
+const CARDIO_GOALS=[
+ {key:'raffermir',label:'Raffermir',type:'velo',minutes:30,note:'Vélo à allure modérée et régulière : bon compromis intensité/impact pour raffermir sans marteler les articulations.'},
+ {key:'cellulite',label:'Perdre de la cellulite',type:'marche',minutes:45,note:'Marche rapide sur une durée longue, en endurance fondamentale — la filière qui mobilise le plus les graisses de stockage.'},
+ {key:'cardio',label:'Améliorer le cardio',type:'course',minutes:20,note:'Course à pied, plus intense sur une durée plus courte, pour développer ta capacité cardiovasculaire.'},
+ {key:'libre',label:'Autre / libre',type:'autre',minutes:20,note:'Choisis librement le type et la durée ci-dessous.'}
+];
+const CARDIO_FEELINGS=[{key:'facile',label:'🙂 Facile'},{key:'modere',label:'😐 Modéré'},{key:'difficile',label:'😓 Difficile'}];
 
 function applyLimites(days,limiteZones){
   const changes=[];
@@ -1488,7 +1495,7 @@ function renderHome(){
       </button>
       <button class="homebtn" id="homeCardio">
         <span class="hic">🏃</span>
-        <span class="ht"><b>Cardio</b><span>Choisis le type et la durée</span></span>
+        <span class="ht"><b>Cardio</b><span>Choisis ton objectif</span></span>
         <span class="harrow">›</span>
       </button>
     </div>`;
@@ -1563,37 +1570,91 @@ $('#absMain').onclick=()=>{
   if(state.view==='agenda')renderAgenda();
 };
 
-/* ---------- Cardio express (sheet) ---------- */
-let cardioSel={type:'course',dur:20};
+/* ---------- Cardio express (sheet : objectif → proposition → fin de séance) ---------- */
+let cardioFlow={step:'goal',goal:'raffermir',type:'velo',minutes:30,actualMinutes:30,feel:null};
 function openCardioLog(){
-  cardioSel={type:'course',dur:20};
-  renderCardioLog();
+  cardioFlow={step:'goal',goal:'raffermir',type:'velo',minutes:30,actualMinutes:30,feel:null};
+  renderCardioSheet();
   $('#cardioSheet').classList.add('show');
 }
-function renderCardioLog(){
+function renderCardioSheet(){
+  if(cardioFlow.step==='goal')renderCardioGoalStep();
+  else if(cardioFlow.step==='plan')renderCardioPlanStep();
+  else renderCardioFinishStep();
+}
+function renderCardioGoalStep(){
+  $('#cardioTitle').textContent='Séance cardio';
+  $('#cardioMain').textContent='Continuer';
   $('#cardioBody').innerHTML=`
+    <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Quel est ton objectif ?</div>
+    <div id="cardioGoalChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>`;
+  $('#cardioGoalChips').innerHTML=CARDIO_GOALS.map(g=>`<button type="button" class="day${cardioFlow.goal===g.key?' on':''}" data-k="${g.key}" style="padding:6px 11px"><span class="t">${g.label}</span></button>`).join('');
+  $('#cardioGoalChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioFlow.goal=b.dataset.k;renderCardioGoalStep();});
+}
+function renderCardioPlanStep(){
+  const g=CARDIO_GOALS.find(x=>x.key===cardioFlow.goal)||CARDIO_GOALS[0];
+  $('#cardioTitle').textContent='Séance cardio · '+g.label;
+  $('#cardioMain').textContent="C'est parti";
+  $('#cardioBody').innerHTML=`
+    <div class="qxnote">${g.note}</div>
     <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Type de séance</div>
     <div id="cardioTypeChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     <div class="d" style="font-size:13px;color:var(--muted);margin:16px 0 8px">Durée</div>
-    <div class="qxdur" id="cardioDurChips"></div>
-    <input id="cardioCustomDur" class="acctin" inputmode="numeric" placeholder="ou minutes personnalisées">`;
-  renderCardioChips();
-  $('#cardioCustomDur').oninput=()=>{if(($('#cardioCustomDur').value||'').trim()!==''){cardioSel.dur=0;renderCardioChips();}};
+    <div class="qxdur" id="cardioDurChips"></div>`;
+  renderCardioTypeChips();
+  renderCardioDurChips();
 }
-function renderCardioChips(){
-  $('#cardioTypeChips').innerHTML=CARDIO_TYPES.map(t=>`<button type="button" class="day${cardioSel.type===t.key?' on':''}" data-k="${t.key}" style="padding:6px 11px"><span class="t">${t.label}</span></button>`).join('');
-  $('#cardioTypeChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioSel.type=b.dataset.k;renderCardioChips();});
-  $('#cardioDurChips').innerHTML=CARDIO_DURATIONS.map(m=>`<button type="button" class="day${cardioSel.dur===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
-  $('#cardioDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioSel.dur=+b.dataset.m;$('#cardioCustomDur').value='';renderCardioChips();});
+function renderCardioTypeChips(){
+  $('#cardioTypeChips').innerHTML=CARDIO_TYPES.map(t=>`<button type="button" class="day${cardioFlow.type===t.key?' on':''}" data-k="${t.key}" style="padding:6px 11px"><span class="t">${t.label}</span></button>`).join('');
+  $('#cardioTypeChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioFlow.type=b.dataset.k;renderCardioTypeChips();});
+}
+function renderCardioDurChips(){
+  $('#cardioDurChips').innerHTML=CARDIO_DURATIONS.map(m=>`<button type="button" class="day${cardioFlow.minutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
+  $('#cardioDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioFlow.minutes=+b.dataset.m;renderCardioDurChips();});
+}
+function renderCardioFinishStep(){
+  const t=(CARDIO_TYPES.find(x=>x.key===cardioFlow.type)||{}).label||'Cardio';
+  $('#cardioTitle').textContent='Séance terminée ?';
+  $('#cardioMain').textContent='✓ Enregistrer';
+  $('#cardioBody').innerHTML=`
+    <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">${t} — combien de temps as-tu fait ?</div>
+    <div class="qxdur" id="cardioActualChips"></div>
+    <input id="cardioActualCustom" class="acctin" inputmode="numeric" placeholder="ou minutes personnalisées">
+    <div class="d" style="font-size:13px;color:var(--muted);margin:16px 0 8px">Ressenti (optionnel)</div>
+    <div id="cardioFeelChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>`;
+  renderCardioActualChips();
+  renderCardioFeelChips();
+  $('#cardioActualCustom').oninput=()=>{if(($('#cardioActualCustom').value||'').trim()!==''){cardioFlow.actualMinutes=0;renderCardioActualChips();}};
+}
+function renderCardioActualChips(){
+  $('#cardioActualChips').innerHTML=CARDIO_DURATIONS.map(m=>`<button type="button" class="day${cardioFlow.actualMinutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
+  $('#cardioActualChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioFlow.actualMinutes=+b.dataset.m;$('#cardioActualCustom').value='';renderCardioActualChips();});
+}
+function renderCardioFeelChips(){
+  $('#cardioFeelChips').innerHTML=CARDIO_FEELINGS.map(f=>`<button type="button" class="day${cardioFlow.feel===f.key?' on':''}" data-k="${f.key}" style="padding:6px 11px"><span class="t">${f.label}</span></button>`).join('');
+  $('#cardioFeelChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioFlow.feel=cardioFlow.feel===b.dataset.k?null:b.dataset.k;renderCardioFeelChips();});
 }
 $('#cardioCancel').onclick=()=>$('#cardioSheet').classList.remove('show');
 $('#cardioSheet').onclick=e=>{if(e.target.id==='cardioSheet')$('#cardioSheet').classList.remove('show');};
-$('#cardioSave').onclick=()=>{
-  const custom=parseInt($('#cardioCustomDur').value);
-  const minutes=custom>0?custom:cardioSel.dur;
-  if(!minutes||minutes<=0){$('#cardioCustomDur').focus();return;}
-  const label=(CARDIO_TYPES.find(t=>t.key===cardioSel.type)||{}).label||'Cardio';
-  state.extraSessions.push({date:today(),type:'cardio',label,minutes});
+$('#cardioMain').onclick=()=>{
+  if(cardioFlow.step==='goal'){
+    const g=CARDIO_GOALS.find(x=>x.key===cardioFlow.goal)||CARDIO_GOALS[0];
+    cardioFlow.type=g.type;cardioFlow.minutes=g.minutes;
+    cardioFlow.step='plan';
+    renderCardioSheet();
+    return;
+  }
+  if(cardioFlow.step==='plan'){
+    cardioFlow.actualMinutes=cardioFlow.minutes;cardioFlow.feel=null;
+    cardioFlow.step='finish';
+    renderCardioSheet();
+    return;
+  }
+  const custom=parseInt($('#cardioActualCustom').value);
+  const minutes=custom>0?custom:cardioFlow.actualMinutes;
+  if(!minutes||minutes<=0){$('#cardioActualCustom').focus();return;}
+  const label=(CARDIO_TYPES.find(t=>t.key===cardioFlow.type)||{}).label||'Cardio';
+  state.extraSessions.push({date:today(),type:'cardio',label,minutes,feel:cardioFlow.feel||null});
   flush();
   if(navigator.vibrate)navigator.vibrate(20);
   $('#cardioSheet').classList.remove('show');
@@ -1617,7 +1678,8 @@ function monthSessions(y,m){
   (state.extraSessions||[]).forEach(s=>{
     const d=new Date(s.date+'T00:00:00');
     if(d.getFullYear()!==y||d.getMonth()!==m)return;
-    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:s.minutes?s.minutes+' min':''});
+    const feel=s.feel?' · '+((CARDIO_FEELINGS.find(f=>f.key===s.feel)||{}).label||''):'';
+    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:(s.minutes?s.minutes+' min':'')+feel});
   });
   return map;
 }

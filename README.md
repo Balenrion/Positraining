@@ -24,7 +24,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 La barre en bas de l'écran (accessible au pouce) donne accès à **Accueil / Séance / Poids / Nutrition / Agenda**. L'accueil propose 3 raccourcis :
 - **Reprendre le programme** → va directement à la séance du jour.
 - **Abdos express** → choisis la durée (10/15/20 min) et si tu veux des **exercices adaptés périnée** (sans pression abdominale — pas de crunch ni de relevé de jambes ; utile en post-partum, en cas de gêne ou de désir de grossesse), puis **C'est parti**. Le bouton et l'écran de réglages sont identiques pour tout le monde, seul ce choix (fait à chaque lancement) change les exercices proposés.
-- **Cardio** → choisis un type de séance (course, vélo, rameur…) et une durée, elle est enregistrée et visible dans l'Agenda.
+- **Cardio** → dis d'abord ton **objectif** (raffermir, perdre de la cellulite, améliorer le cardio, ou libre) : l'app te propose un type de séance et une durée adaptés (modifiables). Une fois la séance faite, indique le temps réel et, si tu veux, ton ressenti — c'est enregistré et visible dans l'Agenda.
 
 ## Agenda
 Un calendrier du mois avec un point sur chaque jour où une séance a été faite (programme, abdos express ou cardio), et la liste détaillée en dessous. Navigue avec les flèches ‹ › pour consulter les mois précédents.
