@@ -213,8 +213,8 @@
   .finishbtn .fprog{font-size:11px;color:var(--faint);}
   .finishbtn.full{border-color:var(--go);}
   .finishbtn.full .fmain{color:var(--go);}
-  .finishbtn.done{background:#1a2513;border-color:var(--go-dim);}
-  .finishbtn.done .fmain{color:var(--go);}
+  .finishbtn.complete{background:#1a2513;border-color:var(--go-dim);}
+  .finishbtn.complete .fmain{color:var(--go);}
   .dcheck{color:var(--go);font-size:11px;margin-left:5px;font-weight:700;}
   .day.on .dcheck{color:#12141a;}
 
@@ -1034,7 +1034,7 @@ function renderDay(){
   const prog=sessionProgress(visible),dk=day.id+'__w'+state.week,dn=state.done[dk];
   const full=prog.total>0&&prog.filled===prog.total;
   const bar=document.createElement('div');bar.className='finish';
-  bar.innerHTML=`<button class="finishbtn${dn?' done':(full?' full':'')}"><span class="fmain">${dn?'✓ Séance validée'+(dn.length>6?' · '+fmtDate(dn):''):'Terminer la séance'}</span><span class="fprog">${prog.filled}/${prog.total} exercices remplis${dn?' · touche pour rouvrir':''}</span></button>`;
+  bar.innerHTML=`<button class="finishbtn${dn?' complete':(full?' full':'')}"><span class="fmain">${dn?'✓ Séance validée'+(dn.length>6?' · '+fmtDate(dn):''):'Terminer la séance'}</span><span class="fprog">${prog.filled}/${prog.total} exercices remplis${dn?' · touche pour rouvrir':''}</span></button>`;
   bar.querySelector('button').onclick=()=>{if(state.done[dk])delete state.done[dk];else state.done[dk]=today();flush();renderDays();renderDay();};
   app.appendChild(bar);
 }
