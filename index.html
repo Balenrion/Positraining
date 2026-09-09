@@ -490,7 +490,6 @@ const DAYS_ORIGINAL=[
  {id:'d1',t:'J1',s:'Bas A',title:'Bas A — Quadriceps',role:'Volume jambes #1 · dominante quadriceps',
   ex:[
    {n:'Presse à cuisses',sets:4,reps:'8-12',rest:120,start:'~60 kg',cue:'Amplitude complète sans arrondir le bas du dos ; pieds à mi-hauteur pour cibler les quadriceps.'},
-   {n:'Hack squat',sets:3,reps:'10-12',rest:120,cue:'Descends cuisses parallèles, pousse talons + avant-pied, ne verrouille pas en haut.'},
    {n:'Fentes marchées haltères',sets:3,reps:'10-12 /jbe',rest:90,cue:'Grand pas, genou arrière vers le sol, buste légèrement penché pour les fessiers.'},
    {n:'Leg extension',sets:3,reps:'12-15',rest:75,cue:'Pause 1 s en haut, contraction max du quadriceps, contrôle la descente.'},
    {n:'Hip thrust',sets:3,reps:'10-12',rest:90,cue:'Menton rentré, extension complète des hanches, serre les fessiers 1 s.'},
@@ -511,7 +510,7 @@ const DAYS_ORIGINAL=[
    {n:'Rappel coude — isométries poignet',note:true,tag:'rééduc',cue:'Haltère léger, poignet en flexion, tiens 30-45 s × 4 (échauffement/rééduc). À faire 5-6×/semaine, y compris à la maison. Reste sous 3-4/10 de douleur — le tendon se répare en chargeant, pas au repos.'},
    {n:'Tirage vertical prise large',sets:4,reps:'8-12',rest:120,start:'~38-40 kg',cue:'Coudes vers le bas/arrière, poitrine haute, pas de balancier.'},
    {n:'Rowing haltère un bras',sets:4,reps:'8-12',rest:120,cue:'Tire vers le nombril, serre l\u2019omoplate, pas de coup de rein. Sangles conseillées.'},
-   {n:'Tirage horizontal poulie',sets:3,reps:'10-12',rest:90,cue:'Buste stable, amplitude complète, étire en avant.'},
+   {n:'Pull-over poulie haute',sets:3,reps:'12-15',rest:75,cue:'Bras tendus (légère flexion aux coudes), descends jusqu’aux cuisses en gardant le buste fixe, sens l’étirement du dos en haut.'},
    {n:'Face pull',sets:3,reps:'15-20',rest:60,cue:'Tire vers le front, rotation externe — deltoïdes postérieurs.'},
    {n:'Curl haltères',tag:'coude',sets:3,reps:'10-12',rest:60,cue:'Léger si ça tire (épitrochléite), coudes fixes, contrôle la descente. Marteau si besoin.'},
    {n:'Pallof press poulie',tag:'obliques',sets:3,reps:'12 /côté',rest:45,cls:CORE,cue:'Anti-rotation : résiste à la traction, bras tendus, gainage total.'},
@@ -565,11 +564,11 @@ let DAYS=DAYS_ORIGINAL,GOAL=92,NUTRI={kcal:3100,protein:175,fat:80,carbs:420};
 const EXO_POOL={};
 DAYS_ORIGINAL.forEach(d=>d.ex.forEach(e=>{if(!e.note)EXO_POOL[e.n]=e;}));
 const EXO_GROUP={
- quad:['Presse à cuisses','Hack squat','Fentes marchées haltères','Leg extension'],
+ quad:['Presse à cuisses','Fentes marchées haltères','Leg extension'],
  hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl','Hip thrust'],
  push:['Développé couché haltères','Développé incliné haltères','Développé incliné machine','Chest press machine convergente','Dips machine / assistées'],
  pushIso:['Écarté poulies','Écarté incliné haltères'],
- pull:['Tirage vertical prise large','Rowing haltère un bras','Tirage horizontal poulie'],
+ pull:['Tirage vertical prise large','Rowing haltère un bras','Pull-over poulie haute'],
  shoulder:['Développé épaules haltères','Développé épaules machine','Élévations latérales','Élévations latérales poulie','Face pull'],
  arms:['Curl haltères','Curl marteau','Extension triceps poulie corde','Extension triceps au-dessus de la tête','Curl barre EZ / haltères'],
  glutes:['Abduction machine','Mollets debout'],
@@ -610,12 +609,12 @@ function applyMuscleFocus(days,weak,strong){
   return days;
 }
 const LIMITE_INFO=[
- {key:'genou',label:'Genou',exclude:['Presse à cuisses','Hack squat','Fentes marchées haltères','Leg extension']},
+ {key:'genou',label:'Genou',exclude:['Presse à cuisses','Fentes marchées haltères','Leg extension']},
  {key:'epaule',label:'Épaule',exclude:['Développé épaules haltères','Développé épaules machine','Dips machine / assistées']},
  {key:'dos',label:'Bas du dos',exclude:['Soulevé de terre roumain haltères','Hip thrust lourd'],substitute:'Leg curl'},
  {key:'coude',label:'Coude',exclude:['Extension triceps au-dessus de la tête','Curl barre EZ / haltères','Écarté poulies']},
  {key:'poignet',label:'Poignet',exclude:['Tirage vertical prise large','Rowing haltère un bras']},
- {key:'cheville',label:'Cheville',exclude:['Hack squat','Mollets debout']}
+ {key:'cheville',label:'Cheville',exclude:['Mollets debout']}
 ];
 
 /* ---------- Abdos express (accueil) ---------- */
@@ -908,6 +907,7 @@ function sparkline(pts){
 const HOWTO={
  "Presse à cuisses":{m:"Quadriceps, fessiers",s:["Dos et bassin plaqués au dossier, pieds largeur épaules à mi-plateau.","Déverrouille, descends en contrôle jusqu'à ~90° aux genoux.","Pousse dans les talons et l'avant-pied, sans verrouiller en haut."]},
  "Hack squat":{m:"Quadriceps, fessiers",s:["Épaules sous les cales, dos plaqué, pieds au milieu de la plateforme.","Descends jusqu'aux cuisses parallèles, genoux dans l'axe des pieds.","Remonte en poussant le sol, talons ancrés."]},
+ "Squat gobelet haltère":{m:"Quadriceps, fessiers",s:["Tiens un haltère verticalement contre la poitrine, coudes vers le bas.","Descends cuisses parallèles ou plus bas, coudes qui glissent entre les genoux.","Remonte en poussant le sol, buste droit tout du long."]},
  "Fentes marchées haltères":{m:"Quadriceps, fessiers, ischios",s:["Un haltère dans chaque main, buste droit, regard devant.","Grand pas en avant, descends le genou arrière vers le sol.","Pousse sur la jambe avant pour enchaîner le pas suivant."]},
  "Leg extension":{m:"Quadriceps",s:["Règle le dossier : genoux alignés avec l'axe de la machine.","Monte jusqu'à l'extension complète, pause 1 s en contraction.","Redescends lentement sans lâcher la charge."]},
  "Hip thrust":{m:"Fessiers, ischios",s:["Haut du dos calé sur le banc, coussin sur le bassin, pieds à plat.","Monte le bassin jusqu'à aligner épaules-hanches-genoux.","Serre les fessiers 1 s en haut, menton rentré, descends contrôlé."]},
@@ -922,6 +922,7 @@ const HOWTO={
  "Tirage vertical prise large":{m:"Dorsaux, biceps",s:["Prise large, poitrine haute, léger buste en arrière.","Tire la barre vers le haut de la poitrine, coudes vers le bas.","Contrôle la remontée jusqu'à l'étirement complet."]},
  "Rowing haltère un bras":{m:"Dorsaux, trapèzes",s:["Genou et main sur le banc, dos plat, haltère bras tendu.","Tire vers la hanche en serrant l'omoplate, coude proche du corps.","Descends lentement sans tourner le buste (sangle conseillée)."]},
  "Tirage horizontal poulie":{m:"Dorsaux, milieu du dos",s:["Assis, genoux à peine fléchis, dos droit, prise serrée.","Tire vers le nombril en serrant les omoplates, buste stable.","Reviens en contrôlant l'étirement vers l'avant."]},
+ "Pull-over poulie haute":{m:"Grand dorsal, dentelé",s:["Poulie haute, corde ou barre, bras tendus (légère flexion aux coudes) au-dessus de la tête.","Descends les bras tendus jusqu'aux cuisses, buste fixe.","Remonte en contrôlant l'étirement, sans plier les coudes."]},
  "Face pull":{m:"Deltoïdes postérieurs, dos haut",s:["Corde à hauteur du visage, recule pour mettre en tension.","Tire vers le front en écartant, rotation externe des épaules.","Reviens lentement, coudes hauts."]},
  "Curl haltères":{m:"Biceps",s:["Debout, coudes fixes le long du corps, paumes vers l'avant.","Fléchis en montant les haltères, sans balancer.","Descends lentement. Reste léger si le coude tire."]},
  "Pallof press poulie":{m:"Obliques, gainage profond",s:["Poulie à hauteur de poitrine, de profil, mains jointes sur la poignée.","Tends les bras devant toi en résistant à la rotation.","Ramène contre la poitrine sans te laisser tourner (chaque côté)."]},
@@ -950,6 +951,7 @@ HOWTO["Curl barre EZ / haltères"]=HOWTO["Curl haltères"];
 const ALT={
  "Presse à cuisses":["Hack squat","Squat gobelet haltère","Squat guidé (Smith)"],
  "Hack squat":["Presse à cuisses (horizontale ou inclinée)","Squat guidé (Smith)","Squat gobelet haltère"],
+ "Squat gobelet haltère":["Presse à cuisses","Squat guidé (Smith)","Fentes marchées haltères"],
  "Fentes marchées haltères":["Split squat bulgare","Fentes statiques sur place","Presse à cuisses une jambe"],
  "Leg extension":["Presse à cuisses pieds bas (accent quadriceps)","Sissy squat","Fentes"],
  "Hip thrust":["Hip thrust avec haltère sur les hanches","Pont fessier au sol","Kickback fessier à la poulie"],
@@ -964,6 +966,7 @@ const ALT={
  "Tirage vertical prise large":["Tractions assistées","Tirage prise neutre/serrée","Lat pulldown machine"],
  "Rowing haltère un bras":["Rowing machine assis","Tirage horizontal poulie","Rowing T-bar"],
  "Tirage horizontal poulie":["Rowing machine assis","Rowing haltère un bras","Rowing T-bar"],
+ "Pull-over poulie haute":["Pull-over haltère au banc","Tirage horizontal poulie (variante coudes fléchis)","Straight-arm pulldown élastique"],
  "Face pull":["Oiseau haltères (buste penché)","Reverse pec deck (oiseau machine)"],
  "Curl haltères":["Curl à la poulie","Curl barre EZ","Curl machine ou pupitre"],
  "Pallof press poulie":["Gainage anti-rotation haltère","Planche classique","Woodchopper léger"],
