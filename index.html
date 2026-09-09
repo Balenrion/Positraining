@@ -193,10 +193,11 @@
 
   /* Swap selector */
   .exbtns{display:flex;gap:16px;padding:6px 13px 2px;flex-wrap:wrap;}
-  .exbtns .howbtn,.exbtns .swapbtn,.exbtns .skipbtn,.exbtns .rmbtn{padding:4px 0;}
+  .exbtns .howbtn,.exbtns .swapbtn,.exbtns .skipbtn,.exbtns .rmbtn,.exbtns .chronobtn{padding:4px 0;}
   .swapbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--ramp);}
   .skipbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--deload);}
   .rmbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:#e88;}
+  .chronobtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--go-dim);}
   .swtag{display:inline-block;font-family:var(--num);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--ramp);background:#16202e;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
   .ex.swapped{border-color:#2a3a52;}
   .swapsub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.45;}
@@ -835,6 +836,11 @@ function fmtRest(sec){
   if(r===30)return m+'½ min';
   return m+' min '+r+' s';
 }
+function holdSeconds(reps){
+  const m=String(reps||'').match(/(\d+)(?:-(\d+))?\s*s\b/);
+  if(!m)return null;
+  return parseInt(m[2]||m[1],10);
+}
 function getLog(exId,w){return state.logs[logKey(exId,w)]||null;}
 function bestSet(arr){if(!arr)return null;let b=null;arr.forEach(s=>{const w=parseFloat(s.w),r=parseInt(s.r);if(!isNaN(w)&&!isNaN(r)){if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};}});return b;}
 function lastTime(exId,curW){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(exId,k));if(b)return{w:k,b};}return null;}
@@ -1110,7 +1116,8 @@ function renderDay(){
     if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b> — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
     const warm=warmupSets(e,lt);
     if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
-    html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button><button class="swapbtn">⇄ Changer</button><button class="skipbtn">⏭ Passer</button>${e.custom?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
+    const hold=holdSeconds(e.reps);
+    html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}<button class="swapbtn">⇄ Changer</button><button class="skipbtn">⏭ Passer</button>${e.custom?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
     html+=`<div class="sets"><div class="unit"><span></span><span>kg</span><span></span><span>reps</span><span></span></div>`;
     rows.forEach((s,si)=>{
       html+=`<div class="setrow" data-ex="${eid}" data-si="${si}">
@@ -1125,6 +1132,7 @@ function renderDay(){
     card.innerHTML=html;
 
     const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
+    const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>startTimer(hold,nm,'Maintien');
     const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=()=>openSwap(e);
     const skb=card.querySelector('.skipbtn');if(skb)skb.onclick=()=>{state.skips[skipKey]=true;save();renderDay();};
     const rmb=card.querySelector('.rmbtn');if(rmb)rmb.onclick=()=>{
@@ -1187,15 +1195,16 @@ function renderAll(){renderWeeks();renderPhase();renderDays();renderDay();}
 /* ---------- Minuteur de repos ---------- */
 let tId=null,tLeft=0;
 function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
-function startTimer(sec,name){
+function startTimer(sec,name,label){
+  label=label||'Repos';
   clearInterval(tId);tLeft=sec;
   const t=$('#timer');t.classList.add('show');t.classList.remove('warn');
-  $('#tlbl').textContent='Repos · '+name;$('#tval').textContent=fmt(tLeft);
+  $('#tlbl').textContent=label+' · '+name;$('#tval').textContent=fmt(tLeft);
   tId=setInterval(()=>{
     tLeft--;$('#tval').textContent=fmt(Math.max(tLeft,0));
     if(tLeft<=5)t.classList.add('warn');
     if(tLeft<=0){clearInterval(tId);if(navigator.vibrate)navigator.vibrate([120,60,120]);
-      $('#tlbl').textContent='Repos terminé — go 💪';setTimeout(()=>t.classList.remove('show'),2500);}
+      $('#tlbl').textContent=label+' terminé — go 💪';setTimeout(()=>t.classList.remove('show'),2500);}
   },1000);
 }
 $('#tstop').onclick=()=>{clearInterval(tId);$('#timer').classList.remove('show');};
@@ -1543,17 +1552,20 @@ function renderAbsSession(){
   $('#absMain').textContent='✓ Terminer';
   const list=trimCoreToTime(absSetup.safe?CORE_SAFE:CORE_STANDARD,absSetup.minutes);
   const note=absSetup.safe?`<div class="qxnote">${CORE_SAFE_NOTE}</div>`:'';
-  $('#absBody').innerHTML=note+list.map((x,i)=>`
-    <div class="qx">
-      <div class="qn"><b>${x.n}</b><span>${x.sets}×${x.reps} · repos ${fmtRest(x.rest)}</span>${x.cue?`<span>${x.cue}</span>`:''}</div>
+  $('#absBody').innerHTML=note+list.map((x,i)=>{
+    const hold=holdSeconds(x.reps);
+    return `<div class="qx">
+      <div class="qn"><b>${x.n}</b><span>${x.sets}×${x.reps} · repos ${fmtRest(x.rest)}</span>${x.cue?`<span>${x.cue}</span>`:''}${hold?`<button class="chronobtn" data-hold="${hold}" data-n="${x.n}" style="padding:4px 0">⏱ Chrono ${hold} s</button>`:''}</div>
       <button class="done${absLocalDone.has(i)?' on':''}" data-i="${i}">✓</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   $('#absBody').querySelectorAll('.done').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.i;
     if(absLocalDone.has(i))absLocalDone.delete(i);else absLocalDone.add(i);
     b.classList.toggle('on',absLocalDone.has(i));
     if(navigator.vibrate)navigator.vibrate(15);
   });
+  $('#absBody').querySelectorAll('.chronobtn').forEach(b=>b.onclick=()=>startTimer(+b.dataset.hold,b.dataset.n,'Maintien'));
 }
 $('#absCancel').onclick=()=>$('#absSheet').classList.remove('show');
 $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};
