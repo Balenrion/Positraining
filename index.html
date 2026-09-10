@@ -198,6 +198,11 @@
   .skipbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--deload);}
   .rmbtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:#e88;}
   .chronobtn{background:none;border:0;font-family:var(--num);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--go-dim);}
+  .exfeel{display:flex;align-items:center;gap:6px;padding:2px 13px 12px;}
+  .exfeel-lbl{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
+  .feelbtn{background:var(--raised);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;
+     font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;flex:0 0 auto;}
+  .feelbtn.on{opacity:1;border-color:var(--go-dim);background:#1a2513;}
   .swtag{display:inline-block;font-family:var(--num);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--ramp);background:#16202e;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
   .ex.swapped{border-color:#2a3a52;}
   .swapsub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.45;}
@@ -806,7 +811,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,extraSessions:[]};}
+function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,extraSessions:[],feels:{}};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
 let saveTimer=null;
@@ -830,7 +835,7 @@ function applyBundle(b){
   program=b.program||freshProgramDefault();
   DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
 }
 function persistActiveBundle(){
   if(!activeId)return;
@@ -874,12 +879,15 @@ function lastTime(exId,curW){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(e
 function series(exId){const pts=[];for(let k=1;k<=8;k++){const b=bestSet(getLog(exId,k));if(b)pts.push({week:k,val:b.w});}return pts;}
 function repsRange(reps){const m=String(reps||'').match(/(\d+)(?:-(\d+))?/);if(!m)return null;return{lo:+m[1],hi:m[2]?+m[2]:+m[1]};}
 function roundStep(v,step){return Math.round(v/step)*step;}
-function suggestWeight(e,lt){
+const EX_FEELS=[{key:'facile',icon:'😌',label:'Facile'},{key:'ok',icon:'👍',label:'Ok'},{key:'dur',icon:'😓',label:'Trop dur'}];
+const FEEL_ICON={facile:'😌',ok:'👍',dur:'😓'};
+function suggestWeight(e,lt,feel){
   if(!lt)return null;
   const range=repsRange(e.reps);
   if(!range)return null;
-  if(lt.b.r>=range.hi)return roundStep(lt.b.w+2.5,2.5);
-  return null;
+  if(lt.b.r<range.hi)return null;
+  if(feel==='dur')return null;
+  return roundStep(lt.b.w+(feel==='facile'?5:2.5),2.5);
 }
 function warmupSets(e,lt){
   if(e.cls===CORE||e.note)return null;
@@ -1143,8 +1151,9 @@ function renderDay(){
     if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${fmtRest(e.rest)} ⏱</span>`;
     if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
     html+=`</div>`;
-    const sugg=suggestWeight(e,lt);
-    if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b> — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
+    const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
+    const sugg=suggestWeight(e,lt,lastFeel);
+    if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b>${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
     const warm=warmupSets(e,lt);
     if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
     const hold=holdSeconds(e.reps);
@@ -1160,8 +1169,17 @@ function renderDay(){
       </div>`;
     });
     html+=`</div>`;
+    const curFeel=state.feels[key];
+    html+=`<div class="exfeel"><span class="exfeel-lbl">Ressenti</span>${EX_FEELS.map(f=>`<button class="feelbtn${curFeel===f.key?' on':''}" data-k="${f.key}" aria-label="${f.label}">${f.icon}</button>`).join('')}</div>`;
     card.innerHTML=html;
 
+    card.querySelectorAll('.feelbtn').forEach(b=>b.onclick=()=>{
+      const k=b.dataset.k;
+      if(state.feels[key]===k)delete state.feels[key];else state.feels[key]=k;
+      save();
+      card.querySelectorAll('.feelbtn').forEach(x=>x.classList.toggle('on',state.feels[key]===x.dataset.k));
+      if(navigator.vibrate)navigator.vibrate(10);
+    });
     const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
     const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>startTimer(hold,nm,'Maintien');
     const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=()=>openSwap(e);
@@ -1299,7 +1317,7 @@ $('#importFile').onchange=ev=>{
     }else{
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
     state.updatedAt=Date.now();
     DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
@@ -1835,6 +1853,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.
     if(!migrated.done)migrated.done={};
     if(!migrated.skips)migrated.skips={};
     if(!migrated.measures)migrated.measures={waist:[],arm:[],hip:[]};
+    if(!migrated.feels)migrated.feels={};
     if(!migrated.weights.length&&!migrated.wseed){migrated.weights=[{date:today(),kg:86.8}];migrated.wseed=true;}
     profiles=[{id,name:'Laurent',createdAt:Date.now()}];
     saveProfilesIndex();

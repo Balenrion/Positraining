@@ -33,6 +33,7 @@ Un calendrier du mois avec un point sur chaque jour où une séance a été fait
 - **Séance / Poids / Nutrition** se change via la barre en bas de l'écran, accessible au pouce sans avoir à remonter.
 - **Glisse à gauche/droite** sur la séance pour passer au jour suivant/précédent, sans repasser par les onglets du haut.
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
+- Sous chaque exercice, indique ton **ressenti** (😌 Facile / 👍 Ok / 😓 Trop dur) — optionnel. La prochaine fois, ça affine la suggestion de charge : "Trop dur" bloque toute augmentation même si les reps étaient bonnes, "Facile" pousse un peu plus fort (+5 kg au lieu de +2,5).
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
 - Une série se **coche toute seule** dès que tu saisis le poids ou les reps — plus besoin de taper sur le ✓. Le **minuteur de repos démarre automatiquement** à ce moment-là. Une erreur de saisie ? Le ✓ reste cliquable pour décocher.
 - Sur les exercices chronométrés (gainage, planche…), un bouton **⏱ Chrono** lance directement le minuteur de maintien — pas besoin de sortir de l'app pour chronométrer.
@@ -73,3 +74,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Page d'accueil (reprendre le programme, abdos express avec variante périnée-safe, cardio express) + agenda calendrier
 - [x] Bouton chrono dédié sur les exercices chronométrés (gainage, planche…)
 - [x] Pop-up de félicitations animée à la validation d'une séance
+- [x] Vote de ressenti par exercice (facile/ok/trop dur) qui affine la suggestion de charge
