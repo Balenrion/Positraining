@@ -35,7 +35,7 @@ Un calendrier du mois avec un point sur chaque jour où une séance a été fait
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
 - Sous chaque exercice, indique ton **ressenti** (😌 Facile / 👍 Ok / 😓 Trop dur) — optionnel. La prochaine fois, ça affine la suggestion de charge : "Trop dur" bloque toute augmentation même si les reps étaient bonnes, "Facile" pousse un peu plus fort (+5 kg au lieu de +2,5).
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
-- Une série se **coche toute seule** dès que tu saisis le poids ou les reps — plus besoin de taper sur le ✓. Le **minuteur de repos démarre automatiquement** à ce moment-là. Une erreur de saisie ? Le ✓ reste cliquable pour décocher.
+- Saisis le poids et les reps, puis touche le **✓** pour valider la série — le **minuteur de repos démarre automatiquement** à ce moment-là. Touche à nouveau pour décocher en cas d'erreur.
 - Sur les exercices chronométrés (gainage, planche…), un bouton **⏱ Chrono** lance directement le minuteur de maintien — pas besoin de sortir de l'app pour chronométrer.
 - Un réglage de **temps disponible** (30 à 90 min) en haut de la séance masque les derniers exercices si besoin, sans jamais descendre sous 30 minutes.
 - Pas de machine dispo, ou muscle trop douloureux ? **⏭ Passer** sur la carte de l'exercice — il ne compte plus dans la progression de la séance et revient normalement la semaine suivante.
