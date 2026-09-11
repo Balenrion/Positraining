@@ -102,6 +102,7 @@
   .unit{display:grid;grid-template-columns:26px 1fr 14px 1fr 34px;gap:7px;padding:0 0 2px;}
   .unit span{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;text-align:center;}
   .unit span:nth-child(2),.unit span:nth-child(4){text-align:left;padding-left:4px;}
+  .setrow.bw,.unit.bw{grid-template-columns:26px 1fr 34px;}
 
   /* Rest timer */
   .timer{position:fixed;left:0;right:0;top:0;z-index:45;
@@ -514,7 +515,7 @@ const DAYS_ORIGINAL=[
    {n:'Face pull',sets:3,reps:'15-20',rest:60,cue:'Tire vers le front, rotation externe — deltoïdes postérieurs.'},
    {n:'Curl haltères',tag:'coude',sets:3,reps:'10-12',rest:60,cue:'Léger si ça tire (épitrochléite), coudes fixes, contrôle la descente. Marteau si besoin.'},
    {n:'Pallof press poulie',tag:'obliques',sets:3,reps:'12 /côté',rest:45,cls:CORE,cue:'Anti-rotation : résiste à la traction, bras tendus, gainage total.'},
-   {n:'Gainage latéral',tag:'core',sets:3,reps:'30-45 s /côté',rest:45,cls:CORE,cue:'Corps aligné, hanches hautes, ne t\u2019affaisse pas.'}
+   {n:'Gainage latéral',tag:'core',sets:3,reps:'30-45 s /côté',rest:45,cls:CORE,bw:true,cue:'Corps aligné, hanches hautes, ne t\u2019affaisse pas.'}
  ]},
  {id:'d4',t:'J4',s:'Bas B',title:'Bas B — Chaîne postérieure',role:'Volume jambes #2 · dominante ischios/fessiers',
   ex:[
@@ -523,7 +524,7 @@ const DAYS_ORIGINAL=[
    {n:'Leg curl',sets:4,reps:'10-15',rest:90,cue:'Pause en contraction, ne décolle pas les hanches, contrôle le retour.'},
    {n:'Abduction machine',sets:3,reps:'15-20',rest:60,cue:'Buste légèrement penché en avant, pause en position ouverte — fessier moyen.'},
    {n:'Mollets debout',sets:4,reps:'10-15',rest:60,cue:'Amplitude max, pause d\u2019étirement 1 s en bas.'},
-   {n:'Relevé de jambes suspendu',tag:'bas abdos',sets:3,reps:'10-15',rest:60,cls:CORE,cue:'Bascule le bassin (il s\u2019enroule), ne balance pas.'}
+   {n:'Relevé de jambes suspendu',tag:'bas abdos',sets:3,reps:'10-15',rest:60,cls:CORE,bw:true,cue:'Bascule le bassin (il s\u2019enroule), ne balance pas.'}
  ]},
  {id:'d5',t:'J5',s:'Push B',title:'Push B — Pecs & épaules',role:'Volume pecs #2 · angle incliné prioritaire',
   ex:[
@@ -543,7 +544,7 @@ const DAYS_ORIGINAL=[
    {n:'Élévations latérales',sets:3,reps:'15-20',rest:45,cue:'Léger et propre, épaules qui brûlent.'},
    {n:'Face pull',sets:3,reps:'15-20',rest:45,cue:'Santé d\u2019épaule, coude peu sollicité — parfait en séance légère.'},
    {n:'Abduction machine',tag:'fessiers',sets:3,reps:'20',rest:45,cue:'Fessiers, très peu fatigant, buste légèrement penché.'},
-   {n:'Circuit core',tag:'core',sets:3,reps:'circuit',rest:30,cls:CORE,cue:'3 tours : gainage 40 s + woodchopper 15/côté + relevé de jambes 12.'},
+   {n:'Circuit core',tag:'core',sets:3,reps:'circuit',rest:30,cls:CORE,bw:true,cue:'3 tours : gainage 40 s + woodchopper 15/côté + relevé de jambes 12.'},
    {n:'Étirements / retour au calme',note:true,cue:'5 min : pecs, quadriceps, fléchisseurs de hanche. Fait redescendre le rythme et aide la récup.'}
  ]},
  {id:'d6',t:'J6',s:'Bras+',title:'J6 — Bras, pecs & core',role:'Variante 6 séances · rappel points faibles',opt:true,
@@ -554,7 +555,7 @@ const DAYS_ORIGINAL=[
    {n:'Extension triceps poulie',sets:4,reps:'10-12',rest:60,cue:'Coudes fixes, extension complète.'},
    {n:'Curl marteau',sets:3,reps:'12-15',rest:60,cue:'Prise neutre — brachial, plus doux pour le coude.'},
    {n:'Extension triceps au-dessus de la tête',sets:3,reps:'12-15',rest:60,cue:'Coudes serrés, étire bien en bas.'},
-   {n:'Circuit core',tag:'core',sets:2,reps:'circuit',rest:0,cls:CORE,cue:'2 tours : woodchopper 15/côté + crunch 15 + gainage 45 s.'}
+   {n:'Circuit core',tag:'core',sets:2,reps:'circuit',rest:0,cls:CORE,bw:true,cue:'2 tours : woodchopper 15/côté + crunch 15 + gainage 45 s.'}
  ]}
 ];
 DAYS_ORIGINAL.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
@@ -636,18 +637,18 @@ const LIMITE_INFO=[
 
 /* ---------- Abdos express (accueil) ---------- */
 const CORE_STANDARD=[
- {n:'Crunch classique',sets:3,reps:'15',rest:30,cue:'Contrôle la descente, ne tire pas sur la nuque.'},
- {n:'Relevé de jambes allongé',sets:3,reps:'12',rest:45,cue:'Bas du dos plaqué au sol, ne creuse pas les lombaires.'},
- {n:'Gainage (planche)',sets:3,reps:'30-40 s',rest:30,cue:'Corps aligné tête-bassin-talons, respire normalement.'},
- {n:'Mountain climbers',sets:3,reps:'20',rest:30,cue:'Rythme contrôlé, bassin stable.'},
- {n:'Gainage latéral',sets:2,reps:'30 s / côté',rest:30,cue:'Hanche haute, pas d’affaissement.'}
+ {n:'Crunch classique',sets:3,reps:'15',rest:30,bw:true,cue:'Contrôle la descente, ne tire pas sur la nuque.'},
+ {n:'Relevé de jambes allongé',sets:3,reps:'12',rest:45,bw:true,cue:'Bas du dos plaqué au sol, ne creuse pas les lombaires.'},
+ {n:'Gainage (planche)',sets:3,reps:'30-40 s',rest:30,bw:true,cue:'Corps aligné tête-bassin-talons, respire normalement.'},
+ {n:'Mountain climbers',sets:3,reps:'20',rest:30,bw:true,cue:'Rythme contrôlé, bassin stable.'},
+ {n:'Gainage latéral',sets:2,reps:'30 s / côté',rest:30,bw:true,cue:'Hanche haute, pas d’affaissement.'}
 ];
 const CORE_SAFE=[
- {n:'Respiration abdominale (transverse)',sets:3,reps:'8 respirations',rest:30,cue:'Expire longuement en rentrant le nombril vers la colonne, sans bloquer ta respiration.'},
- {n:'Dead bug',sets:3,reps:'10 / côté',rest:30,cue:'Bas du dos plaqué au sol, bras et jambe opposés descendent lentement.'},
- {n:'Bird-dog',sets:3,reps:'10 / côté',rest:30,cue:'Bassin stable et horizontal, pas de cambrure du bas du dos.'},
- {n:'Pont fessier',sets:3,reps:'12',rest:30,cue:'Contracte fessiers ET plancher pelvien en montant, redescends lentement.'},
- {n:'Planche modifiée (genoux au sol)',sets:3,reps:'20-30 s',rest:30,cue:'Respiration fluide, pas d’apnée. Arrête si pression ou gêne.'}
+ {n:'Respiration abdominale (transverse)',sets:3,reps:'8 respirations',rest:30,bw:true,cue:'Expire longuement en rentrant le nombril vers la colonne, sans bloquer ta respiration.'},
+ {n:'Dead bug',sets:3,reps:'10 / côté',rest:30,bw:true,cue:'Bas du dos plaqué au sol, bras et jambe opposés descendent lentement.'},
+ {n:'Bird-dog',sets:3,reps:'10 / côté',rest:30,bw:true,cue:'Bassin stable et horizontal, pas de cambrure du bas du dos.'},
+ {n:'Pont fessier',sets:3,reps:'12',rest:30,bw:true,cue:'Contracte fessiers ET plancher pelvien en montant, redescends lentement.'},
+ {n:'Planche modifiée (genoux au sol)',sets:3,reps:'20-30 s',rest:30,bw:true,cue:'Respiration fluide, pas d’apnée. Arrête si pression ou gêne.'}
 ];
 const CORE_SAFE_NOTE='Ces exercices évitent la pression abdominale (pas de crunch ni de relevé de jambes classique). En cas de gêne, de fuite ou de sensation de pesanteur, consulte un·e kiné périnéal·e avant de continuer.';
 function coreDuration(list){return list.reduce((sum,x)=>sum+x.sets*(45+x.rest),0);}
@@ -886,14 +887,15 @@ function holdSeconds(reps){
   return parseInt(m[2]||m[1],10);
 }
 function getLog(exId,w){return state.logs[logKey(exId,w)]||null;}
-function bestSet(arr){if(!arr)return null;let b=null;arr.forEach(s=>{const w=parseFloat(s.w),r=parseInt(s.r);if(!isNaN(w)&&!isNaN(r)){if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};}});return b;}
-function lastTime(exId,curW){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(exId,k));if(b)return{w:k,b};}return null;}
-function series(exId){const pts=[];for(let k=1;k<=8;k++){const b=bestSet(getLog(exId,k));if(b)pts.push({week:k,val:b.w});}return pts;}
+function bestSet(arr,bw){if(!arr)return null;let b=null;arr.forEach(s=>{const r=parseInt(s.r);if(isNaN(r))return;if(bw){if(!b||r>b.r)b={w:0,r};return;}const w=parseFloat(s.w);if(isNaN(w))return;if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};});return b;}
+function lastTime(exId,curW,bw){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(exId,k),bw);if(b)return{w:k,b};}return null;}
+function series(exId,bw){const pts=[];for(let k=1;k<=8;k++){const b=bestSet(getLog(exId,k),bw);if(b)pts.push({week:k,val:bw?b.r:b.w});}return pts;}
 function repsRange(reps){const m=String(reps||'').match(/(\d+)(?:-(\d+))?/);if(!m)return null;return{lo:+m[1],hi:m[2]?+m[2]:+m[1]};}
 function roundStep(v,step){return Math.round(v/step)*step;}
 const EX_FEELS=[{key:'facile',icon:'😌',label:'Facile'},{key:'ok',icon:'👍',label:'Ok'},{key:'dur',icon:'😓',label:'Trop dur'}];
 const FEEL_ICON={facile:'😌',ok:'👍',dur:'😓'};
 function suggestWeight(e,lt,feel){
+  if(e.bw)return null;
   if(!lt)return null;
   const range=repsRange(e.reps);
   if(!range)return null;
@@ -902,7 +904,7 @@ function suggestWeight(e,lt,feel){
   return roundStep(lt.b.w+(feel==='facile'?5:2.5),2.5);
 }
 function warmupSets(e,lt){
-  if(e.cls===CORE||e.note)return null;
+  if(e.cls===CORE||e.note||e.bw)return null;
   const startNum=e.start?(String(e.start).match(/\d+(?:[.,]\d+)?/)||[])[0]:null;
   const refW=lt?lt.b.w:(startNum?parseFloat(startNum.replace(',','.')):null);
   if(!refW||isNaN(refW))return null;
@@ -1114,8 +1116,8 @@ function renderExerciseCard(container,e,opts){
   const key=logKey(eid,week);
   if(!state.logs[key])state.logs[key]=Array.from({length:e.sets},()=>({w:'',r:'',d:false}));
   const rows=state.logs[key];
-  const lt=lastTime(eid,week);
-  const spk=sparkline(series(eid));
+  const lt=lastTime(eid,week,e.bw);
+  const spk=sparkline(series(eid,e.bw));
   const inRamp=week<=2;
 
   const card=document.createElement('div');
@@ -1128,14 +1130,21 @@ function renderExerciseCard(container,e,opts){
   html+=`</div>`;
   const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
   const sugg=suggestWeight(e,lt,lastFeel);
-  if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b>${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
+  if(lt){
+    const lastVal=e.bw?`<b>${lt.b.r} reps</b>`:`<b>${lt.b.w} kg × ${lt.b.r}</b>`;
+    html+=`<div class="last">Dernière fois (S${lt.w}) : ${lastVal}${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
+  }
   const warm=warmupSets(e,lt);
   if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
   const hold=holdSeconds(e.reps);
   html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
-  html+=`<div class="sets"><div class="unit"><span></span><span>kg</span><span></span><span>reps</span><span></span></div>`;
+  html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?'<span></span><span>reps</span><span></span>':'<span></span><span>kg</span><span></span><span>reps</span><span></span>'}</div>`;
   rows.forEach((s,si)=>{
-    html+=`<div class="setrow" data-ex="${eid}" data-si="${si}">
+    html+=e.bw?`<div class="setrow bw" data-ex="${eid}" data-si="${si}">
+      <div class="sn">${si+1}</div>
+      <input class="r" inputmode="numeric" placeholder="${e.reps.split('-')[0]||''}" value="${s.r}">
+      <button class="done${s.d?' on':''}">✓</button>
+    </div>`:`<div class="setrow" data-ex="${eid}" data-si="${si}">
       <div class="sn">${si+1}</div>
       <input class="w" inputmode="decimal" placeholder="${lt?lt.b.w:'–'}" value="${s.w}">
       <div class="x">×</div>
@@ -1164,8 +1173,9 @@ function renderExerciseCard(container,e,opts){
   if(restChip)restChip.onclick=()=>startTimer(parseInt(restChip.dataset.rest),restChip.dataset.name);
   card.querySelectorAll('.setrow').forEach(row=>{
     const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,week);
-    row.querySelector('.w').oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId);};
-    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId);};
+    const wIn=row.querySelector('.w');
+    if(wIn)wIn.oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId,e.bw);};
+    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId,e.bw);};
     row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}};
   });
   container.appendChild(card);
@@ -1253,14 +1263,15 @@ $('#axAdd').onclick=()=>{
   const rest=Math.max(0,parseInt($('#axRest').value)||60);
   const dayIdx=DAYS.findIndex(d=>d.id===addExDayId);
   if(dayIdx===-1)return;
-  const cue=(EXO_POOL[name]||{}).cue||'Exercice ajouté manuellement.';
-  DAYS[dayIdx].ex.push({n:name,sets,reps,rest,cue,custom:true,id:addExDayId+'_c'+uid()});
+  const base=EXO_POOL[name]||{};
+  const cue=base.cue||'Exercice ajouté manuellement.';
+  DAYS[dayIdx].ex.push({n:name,sets,reps,rest,cue,bw:!!base.bw,custom:true,id:addExDayId+'_c'+uid()});
   persistActiveBundle();flush();
   $('#addex').classList.remove('show');
   renderDay();
 };
-function refreshSpark(card,exId){
-  const svg=sparkline(series(exId));const head=card.querySelector('.exhead');
+function refreshSpark(card,exId,bw){
+  const svg=sparkline(series(exId,bw));const head=card.querySelector('.exhead');
   const old=head.querySelector('.spark');
   if(svg){const tmp=document.createElement('div');tmp.innerHTML=svg;const el=tmp.firstChild;
     if(old)old.replaceWith(el);else head.appendChild(el);}
