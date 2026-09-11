@@ -104,7 +104,7 @@
   .unit span:nth-child(2),.unit span:nth-child(4){text-align:left;padding-left:4px;}
 
   /* Rest timer */
-  .timer{position:fixed;left:0;right:0;top:0;z-index:35;
+  .timer{position:fixed;left:0;right:0;top:0;z-index:45;
      transform:translateY(-220px);transition:transform .25s ease;pointer-events:none;}
   .timer.show{transform:translateY(0);pointer-events:auto;}
   .timer .inner{max-width:520px;margin:0 auto;background:var(--raised);border-bottom:1px solid var(--border);
@@ -261,11 +261,6 @@
   .homebtn.primary .hic{background:var(--go);color:#12141a;}
 
   /* Séances express (abdos / cardio) */
-  .qx{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--raised);
-     border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
-  .qx .qn{flex:1;min-width:0;}
-  .qx .qn b{display:block;font-size:14px;}
-  .qx .qn span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35;}
   .qxnote{font-size:12.5px;color:var(--muted);background:var(--raised);border-left:3px solid var(--ramp);
      border-radius:0 9px 9px 0;padding:10px 12px;margin-bottom:14px;line-height:1.4;}
   .qxdur{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px;}
@@ -464,7 +459,7 @@
 <div class="sheet" id="addex">
   <div class="card">
     <h3>Ajouter un exercice</h3>
-    <input id="axName" class="acctin" placeholder="Nom de l'exercice">
+    <select id="axName" class="acctin"></select>
     <div style="display:flex;gap:8px;margin-top:8px">
       <div style="flex:1;min-width:0"><div style="font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Séries</div><input id="axSets" class="acctin" inputmode="numeric" value="3" style="margin-top:0"></div>
       <div style="flex:1;min-width:0"><div style="font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Reps</div><input id="axReps" class="acctin" value="10-12" style="margin-top:0"></div>
@@ -580,6 +575,23 @@ const EXO_GROUP={
  core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Circuit core']
 };
 function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
+const EXO_GROUP_LABELS={quad:'Quadriceps',hinge:'Ischios / fessiers',push:'Pectoraux',pushIso:'Pectoraux (isolation)',pull:'Dos',shoulder:'Épaules',arms:'Bras',glutes:'Fessiers / mollets',core:'Abdos / gainage',autre:'Autre'};
+function populateExSelect(sel){
+  const groupOf={};
+  Object.keys(EXO_GROUP).forEach(g=>EXO_GROUP[g].forEach(n=>{if(!groupOf[n])groupOf[n]=g;}));
+  const byGroup={};
+  Object.keys(EXO_POOL).sort((a,b)=>a.localeCompare(b,'fr')).forEach(n=>{
+    const g=groupOf[n]||'autre';
+    (byGroup[g]=byGroup[g]||[]).push(n);
+  });
+  const order=['quad','hinge','push','pushIso','pull','shoulder','arms','glutes','core','autre'];
+  let html='<option value="" disabled selected>Choisis un exercice…</option>';
+  order.forEach(g=>{
+    if(!byGroup[g])return;
+    html+=`<optgroup label="${EXO_GROUP_LABELS[g]}">${byGroup[g].map(n=>`<option value="${n}">${n}</option>`).join('')}</optgroup>`;
+  });
+  sel.innerHTML=html;
+}
 const MUSCLE_GROUPS=[
  {key:'quad',label:'Quadriceps'},
  {key:'hinge',label:'Ischios / fessiers'},
@@ -1096,6 +1108,69 @@ function trimDayToTime(exList,capMinutes){
   }
   return list;
 }
+/* Carte d'exercice réutilisable : séance normale ET abdos express (même logique de séries/repos/ressenti). */
+function renderExerciseCard(container,e,opts){
+  const{eid,nm,sw,week,idx,allowSwap,allowSkip,allowRemove,onSwap,onSkip,onRemove}=opts;
+  const key=logKey(eid,week);
+  if(!state.logs[key])state.logs[key]=Array.from({length:e.sets},()=>({w:'',r:'',d:false}));
+  const rows=state.logs[key];
+  const lt=lastTime(eid,week);
+  const spk=sparkline(series(eid));
+  const inRamp=week<=2;
+
+  const card=document.createElement('div');
+  card.className='ex'+(e.cls===CORE?' core':'')+(sw?' swapped':'');
+  let html=`<div class="exhead"><div class="idx">${idx}</div>
+    <div class="name">${nm}${e.tag?`<span class="tag">${e.tag}</span>`:''}${sw?`<span class="swtag">⇄ au lieu de ${e.n}</span>`:''}</div>${spk}</div>
+    <div class="meta"><span class="chip">${e.sets}×${e.reps}</span>`;
+  if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${fmtRest(e.rest)} ⏱</span>`;
+  if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
+  html+=`</div>`;
+  const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
+  const sugg=suggestWeight(e,lt,lastFeel);
+  if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b>${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
+  const warm=warmupSets(e,lt);
+  if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
+  const hold=holdSeconds(e.reps);
+  html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
+  html+=`<div class="sets"><div class="unit"><span></span><span>kg</span><span></span><span>reps</span><span></span></div>`;
+  rows.forEach((s,si)=>{
+    html+=`<div class="setrow" data-ex="${eid}" data-si="${si}">
+      <div class="sn">${si+1}</div>
+      <input class="w" inputmode="decimal" placeholder="${lt?lt.b.w:'–'}" value="${s.w}">
+      <div class="x">×</div>
+      <input class="r" inputmode="numeric" placeholder="${e.reps.split('-')[0]||''}" value="${s.r}">
+      <button class="done${s.d?' on':''}">✓</button>
+    </div>`;
+  });
+  html+=`</div>`;
+  const curFeel=state.feels[key];
+  html+=`<div class="exfeel"><span class="exfeel-lbl">Ressenti</span>${EX_FEELS.map(f=>`<button class="feelbtn${curFeel===f.key?' on':''}" data-k="${f.key}" aria-label="${f.label}">${f.icon}</button>`).join('')}</div>`;
+  card.innerHTML=html;
+
+  card.querySelectorAll('.feelbtn').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;
+    if(state.feels[key]===k)delete state.feels[key];else state.feels[key]=k;
+    save();
+    card.querySelectorAll('.feelbtn').forEach(x=>x.classList.toggle('on',state.feels[key]===x.dataset.k));
+    if(navigator.vibrate)navigator.vibrate(10);
+  });
+  const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
+  const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>startTimer(hold,nm,'Maintien');
+  if(allowSwap){const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=onSwap;}
+  if(allowSkip){const skb=card.querySelector('.skipbtn');if(skb)skb.onclick=onSkip;}
+  if(allowRemove){const rmb=card.querySelector('.rmbtn');if(rmb)rmb.onclick=onRemove;}
+  const restChip=card.querySelector('.rest');
+  if(restChip)restChip.onclick=()=>startTimer(parseInt(restChip.dataset.rest),restChip.dataset.name);
+  card.querySelectorAll('.setrow').forEach(row=>{
+    const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,week);
+    row.querySelector('.w').oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId);};
+    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId);};
+    row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}};
+  });
+  container.appendChild(card);
+  return card;
+}
 function renderDay(){
   const day=DAYS.find(d=>d.id===state.day)||DAYS[0];
   const cap=state.timeCap||0;
@@ -1113,7 +1188,6 @@ function renderDay(){
     app.appendChild(note);
   }
 
-  const inRamp=state.week<=2;
   visible.forEach((e,i)=>{
     if(e.note){
       const c=document.createElement('div');c.className='ex note';
@@ -1129,68 +1203,18 @@ function renderDay(){
       c.querySelector('.skipbtn').onclick=()=>{delete state.skips[skipKey];save();renderDay();};
       app.appendChild(c);return;
     }
-    const key=logKey(eid,state.week);
-    if(!state.logs[key])state.logs[key]=Array.from({length:e.sets},()=>({w:'',r:'',d:false}));
-    const rows=state.logs[key];
-    const lt=lastTime(eid,state.week);
-    const spk=sparkline(series(eid));
-
-    const card=document.createElement('div');
-    card.className='ex'+(e.cls===CORE?' core':'')+(sw?' swapped':'');
-    let html=`<div class="exhead"><div class="idx">${i+1}</div>
-      <div class="name">${nm}${e.tag?`<span class="tag">${e.tag}</span>`:''}${sw?`<span class="swtag">⇄ au lieu de ${e.n}</span>`:''}</div>${spk}</div>
-      <div class="meta"><span class="chip">${e.sets}×${e.reps}</span>`;
-    if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${fmtRest(e.rest)} ⏱</span>`;
-    if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
-    html+=`</div>`;
-    const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
-    const sugg=suggestWeight(e,lt,lastFeel);
-    if(lt)html+=`<div class="last">Dernière fois (S${lt.w}) : <b>${lt.b.w} kg × ${lt.b.r}</b>${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
-    const warm=warmupSets(e,lt);
-    if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
-    const hold=holdSeconds(e.reps);
-    html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}<button class="swapbtn">⇄ Changer</button><button class="skipbtn">⏭ Passer</button>${e.custom?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
-    html+=`<div class="sets"><div class="unit"><span></span><span>kg</span><span></span><span>reps</span><span></span></div>`;
-    rows.forEach((s,si)=>{
-      html+=`<div class="setrow" data-ex="${eid}" data-si="${si}">
-        <div class="sn">${si+1}</div>
-        <input class="w" inputmode="decimal" placeholder="${lt?lt.b.w:'–'}" value="${s.w}">
-        <div class="x">×</div>
-        <input class="r" inputmode="numeric" placeholder="${e.reps.split('-')[0]||''}" value="${s.r}">
-        <button class="done${s.d?' on':''}">✓</button>
-      </div>`;
+    renderExerciseCard(app,e,{
+      eid,nm,sw,week:state.week,idx:i+1,
+      allowSwap:true,allowSkip:true,allowRemove:!!e.custom,
+      onSwap:()=>openSwap(e),
+      onSkip:()=>{state.skips[skipKey]=true;save();renderDay();},
+      onRemove:()=>{
+        if(!confirm('Retirer cet exercice de la séance ? (irréversible)'))return;
+        const dayIdx=DAYS.findIndex(d=>d.id===day.id);
+        DAYS[dayIdx].ex=DAYS[dayIdx].ex.filter(x=>x.id!==e.id);
+        persistActiveBundle();flush();renderDay();
+      }
     });
-    html+=`</div>`;
-    const curFeel=state.feels[key];
-    html+=`<div class="exfeel"><span class="exfeel-lbl">Ressenti</span>${EX_FEELS.map(f=>`<button class="feelbtn${curFeel===f.key?' on':''}" data-k="${f.key}" aria-label="${f.label}">${f.icon}</button>`).join('')}</div>`;
-    card.innerHTML=html;
-
-    card.querySelectorAll('.feelbtn').forEach(b=>b.onclick=()=>{
-      const k=b.dataset.k;
-      if(state.feels[key]===k)delete state.feels[key];else state.feels[key]=k;
-      save();
-      card.querySelectorAll('.feelbtn').forEach(x=>x.classList.toggle('on',state.feels[key]===x.dataset.k));
-      if(navigator.vibrate)navigator.vibrate(10);
-    });
-    const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
-    const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>startTimer(hold,nm,'Maintien');
-    const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=()=>openSwap(e);
-    const skb=card.querySelector('.skipbtn');if(skb)skb.onclick=()=>{state.skips[skipKey]=true;save();renderDay();};
-    const rmb=card.querySelector('.rmbtn');if(rmb)rmb.onclick=()=>{
-      if(!confirm('Retirer cet exercice de la séance ? (irréversible)'))return;
-      const dayIdx=DAYS.findIndex(d=>d.id===day.id);
-      DAYS[dayIdx].ex=DAYS[dayIdx].ex.filter(x=>x.id!==e.id);
-      persistActiveBundle();flush();renderDay();
-    };
-    const restChip=card.querySelector('.rest');
-    if(restChip)restChip.onclick=()=>startTimer(parseInt(restChip.dataset.rest),restChip.dataset.name);
-    card.querySelectorAll('.setrow').forEach(row=>{
-      const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,state.week);
-      row.querySelector('.w').oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId);};
-      row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId);};
-      row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}};
-    });
-    app.appendChild(card);
   });
 
   const addBtn=document.createElement('button');addBtn.className='close';addBtn.style.marginTop='10px';addBtn.textContent='+ Ajouter un exercice';
@@ -1211,20 +1235,26 @@ function renderDay(){
 let addExDayId=null;
 function openAddEx(dayId){
   addExDayId=dayId;
-  $('#axName').value='';$('#axSets').value='3';$('#axReps').value='10-12';$('#axRest').value='60';
+  populateExSelect($('#axName'));
+  $('#axSets').value='3';$('#axReps').value='10-12';$('#axRest').value='60';
   $('#addex').classList.add('show');
 }
+$('#axName').onchange=()=>{
+  const base=EXO_POOL[$('#axName').value];
+  if(base){$('#axSets').value=base.sets;$('#axReps').value=base.reps;$('#axRest').value=base.rest;}
+};
 $('#axCancel').onclick=()=>$('#addex').classList.remove('show');
 $('#addex').onclick=e=>{if(e.target.id==='addex')$('#addex').classList.remove('show');};
 $('#axAdd').onclick=()=>{
-  const name=($('#axName').value||'').trim();
+  const name=$('#axName').value;
   if(!name){$('#axName').focus();return;}
   const sets=Math.max(1,parseInt($('#axSets').value)||3);
   const reps=($('#axReps').value||'10-12').trim();
   const rest=Math.max(0,parseInt($('#axRest').value)||60);
   const dayIdx=DAYS.findIndex(d=>d.id===addExDayId);
   if(dayIdx===-1)return;
-  DAYS[dayIdx].ex.push({n:name,sets,reps,rest,cue:'Exercice ajouté manuellement.',custom:true,id:addExDayId+'_c'+uid()});
+  const cue=(EXO_POOL[name]||{}).cue||'Exercice ajouté manuellement.';
+  DAYS[dayIdx].ex.push({n:name,sets,reps,rest,cue,custom:true,id:addExDayId+'_c'+uid()});
   persistActiveBundle();flush();
   $('#addex').classList.remove('show');
   renderDay();
@@ -1592,11 +1622,9 @@ function renderHome(){
 const ABS_DURATIONS=[10,15,20];
 let absSetup={minutes:20,safe:false};
 let absStarted=false;
-let absLocalDone=new Set();
 function openAbsSession(){
   absSetup={minutes:20,safe:state.perineumCare};
   absStarted=false;
-  absLocalDone=new Set();
   renderAbsSheet();
   $('#absSheet').classList.add('show');
 }
@@ -1625,20 +1653,14 @@ function renderAbsSession(){
   $('#absMain').textContent='✓ Terminer';
   const list=trimCoreToTime(absSetup.safe?CORE_SAFE:CORE_STANDARD,absSetup.minutes);
   const note=absSetup.safe?`<div class="qxnote">${CORE_SAFE_NOTE}</div>`:'';
-  $('#absBody').innerHTML=note+list.map((x,i)=>{
-    const hold=holdSeconds(x.reps);
-    return `<div class="qx">
-      <div class="qn"><b>${x.n}</b><span>${x.sets}×${x.reps} · repos ${fmtRest(x.rest)}</span>${x.cue?`<span>${x.cue}</span>`:''}${hold?`<button class="chronobtn" data-hold="${hold}" data-n="${x.n}" style="padding:4px 0">⏱ Chrono ${hold} s</button>`:''}</div>
-      <button class="done${absLocalDone.has(i)?' on':''}" data-i="${i}">✓</button>
-    </div>`;
-  }).join('');
-  $('#absBody').querySelectorAll('.done').forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.i;
-    if(absLocalDone.has(i))absLocalDone.delete(i);else absLocalDone.add(i);
-    b.classList.toggle('on',absLocalDone.has(i));
-    if(navigator.vibrate)navigator.vibrate(15);
+  $('#absBody').innerHTML=note+'<div id="absExList"></div>';
+  const container=$('#absExList');
+  list.forEach((x,i)=>{
+    renderExerciseCard(container,x,{
+      eid:'abs_'+slug(x.n),nm:x.n,sw:null,week:state.week,idx:i+1,
+      allowSwap:false,allowSkip:false,allowRemove:false
+    });
   });
-  $('#absBody').querySelectorAll('.chronobtn').forEach(b=>b.onclick=()=>startTimer(+b.dataset.hold,b.dataset.n,'Maintien'));
 }
 $('#absCancel').onclick=()=>$('#absSheet').classList.remove('show');
 $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};

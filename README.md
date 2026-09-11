@@ -23,7 +23,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 ## Accueil
 L'app s'ouvre toujours sur l'Accueil. La barre en bas de l'écran (accessible au pouce) donne accès à **Accueil / Séance / Poids / Nutrition / Agenda**. L'accueil propose 3 raccourcis :
 - **Reprendre le programme** → va directement à la séance du jour.
-- **Abdos express** → choisis la durée (10/15/20 min) et si tu veux des **exercices adaptés périnée** (sans pression abdominale — pas de crunch ni de relevé de jambes ; utile en post-partum, en cas de gêne ou de désir de grossesse), puis **C'est parti**. Le bouton et l'écran de réglages sont identiques pour tout le monde, seul ce choix (fait à chaque lancement) change les exercices proposés.
+- **Abdos express** → choisis la durée (10/15/20 min) et si tu veux des **exercices adaptés périnée** (sans pression abdominale — pas de crunch ni de relevé de jambes ; utile en post-partum, en cas de gêne ou de désir de grossesse), puis **C'est parti**. Le bouton et l'écran de réglages sont identiques pour tout le monde, seul ce choix (fait à chaque lancement) change les exercices proposés. La séance qui suit est une **vraie séance**, comme dans le programme classique : saisie du poids et des reps, minuteur de repos automatique, fiche technique, chrono sur les mouvements tenus, vote de ressenti — et la progression se suit d'une fois sur l'autre comme n'importe quel exercice du programme.
 - **Cardio** → dis d'abord ton **objectif** (récupération active, raffermir, perdre de la cellulite, améliorer le cardio, fractionné/HIIT, ou libre) : l'app te propose un type de séance et une durée adaptés (modifiables), avec des repères concrets (inclinaison, vitesse, résistance…). Une fois la séance faite, indique le temps réel, et si tu veux, ton ressenti et une note libre (réglages utilisés…) — c'est enregistré et visible dans l'Agenda.
 
 ## Agenda
@@ -35,11 +35,11 @@ Un calendrier du mois avec un point sur chaque jour où une séance a été fait
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
 - Sous chaque exercice, indique ton **ressenti** (😌 Facile / 👍 Ok / 😓 Trop dur) — optionnel. La prochaine fois, ça affine la suggestion de charge : "Trop dur" bloque toute augmentation même si les reps étaient bonnes, "Facile" pousse un peu plus fort (+5 kg au lieu de +2,5).
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
-- Saisis le poids et les reps, puis touche le **✓** pour valider la série — le **minuteur de repos démarre automatiquement** à ce moment-là. Touche à nouveau pour décocher en cas d'erreur.
+- Saisis le poids et les reps, puis touche le **✓** pour valider la série — le **minuteur de repos démarre à ce moment-là** (maintenant ancré en haut de l'écran, pas en bas). Touche à nouveau pour décocher en cas d'erreur.
 - Sur les exercices chronométrés (gainage, planche…), un bouton **⏱ Chrono** lance directement le minuteur de maintien — pas besoin de sortir de l'app pour chronométrer.
 - Un réglage de **temps disponible** (30 à 90 min) en haut de la séance masque les derniers exercices si besoin, sans jamais descendre sous 30 minutes.
 - Pas de machine dispo, ou muscle trop douloureux ? **⏭ Passer** sur la carte de l'exercice — il ne compte plus dans la progression de la séance et revient normalement la semaine suivante.
-- **+ Ajouter un exercice** en bas de la séance pour insérer un mouvement de ton choix (nom, séries, reps, repos) — utile si aucune alternative proposée ne convient. Reste dans ton programme (✕ Retirer pour l'enlever).
+- **+ Ajouter un exercice** en bas de la séance pour insérer un mouvement de ton choix : **choisis-le dans la liste** (groupée par muscle) plutôt que de taper un nom libre — séries/reps/repos se préremplissent, modifiables ensuite. Utile si aucune alternative proposée ne convient. Reste dans ton programme (✕ Retirer pour l'enlever).
 - **Terminer la séance** déclenche une petite pop-up de félicitations animée (confettis 🎉) — touche le fond ou attends 2 secondes pour la fermer.
 
 ## Où sont mes données ?
@@ -75,3 +75,5 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Bouton chrono dédié sur les exercices chronométrés (gainage, planche…)
 - [x] Pop-up de félicitations animée à la validation d'une séance
 - [x] Vote de ressenti par exercice (facile/ok/trop dur) qui affine la suggestion de charge
+- [x] Sélecteur d'exercice (au lieu d'un champ libre) pour garder une base cohérente et analysable
+- [x] Abdos express : vraie séance (poids/reps, minuteur, chrono, ressenti) au lieu d'une simple checklist
