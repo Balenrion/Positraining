@@ -45,6 +45,7 @@
   .wk .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
   .wk.on{border-color:var(--pc,var(--go));background:var(--raised);}
   .wk.on .n{color:var(--pc,var(--go));}
+  .wk.past{opacity:.5;}
 
   /* Phase banner */
   .phase{margin:14px 0 2px;border-left:3px solid var(--pc,var(--go));background:var(--surface);
@@ -1053,7 +1054,7 @@ function renderWeeks(){
   for(let w=1;w<=8;w++){
     const ph=phaseOf(w);
     const d=document.createElement('div');
-    d.className='wk'+(w===state.week?' on':'');
+    d.className='wk'+(w===state.week?' on':'')+(w<state.week?' past':'');
     d.style.setProperty('--pc','var('+PC[ph.key]+')');
     d.innerHTML=`<div class="n">${w}</div><div class="l">${labels[w]}</div>`;
     d.onclick=()=>{state.week=w;save();renderAll();};

@@ -32,6 +32,7 @@ Un calendrier du mois avec un point coloré sur chaque jour où une séance a é
 ## Pendant la séance
 - **Séance / Poids / Nutrition** se change via la barre en bas de l'écran, accessible au pouce sans avoir à remonter.
 - **Glisse à gauche/droite** sur la séance pour passer au jour suivant/précédent, sans repasser par les onglets du haut.
+- Le **sélecteur de semaine** en haut grise les semaines déjà passées, pour repérer d'un coup d'œil où tu en es (tu peux toujours cliquer dessus pour consulter l'historique).
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
 - Sous chaque exercice, indique ton **ressenti** (😌 Facile / 👍 Ok / 😓 Trop dur) — optionnel. La prochaine fois, ça affine la suggestion de charge : "Trop dur" bloque toute augmentation même si les reps étaient bonnes, "Facile" pousse un peu plus fort (+5 kg au lieu de +2,5).
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
