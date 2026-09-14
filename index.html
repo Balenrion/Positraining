@@ -825,7 +825,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,extraSessions:[],feels:{}};}
+function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{}};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
 let saveTimer=null;
@@ -849,7 +849,7 @@ function applyBundle(b){
   program=b.program||freshProgramDefault();
   DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
 }
 function persistActiveBundle(){
   if(!activeId)return;
@@ -1115,8 +1115,9 @@ function trimDayToTime(exList,capMinutes){
 function renderExerciseCard(container,e,opts){
   const{eid,nm,sw,week,idx,allowSwap,allowSkip,allowRemove,onSwap,onSkip,onRemove}=opts;
   const key=logKey(eid,week);
-  if(!state.logs[key])state.logs[key]=Array.from({length:e.sets},()=>({w:'',r:'',d:false}));
+  if(!state.logs[key])state.logs[key]=[];
   const rows=state.logs[key];
+  while(rows.length<e.sets)rows.push({w:'',r:'',d:false});
   const lt=lastTime(eid,week,e.bw);
   const spk=sparkline(series(eid,e.bw));
   const inRamp=week<=2;
@@ -1332,7 +1333,7 @@ $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('s
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
 $('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
-  state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap,perineumCare:state.perineumCare});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
+  state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap,perineumCare:state.perineumCare,absLevel:state.absLevel});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
 $('#exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(bundleFromCurrent())],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -1351,7 +1352,7 @@ $('#importFile').onchange=ev=>{
     }else{
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
     state.updatedAt=Date.now();
     DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
@@ -1632,10 +1633,22 @@ function renderHome(){
 
 /* ---------- Abdos express (sheet : réglages puis exercices) ---------- */
 const ABS_DURATIONS=[10,15,20];
-let absSetup={minutes:20,safe:false};
+const ABS_LEVELS=[
+ {key:'facile',label:'Facile',restMul:1,setBump:0},
+ {key:'modere',label:'Modéré',restMul:0.66,setBump:0},
+ {key:'intense',label:'Intense',restMul:0.5,setBump:1}
+];
+function applyAbsLevel(list,levelKey){
+  const lvl=ABS_LEVELS.find(l=>l.key===levelKey)||ABS_LEVELS[1];
+  return list.map(x=>Object.assign({},x,{
+    sets:(x.sets||3)+lvl.setBump,
+    rest:x.rest?Math.max(10,Math.round((x.rest*lvl.restMul)/5)*5):x.rest
+  }));
+}
+let absSetup={minutes:20,safe:false,level:'modere'};
 let absStarted=false;
 function openAbsSession(){
-  absSetup={minutes:20,safe:state.perineumCare};
+  absSetup={minutes:20,safe:state.perineumCare,level:state.absLevel};
   absStarted=false;
   renderAbsSheet();
   $('#absSheet').classList.add('show');
@@ -1647,11 +1660,14 @@ function renderAbsSetup(){
   $('#absBody').innerHTML=`
     <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Durée</div>
     <div class="qxdur" id="absDurChips">${ABS_DURATIONS.map(m=>`<button type="button" class="day${absSetup.minutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('')}</div>
+    <div class="d" style="font-size:13px;color:var(--muted);margin:14px 0 8px">Difficulté</div>
+    <div class="qxdur" id="absLevelChips">${ABS_LEVELS.map(l=>`<button type="button" class="day${absSetup.level===l.key?' on':''}" data-k="${l.key}" style="padding:6px 11px"><span class="t">${l.label}</span></button>`).join('')}</div>
     <div class="opt" style="border-top:0;padding-top:16px">
       <div class="d"><b>Exercices adaptés périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
       <button class="sw${absSetup.safe?' on':''}" id="absSafeSw" aria-label="Activer les exercices adaptés"></button>
     </div>`;
   $('#absDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.minutes=+b.dataset.m;renderAbsSetup();});
+  $('#absLevelChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.level=b.dataset.k;renderAbsSetup();});
   $('#absSafeSw').onclick=()=>{absSetup.safe=!absSetup.safe;renderAbsSetup();};
 }
 function trimCoreToTime(list,capMinutes){
@@ -1663,7 +1679,8 @@ function trimCoreToTime(list,capMinutes){
 function renderAbsSession(){
   $('#absTitle').textContent=`Abdos express · ${absSetup.minutes} min`;
   $('#absMain').textContent='✓ Terminer';
-  const list=trimCoreToTime(absSetup.safe?CORE_SAFE:CORE_STANDARD,absSetup.minutes);
+  const pool=applyAbsLevel(absSetup.safe?CORE_SAFE:CORE_STANDARD,absSetup.level);
+  const list=trimCoreToTime(pool,absSetup.minutes);
   const note=absSetup.safe?`<div class="qxnote">${CORE_SAFE_NOTE}</div>`:'';
   $('#absBody').innerHTML=note+'<div id="absExList"></div>';
   const container=$('#absExList');
@@ -1679,7 +1696,7 @@ $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.
 $('#absMain').onclick=()=>{
   if(!absStarted){
     absStarted=true;
-    state.perineumCare=absSetup.safe;save();
+    state.perineumCare=absSetup.safe;state.absLevel=absSetup.level;save();
     renderAbsSheet();
     return;
   }

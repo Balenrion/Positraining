@@ -23,7 +23,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
 ## Accueil
 L'app s'ouvre toujours sur l'Accueil. La barre en bas de l'écran (accessible au pouce) donne accès à **Accueil / Séance / Poids / Nutrition / Agenda**. L'accueil propose 3 raccourcis :
 - **Reprendre le programme** → va directement à la séance du jour.
-- **Abdos express** → choisis la durée (10/15/20 min) et si tu veux des **exercices adaptés périnée** (sans pression abdominale — pas de crunch ni de relevé de jambes ; utile en post-partum, en cas de gêne ou de désir de grossesse), puis **C'est parti**. Le bouton et l'écran de réglages sont identiques pour tout le monde, seul ce choix (fait à chaque lancement) change les exercices proposés. La séance qui suit est une **vraie séance**, comme dans le programme classique : saisie des reps (poids de corps, pas de champ kg inutile), minuteur de repos automatique, fiche technique, chrono sur les mouvements tenus, vote de ressenti — et la progression se suit d'une fois sur l'autre comme n'importe quel exercice du programme.
+- **Abdos express** → choisis la durée (10/15/20 min), la **difficulté** (Facile / Modéré / Intense — Modéré par défaut, ajuste le repos entre séries et le nombre de séries) et si tu veux des **exercices adaptés périnée** (sans pression abdominale — pas de crunch ni de relevé de jambes ; utile en post-partum, en cas de gêne ou de désir de grossesse), puis **C'est parti**. Le bouton et l'écran de réglages sont identiques pour tout le monde, seul ce choix (fait à chaque lancement) change les exercices proposés. La séance qui suit est une **vraie séance**, comme dans le programme classique : saisie des reps (poids de corps, pas de champ kg inutile), minuteur de repos automatique, fiche technique, chrono sur les mouvements tenus, vote de ressenti — et la progression se suit d'une fois sur l'autre comme n'importe quel exercice du programme.
 - **Cardio** → dis d'abord ton **objectif** (récupération active, raffermir, perdre de la cellulite, améliorer le cardio, fractionné/HIIT, ou libre) : l'app te propose un type de séance et une durée adaptés (modifiables), avec des repères concrets (inclinaison, vitesse, résistance…). Une fois la séance faite, indique le temps réel, et si tu veux, ton ressenti et une note libre (réglages utilisés…) — c'est enregistré et visible dans l'Agenda.
 
 ## Agenda
@@ -77,4 +77,5 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Vote de ressenti par exercice (facile/ok/trop dur) qui affine la suggestion de charge
 - [x] Sélecteur d'exercice (au lieu d'un champ libre) pour garder une base cohérente et analysable
 - [x] Abdos express : vraie séance (poids/reps, minuteur, chrono, ressenti) au lieu d'une simple checklist
+- [x] Abdos express : niveau de difficulté (repos/séries calibrés sur des recommandations d'entraînement)
 - [x] Détection des exercices au poids de corps (pas de champ kg inutile)
