@@ -279,9 +279,14 @@
      font-size:13px;color:var(--muted);gap:3px;}
   .agday.today{border-color:var(--go-dim);color:var(--ink);}
   .agday.has{background:#1a2513;border-color:var(--go-dim);color:var(--ink);font-weight:600;}
+  .agday .dots{display:flex;gap:2px;}
   .agday .dot{width:5px;height:5px;border-radius:50%;background:var(--go);}
+  .agday .dot.abs{background:var(--deload);}
+  .agday .dot.cardio{background:var(--ramp);}
   .agday.empty{background:transparent;border-color:transparent;}
-  .agrow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--border);}
+  .agrow{display:flex;align-items:center;gap:10px;padding:11px 2px 11px 10px;border-top:1px solid var(--border);border-left:3px solid var(--go);}
+  .agrow.abs{border-left-color:var(--deload);}
+  .agrow.cardio{border-left-color:var(--ramp);}
   .agrow:first-child{border-top:0;}
   .agrow .agd{font-family:var(--num);font-weight:600;font-size:13px;color:var(--muted);flex:0 0 40px;}
   .agrow .agi{font-size:16px;flex:0 0 auto;}
@@ -1121,6 +1126,8 @@ function renderExerciseCard(container,e,opts){
   const lt=lastTime(eid,week,e.bw);
   const spk=sparkline(series(eid,e.bw));
   const inRamp=week<=2;
+  const hold=holdSeconds(e.reps);
+  const repLabel=hold?'sec':'reps';
 
   const card=document.createElement('div');
   card.className='ex'+(e.cls===CORE?' core':'')+(sw?' swapped':'');
@@ -1133,14 +1140,13 @@ function renderExerciseCard(container,e,opts){
   const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
   const sugg=suggestWeight(e,lt,lastFeel);
   if(lt){
-    const lastVal=e.bw?`<b>${lt.b.r} reps</b>`:`<b>${lt.b.w} kg × ${lt.b.r}</b>`;
+    const lastVal=e.bw?`<b>${lt.b.r} ${repLabel}</b>`:`<b>${lt.b.w} kg × ${lt.b.r}</b>`;
     html+=`<div class="last">Dernière fois (S${lt.w}) : ${lastVal}${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
   }
   const warm=warmupSets(e,lt);
   if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
-  const hold=holdSeconds(e.reps);
   html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
-  html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?'<span></span><span>reps</span><span></span>':'<span></span><span>kg</span><span></span><span>reps</span><span></span>'}</div>`;
+  html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?`<span></span><span>${repLabel}</span><span></span>`:`<span></span><span>kg</span><span></span><span>${repLabel}</span><span></span>`}</div>`;
   rows.forEach((s,si)=>{
     html+=e.bw?`<div class="setrow bw" data-ex="${eid}" data-si="${si}">
       <div class="sn">${si+1}</div>
@@ -1813,14 +1819,14 @@ function monthSessions(y,m){
     const dayId=key.split('__w')[0];
     const dayDef=DAYS.find(x=>x.id===dayId);
     const label=dayDef?`${dayDef.t} · ${dayDef.s}`:'Séance';
-    (map[dateIso]=map[dateIso]||[]).push({icon:'🏋️',label,sub:'Programme'});
+    (map[dateIso]=map[dateIso]||[]).push({icon:'🏋️',label,sub:'Programme',type:'programme'});
   });
   (state.extraSessions||[]).forEach(s=>{
     const d=new Date(s.date+'T00:00:00');
     if(d.getFullYear()!==y||d.getMonth()!==m)return;
     const feel=s.feel?' · '+((CARDIO_FEELINGS.find(f=>f.key===s.feel)||{}).label||''):'';
     const notes=s.notes?' · '+s.notes:'';
-    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:(s.minutes?s.minutes+' min':'')+feel+notes});
+    (map[s.date]=map[s.date]||[]).push({icon:s.type==='cardio'?'🏃':'🔥',label:s.label,sub:(s.minutes?s.minutes+' min':'')+feel+notes,type:s.type==='cardio'?'cardio':'abs'});
   });
   return map;
 }
@@ -1838,12 +1844,15 @@ function renderAgenda(){
   for(let i=0;i<startOffset;i++)cal+=`<div class="agday empty"></div>`;
   for(let d=1;d<=daysInMonth;d++){
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const has=map[iso]&&map[iso].length;
+    const daySessions=map[iso]||[];
+    const has=daySessions.length;
     const isToday=iso===todayIso;
-    cal+=`<div class="agday${has?' has':''}${isToday?' today':''}">${d}${has?'<span class="dot"></span>':''}</div>`;
+    const types=[...new Set(daySessions.map(s=>s.type))];
+    const dots=has?`<span class="dots">${types.map(t=>`<span class="dot${t==='programme'?'':' '+t}"></span>`).join('')}</span>`:'';
+    cal+=`<div class="agday${has?' has':''}${isToday?' today':''}">${d}${dots}</div>`;
   }
   const entries=Object.keys(map).sort().reverse().flatMap(iso=>map[iso].map(s=>({iso,...s})));
-  const list=entries.length?entries.map(s=>`<div class="agrow"><div class="agd">${fmtDate(s.iso)}</div><div class="agi">${s.icon}</div><div class="agt">${s.label}${s.sub?`<span>${s.sub}</span>`:''}</div></div>`).join(''):'<div class="agempty">Aucune séance ce mois-ci.</div>';
+  const list=entries.length?entries.map(s=>`<div class="agrow${s.type==='programme'?'':' '+s.type}"><div class="agd">${fmtDate(s.iso)}</div><div class="agi">${s.icon}</div><div class="agt">${s.label}${s.sub?`<span>${s.sub}</span>`:''}</div></div>`).join(''):'<div class="agempty">Aucune séance ce mois-ci.</div>';
   el.innerHTML=`<div class="agmonth"><button id="agPrev">‹</button><b>${monthNames[m]} ${y}</b><button id="agNext">›</button></div>
     <div class="agcal">${cal}</div>${list}`;
   $('#agPrev').onclick=()=>{agendaYM.m--;if(agendaYM.m<0){agendaYM.m=11;agendaYM.y--;}renderAgenda();};

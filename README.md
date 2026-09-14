@@ -27,7 +27,7 @@ L'app s'ouvre toujours sur l'Accueil. La barre en bas de l'écran (accessible au
 - **Cardio** → dis d'abord ton **objectif** (récupération active, raffermir, perdre de la cellulite, améliorer le cardio, fractionné/HIIT, ou libre) : l'app te propose un type de séance et une durée adaptés (modifiables), avec des repères concrets (inclinaison, vitesse, résistance…). Une fois la séance faite, indique le temps réel, et si tu veux, ton ressenti et une note libre (réglages utilisés…) — c'est enregistré et visible dans l'Agenda.
 
 ## Agenda
-Un calendrier du mois avec un point sur chaque jour où une séance a été faite (programme, abdos express ou cardio), et la liste détaillée en dessous. Navigue avec les flèches ‹ › pour consulter les mois précédents.
+Un calendrier du mois avec un point coloré sur chaque jour où une séance a été faite — **une couleur par type** (vert = programme, orange = abdos express, bleu = cardio ; plusieurs points si plusieurs types le même jour), pour distinguer d'un coup d'œil le parcours classique des séances à part. La liste détaillée en dessous reprend le même code couleur (liseré coloré). Navigue avec les flèches ‹ › pour consulter les mois précédents.
 
 ## Pendant la séance
 - **Séance / Poids / Nutrition** se change via la barre en bas de l'écran, accessible au pouce sans avoir à remonter.
@@ -36,7 +36,7 @@ Un calendrier du mois avec un point sur chaque jour où une séance a été fait
 - Sous chaque exercice, indique ton **ressenti** (😌 Facile / 👍 Ok / 😓 Trop dur) — optionnel. La prochaine fois, ça affine la suggestion de charge : "Trop dur" bloque toute augmentation même si les reps étaient bonnes, "Facile" pousse un peu plus fort (+5 kg au lieu de +2,5).
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
 - Saisis le poids et les reps, puis touche le **✓** pour valider la série — le **minuteur de repos démarre à ce moment-là** (maintenant ancré en haut de l'écran, pas en bas). Touche à nouveau pour décocher en cas d'erreur.
-- Sur les exercices chronométrés (gainage, planche…), un bouton **⏱ Chrono** lance directement le minuteur de maintien — pas besoin de sortir de l'app pour chronométrer.
+- Sur les exercices chronométrés (gainage, planche…), un bouton **⏱ Chrono** lance directement le minuteur de maintien — pas besoin de sortir de l'app pour chronométrer. Le champ de saisie affiche alors **« sec »** plutôt que « reps », pour rester cohérent avec ce que tu mesures réellement.
 - Un réglage de **temps disponible** (30 à 90 min) en haut de la séance masque les derniers exercices si besoin, sans jamais descendre sous 30 minutes.
 - Pas de machine dispo, ou muscle trop douloureux ? **⏭ Passer** sur la carte de l'exercice — il ne compte plus dans la progression de la séance et revient normalement la semaine suivante.
 - **+ Ajouter un exercice** en bas de la séance pour insérer un mouvement de ton choix : **choisis-le dans la liste** (groupée par muscle) plutôt que de taper un nom libre — séries/reps/repos se préremplissent, modifiables ensuite. Sur un exercice au poids de corps (gainage, crunch, relevé de jambes…), le champ kg n'apparaît même pas. Utile si aucune alternative proposée ne convient. Reste dans ton programme (✕ Retirer pour l'enlever).
