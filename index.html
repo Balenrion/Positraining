@@ -839,7 +839,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{}};}
+function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{}};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
 let saveTimer=null;
@@ -863,7 +863,7 @@ function applyBundle(b){
   program=b.program||freshProgramDefault();
   DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
 }
 function persistActiveBundle(){
   if(!activeId)return;
@@ -1555,7 +1555,7 @@ $('#importFile').onchange=ev=>{
     }else{
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
     state.updatedAt=Date.now();
     DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
     flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
@@ -1888,11 +1888,37 @@ function renderAbsSession(){
   $('#absBody').innerHTML=note+'<div id="absExList"></div>';
   const container=$('#absExList');
   list.forEach((x,i)=>{
-    renderExerciseCard(container,x,{
-      eid:'abs_'+slug(x.n),nm:x.n,sw:null,week:state.week,idx:i+1,
-      allowSwap:false,allowSkip:false,allowRemove:false
+    const swappedName=state.absSwaps[x.n];
+    const swapSrc=swappedName&&pool.find(p=>p.n===swappedName);
+    const e=swapSrc?Object.assign({},swapSrc,{n:x.n}):x;
+    const nm=swappedName||x.n;
+    const eid='abs_'+slug(nm);
+    const skipKey=logKey(eid,state.week);
+    if(state.skips[skipKey]){
+      const c=document.createElement('div');c.className='ex note';
+      c.innerHTML=`<div class="exhead"><div class="idx">${i+1}</div><div class="name">${nm}</div></div><div class="notebody">Passé cette semaine. <button class="skipbtn" style="padding:0">↩ Reprendre</button></div>`;
+      c.querySelector('.skipbtn').onclick=()=>{delete state.skips[skipKey];save();renderAbsSession();};
+      container.appendChild(c);return;
+    }
+    renderExerciseCard(container,e,{
+      eid,nm,sw:swappedName?x.n:null,week:state.week,idx:i+1,
+      allowSwap:true,allowSkip:true,allowRemove:false,
+      onSwap:()=>openAbsSwap(x),
+      onSkip:()=>{state.skips[skipKey]=true;save();renderAbsSession();}
     });
   });
+}
+function openAbsSwap(x){
+  const poolNames=(absSetup.safe?CORE_SAFE:CORE_STANDARD).map(e=>e.n);
+  const opts=[x.n].concat(poolNames.filter(n=>n!==x.n));
+  const cur=state.absSwaps[x.n]||x.n;
+  $('#swapBody').innerHTML=`<h3>Changer l'exercice</h3><div class="swapsub">Choisis un autre mouvement. Chaque exercice garde son propre historique — tu peux revenir à l'original quand tu veux.</div><div class="swaplist">${opts.map((o,idx)=>`<button class="swopt${o===cur?' on':''}" data-i="${idx}"><span>${o}</span>${idx===0?'<em>d’origine</em>':(o===cur?'<em>actuel</em>':'')}</button>`).join('')}</div>`;
+  $('#swapBody').querySelectorAll('.swopt').forEach(b=>b.onclick=()=>{
+    const c=opts[+b.dataset.i];
+    if(c===x.n)delete state.absSwaps[x.n];else state.absSwaps[x.n]=c;
+    save();$('#swap').classList.remove('show');renderAbsSession();
+  });
+  $('#swap').classList.add('show');
 }
 $('#absCancel').onclick=()=>$('#absSheet').classList.remove('show');
 $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};
