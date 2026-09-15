@@ -124,7 +124,7 @@
   .sheet#swap{z-index:41;}
   .sheet.show{display:flex;}
   .sheet .card{background:var(--surface);width:100%;max-width:520px;margin:0 auto;border-radius:16px 16px 0 0;
-     padding:18px 18px calc(20px + env(safe-area-inset-bottom));}
+     padding:18px 18px calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain;}
   .sheet h3{margin:0 0 12px;font-family:var(--num);font-weight:600;letter-spacing:.03em;text-transform:uppercase;font-size:15px;}
   .opt{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);}
   .opt .d{font-size:13px;color:var(--muted);max-width:70%;}
@@ -1476,6 +1476,30 @@ function startTimer(sec,name,label){
 }
 $('#tstop').onclick=()=>{clearInterval(tId);clearTimeout(tHideT);$('#timer').classList.remove('show');};
 $('#tadd').onclick=()=>{tLeft+=15;$('#tval').textContent=fmt(tLeft);$('#timer').classList.remove('warn');};
+
+/* ---------- Bloque le scroll de la page derrière une sheet ouverte ---------- */
+(function(){
+  let locked=false,savedY=0;
+  function setBodyLock(lock){
+    if(lock===locked)return;
+    locked=lock;
+    if(lock){
+      savedY=window.scrollY||document.documentElement.scrollTop;
+      document.body.style.position='fixed';
+      document.body.style.top=(-savedY)+'px';
+      document.body.style.left='0';
+      document.body.style.right='0';
+    }else{
+      document.body.style.position='';
+      document.body.style.top='';
+      document.body.style.left='';
+      document.body.style.right='';
+      window.scrollTo(0,savedY);
+    }
+  }
+  const obs=new MutationObserver(()=>setBodyLock(!!document.querySelector('.sheet.show')));
+  document.querySelectorAll('.sheet').forEach(el=>obs.observe(el,{attributes:true,attributeFilter:['class']}));
+})();
 
 /* ---------- Félicitations de fin de séance ---------- */
 const CELEB_MESSAGES=['Séance dans la poche 💪','Bien joué, une de plus !','Boom, terminé 🔥','Tu l’as fait !','GG, à demain 👊'];

@@ -83,3 +83,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Détection des exercices au poids de corps (pas de champ kg inutile)
 - [x] Correction d'un bug où le minuteur de repos pouvait disparaître en plein décompte
 - [x] Vignettes animées du mouvement dans la fiche technique de chaque exercice
+- [x] Correction d'un bug où faire défiler un panneau (fiche, abdos express…) faisait défiler l'écran derrière
