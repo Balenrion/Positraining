@@ -1319,17 +1319,18 @@ function renderExerciseCard(container,e,opts){
   const warm=warmupSets(e,lt);
   if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
   html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
+  const repPh=hold||e.reps.split('-')[0]||'';
   html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?`<span></span><span>${repLabel}</span><span></span>`:`<span></span><span>kg</span><span></span><span>${repLabel}</span><span></span>`}</div>`;
   rows.forEach((s,si)=>{
     html+=e.bw?`<div class="setrow bw" data-ex="${eid}" data-si="${si}">
       <div class="sn">${si+1}</div>
-      <input class="r" inputmode="numeric" placeholder="${e.reps.split('-')[0]||''}" value="${s.r}">
+      <input class="r" inputmode="numeric" placeholder="${repPh}" value="${s.r}">
       <button class="done${s.d?' on':''}">✓</button>
     </div>`:`<div class="setrow" data-ex="${eid}" data-si="${si}">
       <div class="sn">${si+1}</div>
       <input class="w" inputmode="decimal" placeholder="${lt?lt.b.w:'–'}" value="${s.w}">
       <div class="x">×</div>
-      <input class="r" inputmode="numeric" placeholder="${e.reps.split('-')[0]||''}" value="${s.r}">
+      <input class="r" inputmode="numeric" placeholder="${repPh}" value="${s.r}">
       <button class="done${s.d?' on':''}">✓</button>
     </div>`;
   });
