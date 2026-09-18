@@ -87,3 +87,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Correction d'un bug où le minuteur de repos pouvait se décrocher pendant le défilement (iOS)
 - [x] Vraies photos du mouvement dans la fiche technique de chaque exercice
 - [x] Correction d'un bug où faire défiler un panneau (fiche, abdos express…) faisait défiler l'écran derrière
+- [x] Le sélecteur de semaine disparaît proprement derrière le minuteur de repos épinglé, au lieu d'une tranche coupée

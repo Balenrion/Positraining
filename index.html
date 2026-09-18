@@ -1443,6 +1443,11 @@ function startTimer(sec,name,label){
 $('#tstop').onclick=()=>{clearInterval(tId);clearTimeout(tHideT);$('#timer').classList.remove('show');};
 $('#tadd').onclick=()=>{tLeft+=15;$('#tval').textContent=fmt(tLeft);$('#timer').classList.remove('warn');};
 
+/* Le minuteur épinglé en haut recouvre partiellement #weeks : autant le masquer complètement pendant l'affichage plutôt que de laisser dépasser une tranche coupée. */
+new MutationObserver(()=>{
+  $('#weeks').style.display=$('#timer').classList.contains('show')?'none':'';
+}).observe($('#timer'),{attributes:true,attributeFilter:['class']});
+
 /* ---------- Bloque le scroll de la page derrière une sheet ouverte ---------- */
 (function(){
   let locked=false,savedY=0;
