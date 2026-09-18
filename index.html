@@ -189,14 +189,8 @@
   .cuebox b{color:var(--ink);font-weight:600;}
   .videolink{display:block;text-align:center;background:var(--go);color:#12141a;border-radius:10px;padding:13px;font-family:var(--num);font-weight:700;font-size:14px;letter-spacing:.03em;text-decoration:none;}
   .videolink:active{background:var(--go-dim);}
-  .moverow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
-  .moverow .mv{background:var(--raised);border:1px solid var(--border);border-radius:9px;padding:5px;}
-  .movesvg{width:100%;height:auto;display:block;}
-  .movesvg line,.movesvg rect{fill:none;stroke-linecap:round;stroke-linejoin:round;}
-  .movesvg line.g,.movesvg rect.g{stroke:var(--faint);stroke-width:3;}
-  .movesvg line.b{stroke:var(--go);stroke-width:5;}
-  .movesvg circle.b{fill:var(--go);}
-  .movesvg circle.g{fill:var(--faint);}
+  .moverow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;}
+  .moverow .mv{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:9px;border:1px solid var(--border);background:var(--raised);display:block;}
   .altbox{background:#161b26;border:1px solid #2a3350;border-radius:10px;padding:11px 12px;margin-bottom:14px;}
   .altt{font-family:var(--num);font-weight:600;font-size:12px;letter-spacing:.03em;color:var(--ramp);text-transform:uppercase;margin-bottom:7px;}
   .altl{margin:0;padding-left:18px;}
@@ -1029,167 +1023,60 @@ ALT["Hip thrust lourd"]=ALT["Hip thrust"];
 ALT["Extension triceps poulie"]=ALT["Extension triceps poulie corde"];
 ALT["Curl barre EZ / haltères"]=ALT["Curl haltères"];
 
-/* ---------- Vignettes de mouvement (pictogrammes 4 frames, à côté du lien vidéo) ---------- */
-const mvLerp=(a,b,t)=>a+(b-a)*t;
-function mvPt(o,len,deg){const r=deg*Math.PI/180;return[o[0]+len*Math.cos(r),o[1]+len*Math.sin(r)];}
-function mvL(a,b,cls){return `<line class="${cls}" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>`;}
-function mvC(p,r,cls){return `<circle class="${cls}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${r}"/>`;}
-function mvR(x,y,w,h,cls){return `<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`;}
-function mvIcon(inner){return `<svg viewBox="0 0 100 100" class="movesvg">${inner}</svg>`;}
-function mvLerp2(a,b,t){return[mvLerp(a[0],b[0],t),mvLerp(a[1],b[1],t)];}
-const RIGS={
- legpress:t=>{
-   const hip=[44,62],knee=mvPt(hip,16,mvLerp(-70,-40,t)),foot=mvPt(knee,20,mvLerp(0,-40,t));
-   return mvIcon(mvL([18,88],[80,20],'g')+mvL([26,78],[40,46],'g')+mvC([32,40],6,'b')+mvL([36,46],hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b'));
- },
- squat:t=>{
-   const hip=[50,mvLerp(52,64,t)],knee=mvPt(hip,18,mvLerp(95,65,t)),foot=mvPt(knee,20,mvLerp(100,145,t));
-   return mvIcon(mvC([50,22],6,'b')+mvL([50,30],hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b')+mvC([50,42],4,'g')+mvL([50,32],[50,40],'b')+mvL([20,88],[80,88],'g'));
- },
- lunge:t=>{
-   const fk=[mvLerp(38,34,t),mvLerp(66,74,t)],ff=[mvLerp(34,28,t),88];
-   return mvIcon(mvC([46,26],6,'b')+mvL([46,32],[46,54],'b')+mvL([46,54],fk,'b')+mvL(fk,ff,'b')+mvL([46,54],[56,70],'b')+mvL([56,70],[64,88],'b')+mvC([42,50],3,'g')+mvC([50,50],3,'g')+mvL([20,88],[80,88],'g'));
- },
- legext:t=>{
-   const hip=[40,64],knee=[62,64],foot=mvPt(knee,22,mvLerp(80,10,t));
-   return mvIcon(mvR(18,40,14,44,'g')+mvC([36,44],6,'b')+mvL([40,50],hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b')+mvC(foot,3,'g'));
- },
- legcurl:t=>{
-   const hip=[35,55],knee=[60,55],foot=mvPt(knee,20,mvLerp(10,-90,t));
-   return mvIcon(mvR(5,58,60,8,'g')+mvC([10,55],6,'b')+mvL([15,55],hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b')+mvC(foot,3,'g'));
- },
- rdl:t=>{
-   const shoulder=[mvLerp(50,35,t),mvLerp(30,42,t)],head=[mvLerp(50,33,t),mvLerp(22,34,t)],hip=[50,55],hand=[mvLerp(50,35,t),mvLerp(50,62,t)];
-   return mvIcon(mvC(head,6,'b')+mvL(shoulder,hip,'b')+mvL(shoulder,hand,'b')+mvL([hand[0]-8,hand[1]],[hand[0]+8,hand[1]],'g')+mvL(hip,[50,75],'b')+mvL([50,75],[50,90],'b')+mvL([20,90],[80,90],'g'));
- },
- hipthrust:t=>{
-   const hip=[50,mvLerp(68,50,t)],knee=[75,68],foot=[75,86],shoulder=[17,45];
-   return mvIcon(mvR(6,40,18,10,'g')+mvC([12,40],6,'b')+mvL(shoulder,hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b')+mvL([hip[0]-10,hip[1]],[hip[0]+10,hip[1]],'g')+mvL([70,86],[85,86],'g'));
- },
- bench:t=>{
-   const elbow=[30,mvLerp(58,40,t)],hand=[32,mvLerp(52,15,t)];
-   return mvIcon(mvR(10,62,60,8,'g')+mvC([16,60],6,'b')+mvL([22,61],[65,62],'b')+mvL([30,61],elbow,'b')+mvL(elbow,hand,'b')+mvC(hand,4,'g'));
- },
- machine_push:t=>{
-   const hand=[mvLerp(35,62,t),50],elbow=[mvLerp(30,48,t),mvLerp(55,50,t)];
-   return mvIcon(mvR(15,35,10,45,'g')+mvC([21,42],6,'b')+mvL([24,50],[27,66],'b')+mvL([27,50],elbow,'b')+mvL(elbow,hand,'b')+mvL([hand[0],hand[1]-8],[hand[0],hand[1]+8],'g'));
- },
- fly:t=>{
-   const lh=[mvLerp(25,46,t),mvLerp(42,44,t)],rh=[mvLerp(75,54,t),mvLerp(42,44,t)],sh=[50,40];
-   return mvIcon(mvC([50,28],6,'b')+mvL(sh,[50,60],'b')+mvL(sh,lh,'b')+mvL(sh,rh,'b')+mvL(lh,[lh[0]-8,lh[1]+6],'g')+mvL(rh,[rh[0]+8,rh[1]+6],'g'));
- },
- pulldown:t=>{
-   const hy=mvLerp(20,52,t),hl=[50-18,hy],hr=[50+18,hy],sh=[50,55];
-   return mvIcon(mvR(40,70,20,10,'g')+mvC([50,46],6,'b')+mvL(sh,[50,72],'b')+mvL(sh,hl,'b')+mvL(sh,hr,'b')+mvL(hl,hr,'g')+mvL([50,10],[50,hy],'g'));
- },
- row:t=>{
-   const elbow=[18,mvLerp(58,48,t)],hand=[mvLerp(20,15,t),mvLerp(65,45,t)];
-   return mvIcon(mvR(60,58,20,6,'g')+mvL([55,60],[60,60],'g')+mvC([20,40],6,'b')+mvL([22,45],[55,60],'b')+mvL([25,45],elbow,'b')+mvL(elbow,hand,'b')+mvC(hand,3,'g'));
- },
- pullover:t=>{
-   const hand=[mvLerp(15,45,t),mvLerp(30,68,t)];
-   return mvIcon(mvR(15,62,55,8,'g')+mvC([18,60],6,'b')+mvL([24,61],[65,62],'b')+mvL([30,62],hand,'b')+mvC(hand,4,'g'));
- },
- shoulderpress:t=>{
-   const elbow=[mvLerp(40,44,t),mvLerp(50,32,t)],hand=[48,mvLerp(50,20,t)];
-   return mvIcon(mvR(40,65,16,20,'g')+mvC([46,42],6,'b')+mvL([48,48],[48,74],'b')+mvL([48,50],elbow,'b')+mvL(elbow,hand,'b')+mvC(hand,4,'g'));
- },
- lateralraise:t=>{
-   const h1=mvLerp2([50,55],[22,38],t),h2=mvLerp2([50,55],[78,38],t);
-   return mvIcon(mvC([50,26],6,'b')+mvL([50,38],[50,58],'b')+mvL([50,38],h1,'b')+mvL([50,38],h2,'b')+mvC(h1,3,'g')+mvC(h2,3,'g'));
- },
- facepull:t=>{
-   const h1=mvLerp2([50,18],[32,32],t),h2=mvLerp2([50,18],[68,32],t);
-   return mvIcon(mvC([50,28],6,'b')+mvL([50,40],[50,60],'b')+mvL([50,40],h1,'b')+mvL([50,40],h2,'b')+mvL([50,10],[50,18],'g')+mvL(h1,[50,15],'g')+mvL(h2,[50,15],'g'));
- },
- curl:t=>{
-   const elbow=[50,50],hand=mvPt(elbow,16,mvLerp(80,-10,t));
-   return mvIcon(mvC([50,26],6,'b')+mvL([50,38],[50,60],'b')+mvL([50,38],elbow,'b')+mvL(elbow,hand,'b')+mvC(hand,4,'g'));
- },
- triceps:t=>{
-   const elbow=[50,48],hand=mvPt(elbow,16,mvLerp(-60,70,t));
-   return mvIcon(mvC([50,24],6,'b')+mvL([50,36],[50,56],'b')+mvL([50,36],elbow,'b')+mvL(elbow,hand,'b')+mvL([50,10],hand,'g'));
- },
- abduction:t=>{
-   const lk=mvLerp2([42,80],[28,80],t),rk=mvLerp2([58,80],[72,80],t),hip=[50,70];
-   return mvIcon(mvR(30,68,40,12,'g')+mvC([47,40],6,'b')+mvL([48,46],hip,'b')+mvL(hip,lk,'b')+mvL(hip,rk,'b'));
- },
- calfraise:t=>{
-   const dy=mvLerp(0,-4,t);
-   return mvIcon(mvC([50,25+dy],6,'b')+mvL([50,31+dy],[50,55+dy],'b')+mvL([50,55+dy],[50,75+dy],'b')+mvL([50,75+dy],[50,90],'b')+mvL([44,92],[58,92],'g'));
- },
- woodchop:t=>{
-   const hand=mvLerp2([25,20],[70,70],t);
-   return mvIcon(mvC([50,26],6,'b')+mvL([50,38],[50,60],'b')+mvL([50,38],hand,'b')+mvL([10,15],hand,'g'));
- },
- crunchcable:t=>{
-   const shoulder=mvLerp2([50,45],[50,60],t),head=mvLerp2([50,35],[50,52],t),hip=[50,75];
-   return mvIcon(mvC(head,6,'b')+mvL(shoulder,hip,'b')+mvL(hip,[50,90],'b')+mvL([50,15],head,'g'));
- },
- hangraise:t=>{
-   const hip=[50,45],knee=mvPt(hip,18,mvLerp(90,20,t)),foot=mvPt(knee,18,mvLerp(100,0,t)),shoulder=[50,22];
-   return mvIcon(mvL([35,15],[65,15],'g')+mvC([50,16],6,'b')+mvL(shoulder,[35,15],'b')+mvL(shoulder,[65,15],'b')+mvL(shoulder,hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b'));
- },
- plank:t=>{
-   const dy=Math.sin(t*Math.PI*2)*1.5,shoulder=[28,52+dy],hip=[55,53+dy],foot=[85,58+dy];
-   return mvIcon(mvL([10,70],[90,70],'g')+mvC([20,50+dy],6,'b')+mvL(shoulder,hip,'b')+mvL(hip,foot,'b')+mvL(shoulder,[28,68],'b'));
- },
- deadbug:t=>{
-   const hand=mvLerp2([35,42],[62,38],t),foot=mvLerp2([65,72],[85,52],t),knee=[62,55];
-   return mvIcon(mvL([10,75],[90,75],'g')+mvC([18,63],6,'b')+mvL([25,64],[55,65],'b')+mvL([30,64],hand,'b')+mvL([55,65],knee,'b')+mvL(knee,foot,'b'));
- },
- birddog:t=>{
-   const hand=mvLerp2([38,68],[15,45],t),foot=mvLerp2([62,68],[88,50],t);
-   return mvIcon(mvL([10,70],[90,70],'g')+mvC([30,50],6,'b')+mvL([34,52],[62,55],'b')+mvL([38,55],hand,'b')+mvL([62,55],foot,'b')+mvL([38,55],[38,68],'g')+mvL([62,55],[62,68],'g'));
- },
- bridge:t=>{
-   const hip=mvLerp2([45,68],[45,52],t),knee=[68,68],foot=[68,85],shoulder=[20,60];
-   return mvIcon(mvL([5,70],[35,70],'g')+mvC([10,58],6,'b')+mvL(shoulder,hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b'));
- },
- crunchfloor:t=>{
-   const shoulder=mvLerp2([30,66],[38,58],t),head=mvLerp2([20,64],[30,54],t),hip=[55,68],knee=[68,55],foot=[62,68];
-   return mvIcon(mvL([10,72],[90,72],'g')+mvC(head,6,'b')+mvL(shoulder,hip,'b')+mvL(hip,knee,'b')+mvL(knee,foot,'b'));
- },
- breathing:t=>{
-   const r=3+4*Math.sin(t*Math.PI);
-   return mvIcon(mvL([10,68],[90,68],'g')+mvC([14,60],6,'b')+mvL([20,61],[60,62],'b')+mvC([42,60],r,'b')+mvL([60,62],[75,55],'b')+mvL([75,55],[70,68],'b'));
- }
-};
-const EXO_RIG={
- 'Presse à cuisses':'legpress','Hack squat':'legpress',
- 'Squat gobelet haltère':'squat',
- 'Fentes marchées haltères':'lunge',
- 'Leg extension':'legext',
- 'Leg curl':'legcurl',
- 'Soulevé de terre roumain haltères':'rdl',
- 'Hip thrust':'hipthrust','Hip thrust lourd':'hipthrust',
- 'Développé couché haltères':'bench','Développé incliné haltères':'bench',
- 'Développé incliné machine':'machine_push','Chest press machine convergente':'machine_push','Chest press ou écarté poulies':'machine_push','Dips machine / assistées':'machine_push',
- 'Écarté poulies':'fly','Écarté incliné haltères':'fly',
- 'Tirage vertical prise large':'pulldown',
- 'Rowing haltère un bras':'row','Tirage horizontal poulie':'row',
- 'Pull-over poulie haute':'pullover',
- 'Développé épaules haltères':'shoulderpress','Développé épaules machine':'shoulderpress',
- 'Élévations latérales':'lateralraise','Élévations latérales poulie':'lateralraise',
- 'Face pull':'facepull',
- 'Curl haltères':'curl','Curl marteau':'curl','Curl barre EZ / haltères':'curl',
- 'Extension triceps poulie corde':'triceps','Extension triceps poulie':'triceps','Extension triceps au-dessus de la tête':'triceps',
- 'Abduction machine':'abduction',
- 'Mollets debout':'calfraise',
- 'Woodchopper poulie':'woodchop','Rotations obliques poulie':'woodchop','Pallof press poulie':'woodchop',
- 'Crunch à la poulie':'crunchcable',
- 'Relevé de jambes suspendu':'hangraise',
- 'Gainage latéral':'plank','Gainage (planche)':'plank','Planche modifiée (genoux au sol)':'plank',
- 'Dead bug':'deadbug',
- 'Bird-dog':'birddog',
- 'Pont fessier':'bridge',
- 'Crunch classique':'crunchfloor','Relevé de jambes allongé':'crunchfloor','Mountain climbers':'crunchfloor',
- 'Respiration abdominale (transverse)':'breathing'
+/* ---------- Photos de mouvement (2 vraies photos par exercice, à côté du lien vidéo) ---------- */
+/* Source : free-exercise-db (yuhonas/free-exercise-db), domaine public (Unlicense) — redimensionnées et recadrées par nom d'exercice. */
+const EXO_PHOTO={
+ "Presse à cuisses":"presse-cuisses",
+ "Hack squat":"hack-squat",
+ "Squat gobelet haltère":"squat-gobelet",
+ "Fentes marchées haltères":"fentes-marchees",
+ "Leg extension":"leg-extension",
+ "Leg curl":"leg-curl",
+ "Soulevé de terre roumain haltères":"souleve-terre-roumain",
+ "Hip thrust":"hip-thrust",
+ "Hip thrust lourd":"hip-thrust-lourd",
+ "Développé couché haltères":"developpe-couche-halteres",
+ "Développé incliné haltères":"developpe-incline-halteres",
+ "Développé incliné machine":"developpe-incline-machine",
+ "Chest press machine convergente":"chest-press-convergente",
+ "Dips machine / assistées":"dips-machine",
+ "Chest press ou écarté poulies":"chest-press-ecarte-poulies",
+ "Écarté poulies":"ecarte-poulies",
+ "Écarté incliné haltères":"ecarte-incline-halteres",
+ "Tirage vertical prise large":"tirage-vertical-large",
+ "Rowing haltère un bras":"rowing-haltere-un-bras",
+ "Tirage horizontal poulie":"tirage-horizontal-poulie",
+ "Pull-over poulie haute":"pullover-poulie-haute",
+ "Développé épaules haltères":"developpe-epaules-halteres",
+ "Développé épaules machine":"developpe-epaules-machine",
+ "Élévations latérales":"elevations-laterales",
+ "Élévations latérales poulie":"elevations-laterales-poulie",
+ "Face pull":"face-pull",
+ "Curl haltères":"curl-halteres",
+ "Curl marteau":"curl-marteau",
+ "Curl barre EZ / haltères":"curl-barre-ez",
+ "Extension triceps poulie corde":"extension-triceps-corde",
+ "Extension triceps poulie":"extension-triceps-poulie",
+ "Extension triceps au-dessus de la tête":"extension-triceps-tete",
+ "Abduction machine":"abduction-machine",
+ "Mollets debout":"mollets-debout",
+ "Woodchopper poulie":"woodchopper-poulie",
+ "Rotations obliques poulie":"rotations-obliques-poulie",
+ "Pallof press poulie":"pallof-press-poulie",
+ "Crunch à la poulie":"crunch-poulie",
+ "Relevé de jambes suspendu":"releve-jambes-suspendu",
+ "Gainage latéral":"gainage-lateral",
+ "Gainage (planche)":"gainage-planche",
+ "Crunch classique":"crunch-classique",
+ "Relevé de jambes allongé":"releve-jambes-allonge",
+ "Mountain climbers":"mountain-climbers",
+ "Dead bug":"dead-bug",
+ "Pont fessier":"pont-fessier",
+ "Planche modifiée (genoux au sol)":"planche-modifiee"
 };
 function moveViz(name){
-  const rig=EXO_RIG[name];const fn=rig&&RIGS[rig];if(!fn)return '';
-  const frames=[0,1/3,2/3,1].map(t=>`<div class="mv">${fn(t)}</div>`).join('');
-  return `<div class="moverow">${frames}</div>`;
+  const base=EXO_PHOTO[name];if(!base)return '';
+  return `<div class="moverow"><img class="mv" src="img/exercises/${base}-0.jpg" alt="${name} - départ" loading="lazy"><img class="mv" src="img/exercises/${base}-1.jpg" alt="${name} - fin" loading="lazy"></div>`;
 }
 
 function openHow(name,cue){

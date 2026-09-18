@@ -36,7 +36,7 @@ Un calendrier du mois avec un point coloré sur chaque jour où une séance a é
 - Une **suggestion de charge** apparaît quand tu as atteint le haut de la fourchette de reps la fois précédente.
 - Sous chaque exercice, indique ton **ressenti** (😌 Facile / 👍 Ok / 😓 Trop dur) — optionnel. La prochaine fois, ça affine la suggestion de charge : "Trop dur" bloque toute augmentation même si les reps étaient bonnes, "Facile" pousse un peu plus fort (+5 kg au lieu de +2,5).
 - Un **échauffement** (deux paliers à 50 % et 75 %) est suggéré sur les mouvements principaux.
-- **Fiche ▸** ouvre la fiche technique de l'exercice : muscles ciblés, étapes clés, **4 vignettes animées** montrant le mouvement sur la machine concernée, puis un lien vers une démo vidéo.
+- **Fiche ▸** ouvre la fiche technique de l'exercice : muscles ciblés, étapes clés, **2 vraies photos** (départ/fin du mouvement) sur la machine concernée, puis un lien vers une démo vidéo.
 - Saisis le poids et les reps, puis touche le **✓** pour valider la série — le **minuteur de repos démarre à ce moment-là** (maintenant ancré en haut de l'écran, pas en bas). Touche à nouveau pour décocher en cas d'erreur.
 - Sur les exercices chronométrés (gainage, planche…), un bouton **⏱ Chrono** lance directement le minuteur de maintien — pas besoin de sortir de l'app pour chronométrer. Le champ de saisie affiche alors **« sec »** plutôt que « reps », pour rester cohérent avec ce que tu mesures réellement.
 - Un réglage de **temps disponible** (30 à 90 min) en haut de la séance masque les derniers exercices si besoin, sans jamais descendre sous 30 minutes.
@@ -56,6 +56,7 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 
 ## Structure du projet
 - `index.html` — toute l'app (HTML + CSS + JavaScript, zéro dépendance externe, aucun appel réseau).
+- `img/exercises/` — photos des exercices (2 par mouvement, départ/fin) affichées dans la fiche technique. Source : [free-exercise-db](https://github.com/yuhonas/free-exercise-db), domaine public (Unlicense).
 
 ## Feuille de route
 - [x] Programme 5-6 jours + séance légère du soir
@@ -83,5 +84,5 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Abdos express : changer/passer un exercice, comme dans le programme classique
 - [x] Détection des exercices au poids de corps (pas de champ kg inutile)
 - [x] Correction d'un bug où le minuteur de repos pouvait disparaître en plein décompte
-- [x] Vignettes animées du mouvement dans la fiche technique de chaque exercice
+- [x] Vraies photos du mouvement dans la fiche technique de chaque exercice
 - [x] Correction d'un bug où faire défiler un panneau (fiche, abdos express…) faisait défiler l'écran derrière
