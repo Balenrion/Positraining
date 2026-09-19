@@ -2193,8 +2193,6 @@ function renderHome(){
         <span class="ht"><b>Reprendre le programme</b><span>${mday.t} · ${mday.s}${mdn?' · déjà validée ✓':''}</span></span>
         <span class="harrow">›</span>
       </button>
-      ${focusCard}
-      ${copyCard}
       <button class="homebtn" id="homeAbs">
         <span class="hic">🔥</span>
         <span class="ht"><b>Abdos express</b><span>Choisis la durée</span></span>
@@ -2205,6 +2203,8 @@ function renderHome(){
         <span class="ht"><b>Cardio</b><span>Choisis ton objectif</span></span>
         <span class="harrow">›</span>
       </button>
+      ${focusCard}
+      ${copyCard}
     </div>`;
   $('#homeResume').onclick=()=>{if(state.mode!=='main')exitToMain();setView('train');};
   $('#homeFocus').onclick=()=>{
