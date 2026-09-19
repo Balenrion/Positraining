@@ -450,6 +450,10 @@
     <div class="d" style="margin-top:10px"><b>Limites / douleurs</b> — les exercices à risque seront retirés ou remplacés (optionnel)</div>
     <div id="obLimiteZones" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <textarea id="obLimites" class="acctin" rows="2" placeholder="Autres précisions (optionnel, juste affiché en rappel)"></textarea>
+    <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px">
+      <div class="d"><b>Confort périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
+      <button type="button" class="sw" id="obPerineumSw" aria-label="Activer le confort périnée"></button>
+    </div>
     <div class="d" style="margin-top:10px"><b>Points faibles</b> — à prioriser (optionnel)</div>
     <div id="obWeak" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <div class="d" style="margin-top:10px"><b>Points forts</b> — déjà bien développés, à réduire (optionnel)</div>
@@ -711,6 +715,37 @@ function applyLimites(days,limiteZones){
   });
   return changes;
 }
+const PERINEUM_UNSAFE={
+ 'Crunch à la poulie':'Gainage latéral',
+ 'Relevé de jambes suspendu':'Pallof press poulie',
+ 'Woodchopper poulie':'Pallof press poulie',
+ 'Rotations obliques poulie':'Gainage latéral',
+ 'Circuit core':'Gainage latéral'
+};
+function applyPerineum(days){
+  const changes=[];
+  days.forEach(d=>{
+    Object.keys(PERINEUM_UNSAFE).forEach(name=>{
+      const idx=d.ex.findIndex(e=>!e.note&&e.n===name);
+      if(idx===-1)return;
+      const sub=PERINEUM_UNSAFE[name];
+      if(!d.ex.some(e=>e.n===sub)){
+        const base=EXO_POOL[sub];
+        if(base){
+          const oldId=d.ex[idx].id;
+          d.ex[idx]=Object.assign({},base,{id:oldId});
+          changes.push({label:'Confort périnée',from:name,to:sub});
+          return;
+        }
+      }
+      const without=d.ex.slice(0,idx).concat(d.ex.slice(idx+1));
+      if(dayDuration(without)<30*60)return;
+      d.ex.splice(idx,1);
+      changes.push({label:'Confort périnée',from:name,to:null});
+    });
+  });
+  return changes;
+}
 function buildDay(id,t,s,title,role,specs){
   const ex=specs.map(sp=>{const base=pickExo(sp.group,sp.idx||0);return base?Object.assign({},base):null;}).filter(Boolean);
   return {id,t,s,title,role,ex};
@@ -788,6 +823,7 @@ function generateProgram(ob){
   genderBias(days,ob.sexe);
   applyMuscleFocus(days,ob.weakGroups,ob.strongGroups);
   const limiteChanges=applyLimites(days,ob.limiteZones);
+  if(ob.perineum)limiteChanges.push(...applyPerineum(days));
   applyObjectif(days,ob.objectif);
   applyNiveau(days,ob.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
@@ -1535,7 +1571,7 @@ $('#importFile').onchange=ev=>{
 };
 
 /* ---------- Profils : nouveau / suppression ---------- */
-let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set();
+let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false;
 function renderChipSet(id,groups,selected){
   const el=$('#'+id);if(!el)return;
   el.innerHTML=groups.map(g=>`<button type="button" class="day${selected.has(g.key)?' on':''}" data-k="${g.key}" style="padding:6px 11px"><span class="t">${g.label}</span></button>`).join('');
@@ -1558,12 +1594,14 @@ function renderMuscleChips(id,selected,other){
 $('#newProfileBtn').onclick=()=>{
   ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
   $('#obSexe').value='H';
-  obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();
+  obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();obPerineum=false;
   renderMuscleChips('obWeak',obWeakSet,obStrongSet);
   renderMuscleChips('obStrong',obStrongSet,obWeakSet);
   renderChipSet('obLimiteZones',LIMITE_INFO,obLimiteSet);
+  $('#obPerineumSw').classList.remove('on');
   $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
 };
+$('#obPerineumSw').onclick=()=>{obPerineum=!obPerineum;$('#obPerineumSw').classList.toggle('on',obPerineum);};
 $('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
 $('#onboard').onclick=e=>{if(e.target.id==='onboard')$('#onboard').classList.remove('show');};
 $('#obGenerate').onclick=()=>{
@@ -1571,7 +1609,7 @@ $('#obGenerate').onclick=()=>{
   if(!prenom){$('#obPrenom').focus();return;}
   const poids=$('#obPoids').value,taille=$('#obTaille').value,age=$('#obAge').value;
   if(!poids||!taille||!age){if(!age)$('#obAge').focus();else if(!poids)$('#obPoids').focus();else $('#obTaille').focus();return;}
-  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet],limiteZones:[...obLimiteSet]};
+  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet],limiteZones:[...obLimiteSet],perineum:obPerineum};
   draftProgram=generateProgram(draftOnboarding);
   $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
 };
@@ -1586,6 +1624,7 @@ function renderReview(){
     const lines=draftProgram.limiteChanges.map(c=>`${c.label} : ${c.from}${c.to?' → '+c.to:' retiré'}`).join(' · ');
     html+=`<div class="insight warn">Adapté aux limites signalées — ${lines}.</div>`;
   }
+  if(draftOnboarding.perineum)html+=`<div class="insight warn">${CORE_SAFE_NOTE}</div>`;
   if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
   draftProgram.days.forEach((d,di)=>{
     html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
