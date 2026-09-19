@@ -476,6 +476,8 @@
   <div class="card" style="max-height:85vh;overflow-y:auto">
     <h3>Programme focus</h3>
     <div id="fsCopySection" style="display:none"></div>
+    <input type="file" id="fsImportFile" accept="application/json,.json" style="display:none">
+    <button type="button" class="close" id="fsImportBtn" style="margin-bottom:14px">📥 Importer un programme reçu (fichier)</button>
     <input id="fsNom" class="acctin" placeholder="Nom du programme (ex. Raffermissement)">
     <div class="d" style="margin-top:10px"><b>Groupes musculaires ciblés</b> — au moins un</div>
     <div id="fsGroups" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
@@ -1484,7 +1486,7 @@ function renderDay(){
   const app=$('#app');app.innerHTML='';
   const hd=document.createElement('div');hd.className='dayhead';
   const capHtml=TIMECAP_OPTIONS.map(m=>`<button class="day${cap===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m===0?'Illimité':m+' min'}</span></button>`).join('');
-  const focusTag=state.mode==='focus'?`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button> <button class="skipbtn" id="reconfigureFocusBtn" style="padding:0;margin-bottom:8px">⚙ Reconfigurer</button>`:'';
+  const focusTag=state.mode==='focus'?`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button> <button class="skipbtn" id="reconfigureFocusBtn" style="padding:0;margin-bottom:8px">⚙ Reconfigurer</button> <button class="skipbtn" id="shareFocusBtn" style="padding:0;margin-bottom:8px">📤 Partager</button>`:'';
   hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>${focusTag}<div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
   app.appendChild(hd);
   if(state.mode==='focus'){
@@ -1493,6 +1495,7 @@ function renderDay(){
       if(!confirm('Reconfigurer ce programme ? Les séries déjà enregistrées pour ce programme seront perdues.'))return;
       openFocusSetup(focusProgram.cfg);
     };
+    const sfb=hd.querySelector('#shareFocusBtn');if(sfb)sfb.onclick=()=>shareFocusProgram();
   }
   hd.querySelectorAll('.day').forEach(b=>b.onclick=()=>{state.timeCap=+b.dataset.m;save();renderDay();});
   if(visible.length<day.ex.length){
@@ -1601,6 +1604,16 @@ function exitFocusMode(){
   DAYS=program.days;
   state.mode='main';
   flush();renderAll();renderHome();
+}
+function shareFocusProgram(){
+  // Contrairement à « Copier depuis un autre profil » (même appareil, lecture directe du localStorage),
+  // deux profils sur deux téléphones différents n'ont aucun stockage en commun — seul un fichier qu'on
+  // s'envoie soi-même (AirDrop, Messages...) permet de faire passer un programme de l'un à l'autre.
+  if(!focusProgram)return;
+  const blob=new Blob([JSON.stringify({days:focusProgram.days,cfg:focusProgram.cfg})],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='positraining-programme-focus-'+slug(focusProgram.cfg.nom||'programme')+'.json';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
 }
 
 /* ---------- Minuteur de repos ---------- */
@@ -1886,9 +1899,11 @@ async function openFocusSetup(prefill){
   renderFsDurChips();
   $('#fsPerineumSw').classList.toggle('on',fsPerineum);
   const copySec=$('#fsCopySection');
-  // Le « copier » n'a de sens qu'à la toute première configuration (pas en reconfiguration) — un profil
-  // qui a déjà son propre programme focus ne doit pas se voir proposer d'en écraser un autre par erreur.
-  const copyable=prefill?[]:await listCopyableFocusPrograms();
+  // Proposé aussi en reconfiguration (pas seulement à la première configuration) : reconfigurer demande
+  // déjà une confirmation explicite juste avant d'arriver ici (perte des séries en cours), donc copier/
+  // importer par-dessus à ce moment-là est un choix informé, pas un risque d'écraser par erreur — et c'est
+  // le seul moyen de récupérer une version mise à jour du programme d'un autre profil (voir shareFocusProgram).
+  const copyable=await listCopyableFocusPrograms();
   if(copyable.length){
     copySec.style.display='';
     copySec.innerHTML=`<div class="d" style="margin-bottom:6px"><b>Suivre le même programme qu'un autre profil</b></div>`
@@ -1896,16 +1911,24 @@ async function openFocusSetup(prefill){
       +`<div class="d" style="margin:10px 0;text-align:center">— ou crée le tien —</div>`;
     copySec.querySelectorAll('button').forEach(b=>b.onclick=()=>{
       const entry=copyable.find(c=>c.profileId===b.dataset.copy);
-      focusProgram={days:entry.days,cfg:entry.cfg};
-      state.focus=freshFocusState(entry.days[0].id);
-      $('#focusSetup').classList.remove('show');
-      enterFocusMode();setView('train');
+      adoptFocusProgram(entry.days,entry.cfg);
     });
   }else{
     copySec.style.display='none';copySec.innerHTML='';
   }
   $('#sheet').classList.remove('show');$('#focusSetup').classList.add('show');
 }
+$('#fsImportBtn').onclick=()=>$('#fsImportFile').click();
+$('#fsImportFile').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const s=JSON.parse(r.result);
+    if(!s||typeof s!=='object'||!Array.isArray(s.days)||!s.days.length)throw 0;
+    adoptFocusProgram(s.days,s.cfg);
+  }catch(e){alert('Fichier invalide — ce n’est pas un programme focus PosiTraining.');}};
+  r.readAsText(f);ev.target.value='';
+};
 $('#fsPerineumSw').onclick=()=>{fsPerineum=!fsPerineum;$('#fsPerineumSw').classList.toggle('on',fsPerineum);};
 $('#focusSetupCancel').onclick=()=>$('#focusSetup').classList.remove('show');
 $('#focusSetup').onclick=e=>{if(e.target.id==='focusSetup')$('#focusSetup').classList.remove('show');};
@@ -1934,14 +1957,15 @@ function renderFocusReview(){
 }
 $('#focusReviewCancel').onclick=()=>$('#focusReview').classList.remove('show');
 $('#focusReview').onclick=e=>{if(e.target.id==='focusReview')$('#focusReview').classList.remove('show');};
-$('#focusReviewValidate').onclick=()=>{
-  if(navigator.vibrate)navigator.vibrate(20);
-  focusProgram={days:draftFocusProgram.days,cfg:draftFocusCfg};
-  const freshSlot=freshFocusState(draftFocusProgram.days[0].id);
-  $('#focusReview').classList.remove('show');$('#sheet').classList.remove('show');
+// Point d'entrée unique pour adopter un programme focus (nouvelle génération, copie depuis un autre
+// profil, ou import de fichier) : gère aussi bien la toute première configuration que la reconfiguration
+// en cours de séance focus, où enterFocusMode() seul ne suffirait pas (elle `return`ne immédiatement si
+// state.mode vaut déjà 'focus', laissant l'ancien programme affiché malgré le remplacement de focusProgram).
+function adoptFocusProgram(days,cfg){
+  focusProgram={days,cfg:cfg||{}};
+  const freshSlot=freshFocusState(days[0].id);
+  $('#focusReview').classList.remove('show');$('#focusSetup').classList.remove('show');$('#sheet').classList.remove('show');
   if(state.mode==='focus'){
-    // Reconfiguration en cours de séance focus (déjà branché sur les champs racine) : on remplace
-    // directement, pas besoin d'entrer/sortir du mode puisqu'on y est déjà.
     applySlot(freshSlot);
     DAYS=focusProgram.days;
     flush();renderAll();renderHome();
@@ -1950,6 +1974,10 @@ $('#focusReviewValidate').onclick=()=>{
     enterFocusMode();
   }
   setView('train');
+}
+$('#focusReviewValidate').onclick=()=>{
+  if(navigator.vibrate)navigator.vibrate(20);
+  adoptFocusProgram(draftFocusProgram.days,draftFocusCfg);
 };
 
 /* ---------- Suivi du poids ---------- */
