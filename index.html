@@ -475,6 +475,7 @@
 <div class="sheet" id="focusSetup">
   <div class="card" style="max-height:85vh;overflow-y:auto">
     <h3>Programme focus</h3>
+    <div id="fsCopySection" style="display:none"></div>
     <input id="fsNom" class="acctin" placeholder="Nom du programme (ex. Raffermissement)">
     <div class="d" style="margin-top:10px"><b>Groupes musculaires ciblés</b> — au moins un</div>
     <div id="fsGroups" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
@@ -1864,7 +1865,18 @@ function renderFsDurChips(){
   $('#fsDurChips').innerHTML=FOCUS_DURATIONS.map(m=>`<button type="button" class="day${fsDuration===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
   $('#fsDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{fsDuration=+b.dataset.m;renderFsDurChips();});
 }
-function openFocusSetup(prefill){
+async function listCopyableFocusPrograms(){
+  const others=profiles.filter(p=>p.id!==activeId);
+  const out=[];
+  for(const p of others){
+    const b=await loadProfileBundle(p.id);
+    if(b&&b.focusProgram&&b.focusProgram.days&&b.focusProgram.days.length){
+      out.push({profileId:p.id,profileName:p.name,cfg:b.focusProgram.cfg,days:b.focusProgram.days});
+    }
+  }
+  return out;
+}
+async function openFocusSetup(prefill){
   const cfg=prefill||{};
   $('#fsNom').value=cfg.nom||'';
   $('#fsJours').value=cfg.joursParSemaine||'3';$('#fsNiveau').value=cfg.niveau||'intermediaire';$('#fsObjectif').value=cfg.objectif||'recomp';
@@ -1873,6 +1885,25 @@ function openFocusSetup(prefill){
   renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
   renderFsDurChips();
   $('#fsPerineumSw').classList.toggle('on',fsPerineum);
+  const copySec=$('#fsCopySection');
+  // Le « copier » n'a de sens qu'à la toute première configuration (pas en reconfiguration) — un profil
+  // qui a déjà son propre programme focus ne doit pas se voir proposer d'en écraser un autre par erreur.
+  const copyable=prefill?[]:await listCopyableFocusPrograms();
+  if(copyable.length){
+    copySec.style.display='';
+    copySec.innerHTML=`<div class="d" style="margin-bottom:6px"><b>Suivre le même programme qu'un autre profil</b></div>`
+      +copyable.map(c=>`<button type="button" class="close" data-copy="${c.profileId}" style="margin-bottom:8px">📋 Copier « ${c.cfg.nom||'Programme focus'} » de ${c.profileName}</button>`).join('')
+      +`<div class="d" style="margin:10px 0;text-align:center">— ou crée le tien —</div>`;
+    copySec.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const entry=copyable.find(c=>c.profileId===b.dataset.copy);
+      focusProgram={days:entry.days,cfg:entry.cfg};
+      state.focus=freshFocusState(entry.days[0].id);
+      $('#focusSetup').classList.remove('show');
+      enterFocusMode();setView('train');
+    });
+  }else{
+    copySec.style.display='none';copySec.innerHTML='';
+  }
   $('#sheet').classList.remove('show');$('#focusSetup').classList.add('show');
 }
 $('#fsPerineumSw').onclick=()=>{fsPerineum=!fsPerineum;$('#fsPerineumSw').classList.toggle('on',fsPerineum);};
