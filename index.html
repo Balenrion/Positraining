@@ -472,6 +472,50 @@
   </div>
 </div>
 
+<div class="sheet" id="focusSetup">
+  <div class="card" style="max-height:85vh;overflow-y:auto">
+    <h3>Programme focus</h3>
+    <input id="fsNom" class="acctin" placeholder="Nom du programme (ex. Raffermissement)">
+    <div class="d" style="margin-top:10px"><b>Groupes musculaires ciblés</b> — au moins un</div>
+    <div id="fsGroups" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+    <select id="fsJours" class="acctin" style="margin-top:10px">
+      <option value="2">2 jours / semaine</option>
+      <option value="3" selected>3 jours / semaine</option>
+      <option value="4">4 jours / semaine</option>
+      <option value="5">5 jours / semaine</option>
+      <option value="6">6 jours / semaine</option>
+    </select>
+    <select id="fsNiveau" class="acctin">
+      <option value="debutant">Niveau : débutant</option>
+      <option value="intermediaire" selected>Niveau : intermédiaire</option>
+      <option value="confirme">Niveau : confirmé</option>
+    </select>
+    <select id="fsObjectif" class="acctin">
+      <option value="perte">Objectif : perte de poids</option>
+      <option value="recomp" selected>Objectif : recomposition / tonification</option>
+      <option value="maintien">Objectif : maintien / forme générale</option>
+      <option value="masse">Objectif : prise de masse</option>
+    </select>
+    <div class="d" style="margin-top:10px"><b>Limites / douleurs</b> — les exercices à risque seront retirés ou remplacés (optionnel)</div>
+    <div id="fsLimiteZones" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+    <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px">
+      <div class="d"><b>Confort périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
+      <button type="button" class="sw" id="fsPerineumSw" aria-label="Activer le confort périnée"></button>
+    </div>
+    <button class="close" id="focusSetupGenerate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Générer ce programme</button>
+    <button class="close" id="focusSetupCancel">Annuler</button>
+  </div>
+</div>
+
+<div class="sheet" id="focusReview">
+  <div class="card" style="max-height:85vh;overflow-y:auto">
+    <h3>Vérifie ton programme focus</h3>
+    <div id="focusReviewBody"></div>
+    <button class="close" id="focusReviewValidate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Valider et commencer</button>
+    <button class="close" id="focusReviewCancel">Annuler</button>
+  </div>
+</div>
+
 <div class="sheet" id="addex">
   <div class="card">
     <h3>Ajouter un exercice</h3>
@@ -849,6 +893,40 @@ function generateProgram(ob){
   };
 }
 
+/* ---------- Programme focus (2e programme, ciblé sur des groupes musculaires choisis) ---------- */
+function pickExoAvoiding(group,idx,avoid){
+  const names=(EXO_GROUP[group]||[]).filter(n=>!avoid.has(n));
+  if(!names.length)return null;
+  const n=names[idx%names.length];
+  return EXO_POOL[n];
+}
+function templateFocus(groups,joursParSemaine,avoid){
+  avoid=avoid||new Set();
+  const days=[];
+  for(let i=0;i<joursParSemaine;i++){
+    const ex=groups.map((g,gi)=>{const base=pickExoAvoiding(g,i+gi,avoid);return base?Object.assign({},base):null;}).filter(Boolean);
+    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme focus — Jour '+(i+1),role:groupLabels(groups),ex});
+  }
+  return days;
+}
+function generateFocusProgram(cfg){
+  // Les exercices à risque (limites/périnée) sont écartés du pool AVANT le choix des exercices, plutôt
+  // que retirés après coup comme dans le programme classique (applyLimites/applyPerineum) : une séance
+  // focus n'a que 3-5 exercices, donc le garde-fou de plancher (30 min) d'applyLimites bloquerait souvent
+  // le retrait et laisserait l'exercice à risque en place (trouvé en stress-testant, voir CLAUDE.md).
+  const avoid=new Set();
+  (cfg.limiteZones||[]).forEach(key=>{
+    const info=LIMITE_INFO.find(l=>l.key===key);
+    if(info)info.exclude.forEach(n=>avoid.add(n));
+  });
+  if(cfg.perineum)Object.keys(PERINEUM_UNSAFE).forEach(n=>avoid.add(n));
+  const days=templateFocus(cfg.groups,+cfg.joursParSemaine||3,avoid);
+  applyObjectif(days,cfg.objectif);
+  applyNiveau(days,cfg.niveau);
+  days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
+  return{days};
+}
+
 const PHASES=[
  {wk:[1,2],  key:'ramp',  name:'Remise en route', p:'~70 % des charges, RPE 6-7, garde 2-3 reps en réserve. Zéro échec — on réveille muscles et tendons.'},
  {wk:[3,6],  key:'build', name:'Bloc de charge',  p:'Double progression : monte les reps jusqu\u2019en haut de la fourchette, puis +2,5-5 % de charge. RIR 1-2. +1 série sur le 1ᵉʳ exo des séances Push & Bas.'},
@@ -871,7 +949,8 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{}};}
+function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{},mode:'main',focus:null};}
+function freshFocusState(dayId){return{week:1,day:dayId,logs:{},swaps:{},done:{},skips:{},feels:{}};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
 let saveTimer=null;
@@ -885,17 +964,21 @@ const PROFILES_KEY='positraining_v1_profiles';
 const ACTIVE_KEY='positraining_v1_active';
 function profileKey(id){return 'positraining_v1_p_'+id;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
-let profiles=[],activeId=null,onboarding=null,program=freshProgramDefault();
+let profiles=[],activeId=null,onboarding=null,program=freshProgramDefault(),focusProgram=null;
 async function loadProfilesIndex(){const raw=await readVal(PROFILES_KEY);profiles=raw?JSON.parse(raw):[];}
 function saveProfilesIndex(){writeNow(PROFILES_KEY,JSON.stringify(profiles));}
 async function loadProfileBundle(id){const raw=await readVal(profileKey(id));return raw?JSON.parse(raw):null;}
-function bundleFromCurrent(){return{onboarding,program,state};}
+function bundleFromCurrent(){return{onboarding,program,focusProgram,state};}
 function applyBundle(b){
   onboarding=b.onboarding||null;
   program=b.program||freshProgramDefault();
-  DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
+  focusProgram=b.focusProgram||null;
+  GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
   if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+  if(!state.mode)state.mode='main';
+  if(state.mode==='focus'&&!focusProgram)state.mode='main';
+  DAYS=(state.mode==='focus'&&focusProgram)?focusProgram.days:program.days;
 }
 function persistActiveBundle(){
   if(!activeId)return;
@@ -1371,8 +1454,10 @@ function renderDay(){
   const app=$('#app');app.innerHTML='';
   const hd=document.createElement('div');hd.className='dayhead';
   const capHtml=TIMECAP_OPTIONS.map(m=>`<button class="day${cap===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m===0?'Illimité':m+' min'}</span></button>`).join('');
-  hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div><div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
+  const focusTag=state.mode==='focus'?`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button>`:'';
+  hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>${focusTag}<div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
   app.appendChild(hd);
+  if(state.mode==='focus'){const efb=hd.querySelector('#exitFocusBtn');if(efb)efb.onclick=()=>exitFocusMode();}
   hd.querySelectorAll('.day').forEach(b=>b.onclick=()=>{state.timeCap=+b.dataset.m;save();renderDay();});
   if(visible.length<day.ex.length){
     const hidden=day.ex.length-visible.length;
@@ -1461,6 +1546,27 @@ function refreshSpark(card,exId,bw){
 }
 function renderAll(){renderWeeks();renderPhase();renderDays();renderDay();}
 
+/* ---------- Bascule programme classique / programme focus (même moteur de séance) ---------- */
+function stashSlot(){return{week:state.week,day:state.day,logs:state.logs,swaps:state.swaps,done:state.done,skips:state.skips,feels:state.feels};}
+function applySlot(s){state.week=s.week;state.day=s.day;state.logs=s.logs;state.swaps=s.swaps;state.done=s.done;state.skips=s.skips;state.feels=s.feels;}
+function enterFocusMode(){
+  if(state.mode==='focus'||!focusProgram)return;
+  state.mainSlot=stashSlot();
+  applySlot(state.focus);
+  DAYS=focusProgram.days;
+  state.mode='focus';
+  flush();renderAll();renderHome();
+}
+function exitFocusMode(){
+  if(state.mode!=='focus')return;
+  state.focus=stashSlot();
+  applySlot(state.mainSlot||freshFocusState(program.days[0].id));
+  delete state.mainSlot;
+  DAYS=program.days;
+  state.mode='main';
+  flush();renderAll();renderHome();
+}
+
 /* ---------- Minuteur de repos ---------- */
 let tId=null,tLeft=0,tHideT=null;
 function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
@@ -1542,8 +1648,11 @@ $('#closeSheet').onclick=()=>$('#sheet').classList.remove('show');
 $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('show');};
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
   if(!state.show6&&state.day==='d6')state.day='d1';save();renderAll();};
-$('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Ton programme est conservé. Action irréversible.')){
-  state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:DAYS[0].id,timeCap:state.timeCap,perineumCare:state.perineumCare,absLevel:state.absLevel});renderAll();setView(state.view);$('#sheet').classList.remove('show');flush();}};
+$('#reset').onclick=async()=>{if(confirm('Effacer toutes tes données (charges + poids) ? Tes programmes sont conservés. Action irréversible.')){
+  state=Object.assign(freshState(),{show6:state.show6,view:state.view,day:program.days[0].id,timeCap:state.timeCap,perineumCare:state.perineumCare,absLevel:state.absLevel,mode:'main'});
+  if(focusProgram)state.focus=freshFocusState(focusProgram.days[0].id);
+  DAYS=program.days;
+  renderAll();renderHome();setView(state.view);$('#sheet').classList.remove('show');flush();}};
 $('#exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(bundleFromCurrent())],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -1557,15 +1666,19 @@ $('#importFile').onchange=ev=>{
   r.onload=()=>{try{
     const s=JSON.parse(r.result);if(typeof s!=='object'||!s)throw 0;
     if(s.program&&s.state){
-      onboarding=s.onboarding||null;program=s.program;
+      onboarding=s.onboarding||null;program=s.program;focusProgram=s.focusProgram||null;
       state=Object.assign(freshState(),s.state);
     }else{
+      focusProgram=null;
       state=Object.assign(freshState(),s);
     }
     if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+    if(!state.mode)state.mode='main';
+    if(state.mode==='focus'&&!focusProgram)state.mode='main';
     state.updatedAt=Date.now();
-    DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
-    flush();renderAll();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
+    GOAL=program.goal;NUTRI=program.nutrition;
+    DAYS=(state.mode==='focus'&&focusProgram)?focusProgram.days:program.days;
+    flush();renderAll();renderHome();setView(state.view||'train');$('#sheet').classList.remove('show');alert('Sauvegarde importée ✓');
   }catch(e){alert('Fichier invalide — ce n\u2019est pas une sauvegarde PosiTraining.');}};
   r.readAsText(f);ev.target.value='';
 };
@@ -1614,19 +1727,9 @@ $('#obGenerate').onclick=()=>{
   $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
 };
 function groupLabels(keys){return keys.map(k=>(MUSCLE_GROUPS.find(g=>g.key===k)||{}).label||k).join(', ');}
-function renderReview(){
+function daysReviewHtml(days){
   let html='';
-  const jp=+draftOnboarding.joursParSemaine||5;
-  html+=`<div class="insight ok">${jp} jour(s) d'entraînement/semaine → ${Math.max(0,7-jp)} jour(s) de repos complet dans la semaine, à respecter pour la récupération.</div>`;
-  if(draftOnboarding.weakGroups&&draftOnboarding.weakGroups.length)html+=`<div class="insight ok">Volume renforcé : ${groupLabels(draftOnboarding.weakGroups)}.</div>`;
-  if(draftOnboarding.strongGroups&&draftOnboarding.strongGroups.length)html+=`<div class="insight warn">Volume réduit (déjà bien développés) : ${groupLabels(draftOnboarding.strongGroups)}.</div>`;
-  if(draftProgram.limiteChanges&&draftProgram.limiteChanges.length){
-    const lines=draftProgram.limiteChanges.map(c=>`${c.label} : ${c.from}${c.to?' → '+c.to:' retiré'}`).join(' · ');
-    html+=`<div class="insight warn">Adapté aux limites signalées — ${lines}.</div>`;
-  }
-  if(draftOnboarding.perineum)html+=`<div class="insight warn">${CORE_SAFE_NOTE}</div>`;
-  if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
-  draftProgram.days.forEach((d,di)=>{
+  days.forEach((d,di)=>{
     html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
     d.ex.forEach((e,ei)=>{
       if(e.note){
@@ -1640,6 +1743,27 @@ function renderReview(){
     });
     html+='</div>';
   });
+  return html;
+}
+function wireSwapButtons(bodyId,days,onPick){
+  $('#'+bodyId).querySelectorAll('.swapbtn').forEach(b=>b.onclick=()=>{
+    const di=+b.dataset.di,ei=+b.dataset.ei,e=days[di].ex[ei];
+    openSwapDraft(e,onPick);
+  });
+}
+function renderReview(){
+  let html='';
+  const jp=+draftOnboarding.joursParSemaine||5;
+  html+=`<div class="insight ok">${jp} jour(s) d'entraînement/semaine → ${Math.max(0,7-jp)} jour(s) de repos complet dans la semaine, à respecter pour la récupération.</div>`;
+  if(draftOnboarding.weakGroups&&draftOnboarding.weakGroups.length)html+=`<div class="insight ok">Volume renforcé : ${groupLabels(draftOnboarding.weakGroups)}.</div>`;
+  if(draftOnboarding.strongGroups&&draftOnboarding.strongGroups.length)html+=`<div class="insight warn">Volume réduit (déjà bien développés) : ${groupLabels(draftOnboarding.strongGroups)}.</div>`;
+  if(draftProgram.limiteChanges&&draftProgram.limiteChanges.length){
+    const lines=draftProgram.limiteChanges.map(c=>`${c.label} : ${c.from}${c.to?' → '+c.to:' retiré'}`).join(' · ');
+    html+=`<div class="insight warn">Adapté aux limites signalées — ${lines}.</div>`;
+  }
+  if(draftOnboarding.perineum)html+=`<div class="insight warn">${CORE_SAFE_NOTE}</div>`;
+  if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
+  html+=daysReviewHtml(draftProgram.days);
   html+=`<div class="opt" style="display:block;flex-direction:column">
     <div class="d"><b>Objectif de poids (kg)</b></div>
     <input id="revGoal" class="acctin" inputmode="decimal" value="${draftProgram.goal}">
@@ -1658,10 +1782,7 @@ function renderReview(){
     </div>
   </div>`;
   $('#reviewBody').innerHTML=html;
-  $('#reviewBody').querySelectorAll('.swapbtn').forEach(b=>b.onclick=()=>{
-    const di=+b.dataset.di,ei=+b.dataset.ei,e=draftProgram.days[di].ex[ei];
-    openSwapDraft(e,renderReview);
-  });
+  wireSwapButtons('reviewBody',draftProgram.days,renderReview);
 }
 function openSwapDraft(e,onPick){
   const opts=[e.n].concat(ALT[e.n]||[]);
@@ -1683,7 +1804,7 @@ $('#reviewValidate').onclick=()=>{
   const id=uid();
   profiles.push({id,name:draftOnboarding.prenom,createdAt:Date.now()});
   saveProfilesIndex();
-  activeId=id;onboarding=draftOnboarding;program=draftProgram;
+  activeId=id;onboarding=draftOnboarding;program=draftProgram;focusProgram=null;
   DAYS=program.days;GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),{show6:+draftOnboarding.joursParSemaine>=6,day:draftProgram.days[0].id});
   const kg=parseFloat((draftOnboarding.poids||'').replace(',','.'));
@@ -1699,6 +1820,53 @@ $('#deleteProfileBtn').onclick=async()=>{
   profiles=profiles.filter(p=>p.id!==activeId);
   saveProfilesIndex();
   await switchProfile(profiles[0].id);
+};
+
+/* ---------- Programme focus : configuration ---------- */
+let draftFocusCfg=null,draftFocusProgram=null,fsGroupsSet=new Set(),fsLimiteSet=new Set(),fsPerineum=false;
+function openFocusSetup(){
+  $('#fsNom').value='';
+  $('#fsJours').value='3';$('#fsNiveau').value='intermediaire';$('#fsObjectif').value='recomp';
+  fsGroupsSet=new Set();fsLimiteSet=new Set();fsPerineum=false;
+  renderChipSet('fsGroups',MUSCLE_GROUPS,fsGroupsSet);
+  renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
+  $('#fsPerineumSw').classList.remove('on');
+  $('#sheet').classList.remove('show');$('#focusSetup').classList.add('show');
+}
+$('#fsPerineumSw').onclick=()=>{fsPerineum=!fsPerineum;$('#fsPerineumSw').classList.toggle('on',fsPerineum);};
+$('#focusSetupCancel').onclick=()=>$('#focusSetup').classList.remove('show');
+$('#focusSetup').onclick=e=>{if(e.target.id==='focusSetup')$('#focusSetup').classList.remove('show');};
+$('#focusSetupGenerate').onclick=()=>{
+  if(!fsGroupsSet.size){alert('Choisis au moins un groupe musculaire à cibler.');return;}
+  draftFocusCfg={nom:($('#fsNom').value||'').trim(),groups:[...fsGroupsSet],joursParSemaine:$('#fsJours').value,niveau:$('#fsNiveau').value,objectif:$('#fsObjectif').value,limiteZones:[...fsLimiteSet],perineum:fsPerineum};
+  draftFocusProgram=generateFocusProgram(draftFocusCfg);
+  if(draftFocusProgram.days.some(d=>d.ex.filter(e=>!e.note).length===0)){
+    alert('Avec ces réglages, un jour se retrouve sans aucun exercice sûr (trop de limites pour les groupes choisis). Choisis un groupe musculaire de plus, ou décoche une limite.');
+    return;
+  }
+  $('#focusSetup').classList.remove('show');$('#focusReview').classList.add('show');renderFocusReview();
+};
+function renderFocusReview(){
+  let html='';
+  const jp=+draftFocusCfg.joursParSemaine||3;
+  html+=`<div class="insight ok">${jp} jour(s)/semaine, focus ${groupLabels(draftFocusCfg.groups)}.</div>`;
+  if(draftFocusCfg.limiteZones&&draftFocusCfg.limiteZones.length){
+    const zoneLabels=draftFocusCfg.limiteZones.map(k=>(LIMITE_INFO.find(l=>l.key===k)||{}).label||k).join(', ');
+    html+=`<div class="insight warn">Exercices à risque évités pour : ${zoneLabels}.</div>`;
+  }
+  if(draftFocusCfg.perineum)html+=`<div class="insight warn">${CORE_SAFE_NOTE}</div>`;
+  html+=daysReviewHtml(draftFocusProgram.days);
+  $('#focusReviewBody').innerHTML=html;
+  wireSwapButtons('focusReviewBody',draftFocusProgram.days,renderFocusReview);
+}
+$('#focusReviewCancel').onclick=()=>$('#focusReview').classList.remove('show');
+$('#focusReview').onclick=e=>{if(e.target.id==='focusReview')$('#focusReview').classList.remove('show');};
+$('#focusReviewValidate').onclick=()=>{
+  if(navigator.vibrate)navigator.vibrate(20);
+  focusProgram={days:draftFocusProgram.days,cfg:draftFocusCfg};
+  state.focus=freshFocusState(draftFocusProgram.days[0].id);
+  $('#focusReview').classList.remove('show');$('#sheet').classList.remove('show');
+  enterFocusMode();setView('train');
 };
 
 /* ---------- Suivi du poids ---------- */
@@ -1818,16 +1986,35 @@ function renderHome(){
   const el=$('#homeView');if(!el)return;
   const profName=(profiles.find(p=>p.id===activeId)||{}).name;
   const prenom=(onboarding&&onboarding.prenom)||profName||'Champion';
-  const day=DAYS.find(d=>d.id===state.day)||DAYS[0];
-  const dn=state.done[day.id+'__w'+state.week];
+  const mainSnap=state.mode==='main'?{day:state.day,week:state.week,done:state.done}:state.mainSlot;
+  const mday=program.days.find(d=>d.id===mainSnap.day)||program.days[0];
+  const mdn=mainSnap.done[mday.id+'__w'+mainSnap.week];
+  let focusCard;
+  if(focusProgram){
+    const focusSnap=state.mode==='focus'?{day:state.day,week:state.week,done:state.done}:state.focus;
+    const fday=focusProgram.days.find(d=>d.id===focusSnap.day)||focusProgram.days[0];
+    const fdn=focusSnap.done[fday.id+'__w'+focusSnap.week];
+    focusCard=`<button class="homebtn" id="homeFocus">
+        <span class="hic">💪</span>
+        <span class="ht"><b>${focusProgram.cfg.nom||'Programme focus'}</b><span>${fday.t} · ${fday.s}${fdn?' · déjà validée ✓':''}</span></span>
+        <span class="harrow">›</span>
+      </button>`;
+  }else{
+    focusCard=`<button class="homebtn" id="homeFocus">
+        <span class="hic">💪</span>
+        <span class="ht"><b>Programme focus</b><span>Renforcement ciblé — configurer</span></span>
+        <span class="harrow">›</span>
+      </button>`;
+  }
   el.innerHTML=`
     <div class="homehi"><h1>Salut ${prenom}</h1><p>Prêt·e pour la suite ?</p></div>
     <div class="homegrid">
       <button class="homebtn primary" id="homeResume">
         <span class="hic">▶</span>
-        <span class="ht"><b>Reprendre le programme</b><span>${day.t} · ${day.s}${dn?' · déjà validée ✓':''}</span></span>
+        <span class="ht"><b>Reprendre le programme</b><span>${mday.t} · ${mday.s}${mdn?' · déjà validée ✓':''}</span></span>
         <span class="harrow">›</span>
       </button>
+      ${focusCard}
       <button class="homebtn" id="homeAbs">
         <span class="hic">🔥</span>
         <span class="ht"><b>Abdos express</b><span>Choisis la durée</span></span>
@@ -1839,7 +2026,11 @@ function renderHome(){
         <span class="harrow">›</span>
       </button>
     </div>`;
-  $('#homeResume').onclick=()=>setView('train');
+  $('#homeResume').onclick=()=>{if(state.mode==='focus')exitFocusMode();setView('train');};
+  $('#homeFocus').onclick=()=>{
+    if(focusProgram){if(state.mode==='main')enterFocusMode();setView('train');}
+    else openFocusSetup();
+  };
   $('#homeAbs').onclick=()=>openAbsSession();
   $('#homeCardio').onclick=()=>openCardioLog();
 }
