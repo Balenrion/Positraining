@@ -734,14 +734,67 @@ const CARDIO_TYPES=[
 ];
 const CARDIO_DURATIONS=[10,15,20,30,45,60];
 const CARDIO_GOALS=[
- {key:'recup',label:'Récupération active',type:'marche',minutes:20,note:'Marche tranquille, plat ou tapis incliné à 0-2 %, 4-5 km/h : fait circuler le sang et aide la récupération sans ajouter de fatigue.'},
- {key:'raffermir',label:'Raffermir',type:'velo',minutes:30,note:'Vélo à allure modérée et régulière (résistance 4-5/10, ~70-80 tr/min) : bon compromis intensité/impact pour raffermir sans marteler les articulations.'},
- {key:'cellulite',label:'Perdre de la cellulite',type:'marche',minutes:45,note:'Marche rapide, tapis incliné à 8-12 %, 5,5-6,5 km/h, en endurance fondamentale (tu peux tenir une conversation) — la filière qui mobilise le plus les graisses de stockage.'},
- {key:'cardio',label:'Améliorer le cardio',type:'course',minutes:20,note:'Course à pied à rythme soutenu (7,5-9,5 km/h selon ton niveau), essoufflé·e mais capable de dire quelques mots, pour développer ta capacité cardiovasculaire.'},
- {key:'fractionne',label:'Fractionné / HIIT',type:'rameur',minutes:15,note:'Fractionné 30 s à fond / 90 s récupération, 8 à 10 répétitions (rameur, vélo ou course) : développe ta capacité à répéter des efforts intenses. Arrête si douleur ou vertige.'},
- {key:'libre',label:'Autre / libre',type:'autre',minutes:20,note:'Choisis librement le type et la durée ci-dessous.'}
+ {key:'recup',label:'Récupération active',type:'marche',minutes:20},
+ {key:'raffermir',label:'Raffermir',type:'velo',minutes:30},
+ {key:'cellulite',label:'Perdre de la cellulite',type:'marche',minutes:45},
+ {key:'cardio',label:'Améliorer le cardio',type:'course',minutes:20},
+ {key:'fractionne',label:'Fractionné / HIIT',type:'rameur',minutes:15},
+ {key:'libre',label:'Autre / libre',type:'autre',minutes:20}
 ];
 const CARDIO_FEELINGS=[{key:'facile',label:'🙂 Facile'},{key:'modere',label:'😐 Modéré'},{key:'difficile',label:'😓 Difficile'}];
+/* Recommandations vitesse/inclinaison/résistance par machine ET par objectif — demande utilisateur : le repère
+   concret doit correspondre à la machine réellement choisie, pas seulement à l'objectif (avant, changer de
+   machine dans l'écran de config ne changeait pas le texte de repère, resté celui de la machine par défaut
+   de l'objectif). */
+const CARDIO_REC={
+ marche:{
+   recup:'Marche tranquille, plat ou tapis incliné à 0-2 %, 4-5 km/h : fait circuler le sang et aide la récupération sans ajouter de fatigue.',
+   raffermir:'Marche active, tapis incliné à 4-6 %, 5-5,5 km/h : rythme soutenu mais respirable, bon compromis intensité/impact.',
+   cellulite:'Marche rapide, tapis incliné à 8-12 %, 5,5-6,5 km/h, en endurance fondamentale (tu peux tenir une conversation) — la filière qui mobilise le plus les graisses de stockage.',
+   cardio:'Marche très rapide ou marche athlétique, tapis incliné à 10-15 %, 6-6,5 km/h, essoufflé·e mais capable de dire quelques mots.',
+   fractionne:'Alterne 30 s tapis incliné à 15 %, 6,5 km/h / 90 s récupération à plat, 5 km/h, 8 à 10 répétitions.'
+ },
+ course:{
+   recup:'Footing très lent, 6-7 km/h, aisance respiratoire totale — tu devrais pouvoir chanter.',
+   raffermir:'Trot régulier, 8-9 km/h, endurance fondamentale.',
+   cellulite:'Endurance fondamentale, 7,5-8,5 km/h, tu peux tenir une conversation — la filière qui mobilise le plus les graisses de stockage.',
+   cardio:'Course à pied à rythme soutenu (9-11 km/h selon ton niveau), essoufflé·e mais capable de dire quelques mots, pour développer ta capacité cardiovasculaire.',
+   fractionne:'30 s à 13-15 km/h (ou effort maximal) / 90 s récupération à 6-7 km/h, 8 à 10 répétitions.'
+ },
+ velo:{
+   recup:'Résistance très légère (2-3/10), ~60-70 tr/min, sensation très facile.',
+   raffermir:'Résistance 4-5/10, ~70-80 tr/min, rythme régulier : bon compromis intensité/impact pour raffermir sans marteler les articulations.',
+   cellulite:'Résistance 5-6/10, ~75-85 tr/min, en endurance (tu peux tenir une conversation).',
+   cardio:'Résistance 6-7/10, ~85-95 tr/min, essoufflé·e.',
+   fractionne:'30 s résistance 8-9/10 à fond / 90 s résistance 2/10 en récupération, 8 à 10 répétitions.'
+ },
+ rameur:{
+   recup:'Allure très facile, ~16-18 coups/min, résistance (damper) 3-4/10.',
+   raffermir:'Allure modérée, ~20-22 coups/min, résistance 4-5/10.',
+   cellulite:'Endurance, ~22-24 coups/min, résistance 4-5/10, split constant, respiration contrôlée.',
+   cardio:'Rythme soutenu, ~26-28 coups/min, résistance 5-6/10, essoufflé·e.',
+   fractionne:'Fractionné 30 s à fond (30+ coups/min) / 90 s récupération lente, résistance 5/10, 8 à 10 répétitions. Arrête si douleur ou vertige.'
+ },
+ elliptique:{
+   recup:'Résistance très légère (2-3/10), foulée ample et fluide, sensation très facile.',
+   raffermir:'Résistance 4-5/10, cadence régulière ~120-130 pas/min.',
+   cellulite:'Résistance 5-6/10, ~130 pas/min, en endurance (tu peux tenir une conversation).',
+   cardio:'Résistance 6-7/10, ~140 pas/min, essoufflé·e.',
+   fractionne:'30 s résistance 8/10 à fond / 90 s résistance 3/10 en récupération, 8 à 10 répétitions.'
+ },
+ autre:{
+   recup:'Effort très facile, tu devrais pouvoir tenir une conversation sans effort.',
+   raffermir:'Effort modéré et régulier, à un rythme que tu peux tenir sur toute la durée.',
+   cellulite:'Endurance fondamentale : effort modéré, tu peux tenir une conversation.',
+   cardio:'Effort soutenu : tu es essoufflé·e mais capable de dire quelques mots.',
+   fractionne:'Alterne 30 s d’effort maximal / 90 s de récupération, 8 à 10 répétitions.'
+ }
+};
+function cardioRecommendation(typeKey,goalKey){
+  if(goalKey==='libre')return 'Choisis librement le type, la durée et l’intensité qui te conviennent.';
+  const byType=CARDIO_REC[typeKey]||CARDIO_REC.autre;
+  return byType[goalKey]||CARDIO_REC.autre[goalKey];
+}
 
 function applyLimites(days,limiteZones){
   const changes=[];
@@ -1420,7 +1473,7 @@ function trimDayToTime(exList,capMinutes){
 }
 /* Carte d'exercice réutilisable : séance normale ET abdos express (même logique de séries/repos/ressenti). */
 function renderExerciseCard(container,e,opts){
-  const{eid,nm,sw,week,idx,allowSwap,allowSkip,allowRemove,onSwap,onSkip,onRemove}=opts;
+  const{eid,nm,sw,week,idx,allowSwap,allowSkip,allowRemove,onSwap,onSkip,onRemove,onChange}=opts;
   const key=logKey(eid,week);
   if(!state.logs[key])state.logs[key]=[];
   const rows=state.logs[key];
@@ -1485,9 +1538,9 @@ function renderExerciseCard(container,e,opts){
   card.querySelectorAll('.setrow').forEach(row=>{
     const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,week);
     const wIn=row.querySelector('.w');
-    if(wIn)wIn.oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId,e.bw);};
-    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId,e.bw);};
-    row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}};
+    if(wIn)wIn.oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId,e.bw);if(onChange)onChange();};
+    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId,e.bw);if(onChange)onChange();};
+    row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}if(onChange)onChange();};
   });
   container.appendChild(card);
   return card;
@@ -1554,7 +1607,8 @@ function renderDay(){
         const dayIdx=DAYS.findIndex(d=>d.id===day.id);
         DAYS[dayIdx].ex=DAYS[dayIdx].ex.filter(x=>x.id!==e.id);
         persistActiveBundle();flush();renderDay();
-      }
+      },
+      onChange:refreshFinishBar
     });
   });
 
@@ -1562,10 +1616,23 @@ function renderDay(){
   addBtn.onclick=()=>openAddEx(day.id);
   app.appendChild(addBtn);
 
-  const prog=sessionProgress(visible),dk=day.id+'__w'+state.week,dn=state.done[dk];
-  const full=prog.total>0&&prog.filled===prog.total;
+  const dk=day.id+'__w'+state.week;
   const bar=document.createElement('div');bar.className='finish';
-  bar.innerHTML=`<button class="finishbtn${dn?' complete':(full?' full':'')}"><span class="fmain">${dn?'✓ Séance validée'+(dn.length>6?' · '+fmtDate(dn):''):'Terminer la séance'}</span><span class="fprog">${prog.filled}/${prog.total} exercices remplis${dn?' · touche pour rouvrir':''}</span></button>`;
+  bar.innerHTML=`<button class="finishbtn"><span class="fmain"></span><span class="fprog"></span></button>`;
+  // Recalculé à chaque changement (case cochée, poids/reps saisis) plutôt qu'une seule fois au rendu de la
+  // séance : sessionProgress relit state.logs à chaque appel, donc le seul fait de ne pas rappeler cette
+  // fonction après chaque saisie faisait tourner ce compteur en boucle sur l'instantané pris à l'ouverture
+  // de la séance — d'où un total qui semblait « faux » dès qu'on ne remplissait pas les exercices dans
+  // l'ordre d'affichage (le premier remplissage qui aurait dû déclencher un recalcul n'en déclenchait aucun).
+  function refreshFinishBar(){
+    const prog=sessionProgress(visible),dn=state.done[dk];
+    const full=prog.total>0&&prog.filled===prog.total;
+    const btn=bar.querySelector('.finishbtn');
+    btn.className='finishbtn'+(dn?' complete':(full?' full':''));
+    btn.querySelector('.fmain').textContent=dn?'✓ Séance validée'+(dn.length>6?' · '+fmtDate(dn):''):'Terminer la séance';
+    btn.querySelector('.fprog').textContent=`${prog.filled}/${prog.total} exercices remplis${dn?' · touche pour rouvrir':''}`;
+  }
+  refreshFinishBar();
   bar.querySelector('button').onclick=()=>{
     if(state.done[dk]){delete state.done[dk];}
     else{state.done[dk]=today();celebrate(`${day.t} · ${day.s}`);}
@@ -2348,7 +2415,7 @@ function renderCardioPlanStep(){
   $('#cardioTitle').textContent='Séance cardio · '+g.label;
   $('#cardioMain').textContent="C'est parti";
   $('#cardioBody').innerHTML=`
-    <div class="qxnote">${g.note}</div>
+    <div class="qxnote" id="cardioNote">${cardioRecommendation(cardioFlow.type,cardioFlow.goal)}</div>
     <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Type de séance</div>
     <div id="cardioTypeChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     <div class="d" style="font-size:13px;color:var(--muted);margin:16px 0 8px">Durée</div>
@@ -2358,7 +2425,11 @@ function renderCardioPlanStep(){
 }
 function renderCardioTypeChips(){
   $('#cardioTypeChips').innerHTML=CARDIO_TYPES.map(t=>`<button type="button" class="day${cardioFlow.type===t.key?' on':''}" data-k="${t.key}" style="padding:6px 11px"><span class="t">${t.label}</span></button>`).join('');
-  $('#cardioTypeChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{cardioFlow.type=b.dataset.k;renderCardioTypeChips();});
+  $('#cardioTypeChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    cardioFlow.type=b.dataset.k;
+    renderCardioTypeChips();
+    const note=$('#cardioNote');if(note)note.textContent=cardioRecommendation(cardioFlow.type,cardioFlow.goal);
+  });
 }
 function renderCardioDurChips(){
   $('#cardioDurChips').innerHTML=CARDIO_DURATIONS.map(m=>`<button type="button" class="day${cardioFlow.minutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
