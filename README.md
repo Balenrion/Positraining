@@ -97,3 +97,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Programme focus : possibilité de copier le programme d'un autre profil du foyer pour s'entraîner ensemble
 - [x] Programme focus : partage par fichier entre deux téléphones différents (pas seulement même appareil)
 - [x] Copie séance : importer/partager une seule séance (pas tout un programme) depuis l'Accueil, entre deux téléphones
+- [x] Dead bug ajouté aux exercices abdos disponibles dans le programme classique et le programme focus

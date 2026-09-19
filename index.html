@@ -629,6 +629,11 @@ let DAYS=DAYS_ORIGINAL,GOAL=92,NUTRI={kcal:3100,protein:175,fat:80,carbs:420};
 /* ---------- Pool d'exercices (pour la génération de programme) ---------- */
 const EXO_POOL={};
 DAYS_ORIGINAL.forEach(d=>d.ex.forEach(e=>{if(!e.note)EXO_POOL[e.n]=e;}));
+// « Dead bug » n'appartient à aucun jour de DAYS_ORIGINAL (jusqu'ici réservé à l'abdos express périnée-safe,
+// CORE_SAFE plus bas) — ajouté ici à la main pour devenir un vrai choix du groupe « Abdos / gainage » dans
+// le générateur (programme classique et programme focus), retour utilisateur : « il manque les dead bugs
+// en exercice abdos ».
+EXO_POOL['Dead bug']={n:'Dead bug',tag:'core',sets:3,reps:'10 / côté',rest:30,bw:true,cue:'Bas du dos plaqué au sol, bras et jambe opposés descendent lentement, respiration fluide.'};
 const EXO_GROUP={
  quad:['Presse à cuisses','Fentes marchées haltères','Leg extension'],
  hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl','Hip thrust'],
@@ -638,7 +643,7 @@ const EXO_GROUP={
  shoulder:['Développé épaules haltères','Développé épaules machine','Élévations latérales','Élévations latérales poulie','Face pull'],
  arms:['Curl haltères','Curl marteau','Extension triceps poulie corde','Extension triceps au-dessus de la tête','Curl barre EZ / haltères'],
  glutes:['Abduction machine','Mollets debout'],
- core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Circuit core']
+ core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core']
 };
 function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
 const EXO_GROUP_LABELS={quad:'Quadriceps',hinge:'Ischios / fessiers',push:'Pectoraux',pushIso:'Pectoraux (isolation)',pull:'Dos',shoulder:'Épaules',arms:'Bras',glutes:'Fessiers / mollets',core:'Abdos / gainage',autre:'Autre'};
@@ -766,11 +771,11 @@ function applyLimites(days,limiteZones){
   return changes;
 }
 const PERINEUM_UNSAFE={
- 'Crunch à la poulie':'Gainage latéral',
+ 'Crunch à la poulie':'Dead bug',
  'Relevé de jambes suspendu':'Pallof press poulie',
  'Woodchopper poulie':'Pallof press poulie',
  'Rotations obliques poulie':'Gainage latéral',
- 'Circuit core':'Gainage latéral'
+ 'Circuit core':'Dead bug'
 };
 function applyPerineum(days){
   const changes=[];
@@ -1118,6 +1123,7 @@ const HOWTO={
  "Curl haltères":{m:"Biceps",s:["Debout, coudes fixes le long du corps, paumes vers l'avant.","Fléchis en montant les haltères, sans balancer.","Descends lentement. Reste léger si le coude tire."]},
  "Pallof press poulie":{m:"Obliques, gainage profond",s:["Poulie à hauteur de poitrine, de profil, mains jointes sur la poignée.","Tends les bras devant toi en résistant à la rotation.","Ramène contre la poitrine sans te laisser tourner (chaque côté)."]},
  "Gainage latéral":{m:"Obliques, gainage",s:["Sur l'avant-bras, coude sous l'épaule, corps aligné.","Hanches hautes et décollées, ne t'affaisse pas.","Tiens la durée en respirant (chaque côté)."]},
+ "Dead bug":{m:"Transverse, gainage profond",s:["Allongé sur le dos, bras tendus vers le plafond, hanches et genoux fléchis à 90°.","Descends lentement un bras vers l'arrière et la jambe opposée vers l'avant, sans décoller le bas du dos du sol.","Reviens à la position de départ et alterne, en respirant normalement (chaque côté)."]},
  "Soulevé de terre roumain haltères":{m:"Ischios, fessiers, dos",s:["Debout, haltères devant les cuisses, genoux à peine fléchis.","Pousse les fesses vers l'arrière (charnière de hanche), dos neutre.","Descends jusqu'à l'étirement des ischios, remonte en serrant les fessiers (sangles)."]},
  "Leg curl":{m:"Ischios",s:["Réglage : axe de rotation aligné avec les genoux.","Fléchis en amenant les talons vers les fessiers, pause en contraction.","Reviens lentement, ne décolle pas les hanches."]},
  "Abduction machine":{m:"Fessier moyen",s:["Assis, dos calé, léger buste penché en avant.","Écarte les cuisses jusqu'à l'ouverture complète, pause 1 s.","Reviens lentement en gardant la tension."]},
