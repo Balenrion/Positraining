@@ -496,6 +496,8 @@
       <option value="maintien">Objectif : maintien / forme générale</option>
       <option value="masse">Objectif : prise de masse</option>
     </select>
+    <div class="d" style="margin-top:10px"><b>Durée visée par séance</b></div>
+    <div class="qxdur" id="fsDurChips"></div>
     <div class="d" style="margin-top:10px"><b>Limites / douleurs</b> — les exercices à risque seront retirés ou remplacés (optionnel)</div>
     <div id="fsLimiteZones" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px">
@@ -900,11 +902,33 @@ function pickExoAvoiding(group,idx,avoid){
   const n=names[idx%names.length];
   return EXO_POOL[n];
 }
-function templateFocus(groups,joursParSemaine,avoid){
+function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
   avoid=avoid||new Set();
+  const targetSec=(targetMinutes||45)*60;
   const days=[];
   for(let i=0;i<joursParSemaine;i++){
-    const ex=groups.map((g,gi)=>{const base=pickExoAvoiding(g,i+gi,avoid);return base?Object.assign({},base):null;}).filter(Boolean);
+    // Construit le jour en cyclant les groupes choisis (1 exercice de plus par groupe à chaque tour)
+    // jusqu'à atteindre la durée visée, plutôt qu'un seul exercice fixe par groupe — retour utilisateur :
+    // « ta séance ne fait que 2 exercices, trop léger, il faut ~45 min quitte à demander un jour de
+    // repos derrière ». Un compteur par groupe (pas un décalage commun +groups.length) : sinon, dès que
+    // la taille d'un pool divise groups.length (fréquent avec des pools de 2-4 exercices), l'index modulo
+    // ne change jamais d'un tour à l'autre et ce groupe ne contribue plus jamais qu'un seul exercice —
+    // bug trouvé en stress-testant (les séances plafonnaient à 3-4 exercices quel que soit la durée visée).
+    const ex=[];
+    const counters=groups.map((g,gi)=>i+gi);
+    let total=0;
+    while(total<targetSec){
+      let added=false;
+      groups.forEach((g,gi)=>{
+        if(total>=targetSec)return;
+        const base=pickExoAvoiding(g,counters[gi],avoid);
+        counters[gi]++;
+        if(!base||ex.some(e=>e.n===base.n))return;
+        const obj=Object.assign({},base);
+        ex.push(obj);total+=exDuration(obj);added=true;
+      });
+      if(!added)break; // tous les groupes sont soit exclus, soit épuisés (plus d'exercice inédit à ajouter)
+    }
     days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme focus — Jour '+(i+1),role:groupLabels(groups),ex});
   }
   return days;
@@ -912,7 +936,7 @@ function templateFocus(groups,joursParSemaine,avoid){
 function generateFocusProgram(cfg){
   // Les exercices à risque (limites/périnée) sont écartés du pool AVANT le choix des exercices, plutôt
   // que retirés après coup comme dans le programme classique (applyLimites/applyPerineum) : une séance
-  // focus n'a que 3-5 exercices, donc le garde-fou de plancher (30 min) d'applyLimites bloquerait souvent
+  // focus n'a que quelques exercices, donc le garde-fou de plancher (30 min) d'applyLimites bloquerait souvent
   // le retrait et laisserait l'exercice à risque en place (trouvé en stress-testant, voir CLAUDE.md).
   const avoid=new Set();
   (cfg.limiteZones||[]).forEach(key=>{
@@ -920,7 +944,12 @@ function generateFocusProgram(cfg){
     if(info)info.exclude.forEach(n=>avoid.add(n));
   });
   if(cfg.perineum)Object.keys(PERINEUM_UNSAFE).forEach(n=>avoid.add(n));
-  const days=templateFocus(cfg.groups,+cfg.joursParSemaine||3,avoid);
+  // La « durée visée » représente la séance complète (charges + cardio), pas seulement la partie charges :
+  // on retire le cardio qu'applyObjectif va ajouter juste après, pour que le total s'approche de la cible.
+  const CARDIO_MIN_BY_OBJECTIF={perte:15,recomp:10,maintien:8,masse:0};
+  const cardioMin=CARDIO_MIN_BY_OBJECTIF[cfg.objectif]||0;
+  const liftTarget=Math.max(10,(+cfg.targetMinutes||45)-cardioMin);
+  const days=templateFocus(cfg.groups,+cfg.joursParSemaine||3,avoid,liftTarget);
   applyObjectif(days,cfg.objectif);
   applyNiveau(days,cfg.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
@@ -1454,10 +1483,16 @@ function renderDay(){
   const app=$('#app');app.innerHTML='';
   const hd=document.createElement('div');hd.className='dayhead';
   const capHtml=TIMECAP_OPTIONS.map(m=>`<button class="day${cap===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m===0?'Illimité':m+' min'}</span></button>`).join('');
-  const focusTag=state.mode==='focus'?`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button>`:'';
+  const focusTag=state.mode==='focus'?`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button> <button class="skipbtn" id="reconfigureFocusBtn" style="padding:0;margin-bottom:8px">⚙ Reconfigurer</button>`:'';
   hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>${focusTag}<div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
   app.appendChild(hd);
-  if(state.mode==='focus'){const efb=hd.querySelector('#exitFocusBtn');if(efb)efb.onclick=()=>exitFocusMode();}
+  if(state.mode==='focus'){
+    const efb=hd.querySelector('#exitFocusBtn');if(efb)efb.onclick=()=>exitFocusMode();
+    const rfb=hd.querySelector('#reconfigureFocusBtn');if(rfb)rfb.onclick=()=>{
+      if(!confirm('Reconfigurer ce programme ? Les séries déjà enregistrées pour ce programme seront perdues.'))return;
+      openFocusSetup(focusProgram.cfg);
+    };
+  }
   hd.querySelectorAll('.day').forEach(b=>b.onclick=()=>{state.timeCap=+b.dataset.m;save();renderDay();});
   if(visible.length<day.ex.length){
     const hidden=day.ex.length-visible.length;
@@ -1823,14 +1858,21 @@ $('#deleteProfileBtn').onclick=async()=>{
 };
 
 /* ---------- Programme focus : configuration ---------- */
-let draftFocusCfg=null,draftFocusProgram=null,fsGroupsSet=new Set(),fsLimiteSet=new Set(),fsPerineum=false;
-function openFocusSetup(){
-  $('#fsNom').value='';
-  $('#fsJours').value='3';$('#fsNiveau').value='intermediaire';$('#fsObjectif').value='recomp';
-  fsGroupsSet=new Set();fsLimiteSet=new Set();fsPerineum=false;
+const FOCUS_DURATIONS=[30,45,60];
+let draftFocusCfg=null,draftFocusProgram=null,fsGroupsSet=new Set(),fsLimiteSet=new Set(),fsPerineum=false,fsDuration=45;
+function renderFsDurChips(){
+  $('#fsDurChips').innerHTML=FOCUS_DURATIONS.map(m=>`<button type="button" class="day${fsDuration===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
+  $('#fsDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{fsDuration=+b.dataset.m;renderFsDurChips();});
+}
+function openFocusSetup(prefill){
+  const cfg=prefill||{};
+  $('#fsNom').value=cfg.nom||'';
+  $('#fsJours').value=cfg.joursParSemaine||'3';$('#fsNiveau').value=cfg.niveau||'intermediaire';$('#fsObjectif').value=cfg.objectif||'recomp';
+  fsGroupsSet=new Set(cfg.groups||[]);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||45;
   renderChipSet('fsGroups',MUSCLE_GROUPS,fsGroupsSet);
   renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
-  $('#fsPerineumSw').classList.remove('on');
+  renderFsDurChips();
+  $('#fsPerineumSw').classList.toggle('on',fsPerineum);
   $('#sheet').classList.remove('show');$('#focusSetup').classList.add('show');
 }
 $('#fsPerineumSw').onclick=()=>{fsPerineum=!fsPerineum;$('#fsPerineumSw').classList.toggle('on',fsPerineum);};
@@ -1838,7 +1880,7 @@ $('#focusSetupCancel').onclick=()=>$('#focusSetup').classList.remove('show');
 $('#focusSetup').onclick=e=>{if(e.target.id==='focusSetup')$('#focusSetup').classList.remove('show');};
 $('#focusSetupGenerate').onclick=()=>{
   if(!fsGroupsSet.size){alert('Choisis au moins un groupe musculaire à cibler.');return;}
-  draftFocusCfg={nom:($('#fsNom').value||'').trim(),groups:[...fsGroupsSet],joursParSemaine:$('#fsJours').value,niveau:$('#fsNiveau').value,objectif:$('#fsObjectif').value,limiteZones:[...fsLimiteSet],perineum:fsPerineum};
+  draftFocusCfg={nom:($('#fsNom').value||'').trim(),groups:[...fsGroupsSet],joursParSemaine:$('#fsJours').value,niveau:$('#fsNiveau').value,objectif:$('#fsObjectif').value,limiteZones:[...fsLimiteSet],perineum:fsPerineum,targetMinutes:fsDuration};
   draftFocusProgram=generateFocusProgram(draftFocusCfg);
   if(draftFocusProgram.days.some(d=>d.ex.filter(e=>!e.note).length===0)){
     alert('Avec ces réglages, un jour se retrouve sans aucun exercice sûr (trop de limites pour les groupes choisis). Choisis un groupe musculaire de plus, ou décoche une limite.');
@@ -1864,9 +1906,19 @@ $('#focusReview').onclick=e=>{if(e.target.id==='focusReview')$('#focusReview').c
 $('#focusReviewValidate').onclick=()=>{
   if(navigator.vibrate)navigator.vibrate(20);
   focusProgram={days:draftFocusProgram.days,cfg:draftFocusCfg};
-  state.focus=freshFocusState(draftFocusProgram.days[0].id);
+  const freshSlot=freshFocusState(draftFocusProgram.days[0].id);
   $('#focusReview').classList.remove('show');$('#sheet').classList.remove('show');
-  enterFocusMode();setView('train');
+  if(state.mode==='focus'){
+    // Reconfiguration en cours de séance focus (déjà branché sur les champs racine) : on remplace
+    // directement, pas besoin d'entrer/sortir du mode puisqu'on y est déjà.
+    applySlot(freshSlot);
+    DAYS=focusProgram.days;
+    flush();renderAll();renderHome();
+  }else{
+    state.focus=freshSlot;
+    enterFocusMode();
+  }
+  setView('train');
 };
 
 /* ---------- Suivi du poids ---------- */
