@@ -901,7 +901,14 @@ function applyNiveau(days,niveau){
   days.forEach(d=>d.ex.forEach(e=>{
     if(e.note)return;
     e.sets=(e.sets||3)+bump;
-    if(niveau==='debutant')e.reps='10-15';
+    // Retour utilisateur : « je vois encore le bug où c'est des reps et non du temps sur les abdos » — pour
+    // le niveau débutant, cette ligne écrasait reps='10-15' sur TOUS les exercices sans distinction, y compris
+    // les maintiens chronométrés (ex. Gainage latéral, reps:'30-45 s /côté') et le format spécial « circuit »
+    // (Circuit core) : holdSeconds() détectait alors reps=null (plus de « s »), donc l'UI basculait sur
+    // l'unité « reps » et le placeholder « 10-15 » au lieu du temps de maintien attendu — un vrai temps de
+    // planche transformé en un nombre de répétitions qui n'a pas de sens. On ne réécrit plus reps que pour
+    // les exercices réellement comptés en répétitions.
+    if(niveau==='debutant'&&!holdSeconds(e.reps)&&e.reps!=='circuit')e.reps='10-15';
     if(e.rest)e.rest=Math.round((e.rest*restMul)/5)*5;
   }));
   return days;
@@ -1089,6 +1096,21 @@ function programForMode(mode){
   if(mode==='copy')return copiedSession;
   return program;
 }
+// Retour utilisateur : « je vois encore le bug où c'est des reps et non du temps sur les abdos » — corrige
+// le bug de génération (voir applyNiveau), mais un programme déjà généré en niveau débutant AVANT ce correctif
+// a déjà son reps figé à '10-15' en base (dans le bundle sauvegardé). Répare ces séances existantes au
+// chargement, en ciblant nommément les 2 seuls exercices concernés (les seuls du pool avec un format
+// spécial) — jamais sur un ajout manuel (`e.custom`), pour ne pas écraser une valeur volontairement choisie.
+function repairHoldReps(prog){
+  if(!prog||!prog.days)return false;
+  let changed=false;
+  prog.days.forEach(d=>d.ex.forEach(e=>{
+    if(e.custom||e.note)return;
+    if(e.n==='Gainage latéral'&&!holdSeconds(e.reps)){e.reps=EXO_POOL['Gainage latéral'].reps;changed=true;}
+    else if(e.n==='Circuit core'&&e.reps!=='circuit'){e.reps='circuit';changed=true;}
+  }));
+  return changed;
+}
 function applyBundle(b){
   onboarding=b.onboarding||null;
   program=b.program||freshProgramDefault();
@@ -1099,7 +1121,9 @@ function applyBundle(b){
   if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
   if(!state.mode)state.mode='main';
   if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
+  const repaired=[repairHoldReps(program),repairHoldReps(focusProgram),repairHoldReps(copiedSession)].some(Boolean);
   DAYS=programForMode(state.mode).days;
+  if(repaired)persistActiveBundle();
 }
 function persistActiveBundle(){
   if(!activeId)return;

@@ -104,3 +104,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Le cardio léger ajouté en fin de séance (programme classique et focus) donne des repères concrets (vitesse, résistance, coups/min), pas juste un nom de machine
 - [x] Le cardio léger de fin de séance peut être coché comme fait et compte dans la progression de la séance
 - [x] Programme focus : Hip thrust disponible dans le groupe « Fessiers / mollets », et machine à adduction ajoutée en complément de l'abduction
+- [x] Correction d'un bug où le niveau débutant affichait des répétitions au lieu d'un temps de maintien sur le gainage (et cassait l'affichage du circuit abdos) — les séances déjà générées sont réparées automatiquement
