@@ -475,7 +475,7 @@
 
 <div class="sheet" id="focusSetup">
   <div class="card" style="max-height:85vh;overflow-y:auto">
-    <h3>Programme focus</h3>
+    <h3>Programme Focus Diane</h3>
     <div id="fsCopySection" style="display:none"></div>
     <input type="file" id="fsImportFile" accept="application/json,.json" style="display:none">
     <button type="button" class="close" id="fsImportBtn" style="margin-bottom:14px">📥 Importer un programme reçu (fichier)</button>
@@ -1021,7 +1021,7 @@ function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
       total+=exDuration(t)-before;
       stuck=0;
     }
-    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme focus — Jour '+(i+1),role:groupLabels(groups),ex});
+    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme Focus Diane — Jour '+(i+1),role:groupLabels(groups),ex});
   }
   return days;
 }
@@ -2079,15 +2079,25 @@ async function listCopyableFocusPrograms(){
 // déficit musculaire localisé au bas du corps, pas une question d'esthétique) : « mettre à jour le programme
 // focus avec 3 séances par semaine minimum ». Objectif/niveau par défaut (recomp/intermédiaire) collaient
 // déjà à ce profil ; ce qui manquait, c'est un pré-remplissage des groupes ciblés et un plancher de jours —
-// appliqués uniquement à une CONFIGURATION FRAÎCHE (`prefill` vide, ex. premier accès à « Programme focus »
-// depuis l'Accueil) : une reconfiguration d'un programme focus déjà personnalisé (`prefill=focusProgram.cfg`)
-// garde toujours les groupes/jours réellement choisis, jamais écrasés par ce défaut.
-const FOCUS_DEFAULT_GROUPS=['quad','hinge','glutes'];
+// appliqués uniquement à une CONFIGURATION FRAÎCHE (`prefill` vide, ex. premier accès à « Programme Focus
+// Diane » depuis l'Accueil) : une reconfiguration d'un programme focus déjà personnalisé
+// (`prefill=focusProgram.cfg`) garde toujours les groupes/jours réellement choisis, jamais écrasés par ce
+// défaut. Complété ensuite (retour utilisateur : « ChatGPT préconisait malgré tout de la recomposition pour
+// le haut du corps aussi ») avec Pectoraux + Dos (« push »/« pull », les deux mouvements composés du haut du
+// corps), sans Épaules/Bras/Abdos pour limiter la casse sur la durée : chaque groupe ajoute jusqu'à
+// `FOCUS_MAX_PER_GROUP` exercices/jour, et le calcul de séance ne PLAFONNE jamais la durée (il ne fait
+// qu'ajouter des séries pour ATTEINDRE la cible, jamais retirer un exercice pour la respecter) — passer de 3
+// à 5 groupes fait donc grimper une séance générée d'environ 45-55 min à ~75-90 min hors cardio (mesuré par
+// stress-test), largement au-delà de la case « 45 min » ; la durée par défaut d'une config fraîche passe
+// donc de 45 à 60 min (le max proposé par `FOCUS_DURATIONS`) pour rester cohérente avec ce que 5 groupes
+// produisent réellement — la séance reste malgré tout plus longue que 60 min dans les faits, à ajuster à la
+// baisse (retirer un groupe, ou repasser à 3 via reconfiguration) si c'est trop pour elle au quotidien.
+const FOCUS_DEFAULT_GROUPS=['quad','hinge','glutes','push','pull'];
 async function openFocusSetup(prefill){
   const cfg=prefill||{};
   $('#fsNom').value=cfg.nom||'';
   $('#fsJours').value=cfg.joursParSemaine||'3';$('#fsNiveau').value=cfg.niveau||'intermediaire';$('#fsObjectif').value=cfg.objectif||'recomp';
-  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||45;
+  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||(prefill?45:60);
   renderChipSet('fsGroups',MUSCLE_GROUPS,fsGroupsSet);
   renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
   renderFsDurChips();
@@ -2101,7 +2111,7 @@ async function openFocusSetup(prefill){
   if(copyable.length){
     copySec.style.display='';
     copySec.innerHTML=`<div class="d" style="margin-bottom:6px"><b>Suivre le même programme qu'un autre profil</b></div>`
-      +copyable.map(c=>`<button type="button" class="close" data-copy="${c.profileId}" style="margin-bottom:8px">📋 Copier « ${c.cfg.nom||'Programme focus'} » de ${c.profileName}</button>`).join('')
+      +copyable.map(c=>`<button type="button" class="close" data-copy="${c.profileId}" style="margin-bottom:8px">📋 Copier « ${c.cfg.nom||'Programme Focus Diane'} » de ${c.profileName}</button>`).join('')
       +`<div class="d" style="margin:10px 0;text-align:center">— ou crée le tien —</div>`;
     copySec.querySelectorAll('button').forEach(b=>b.onclick=()=>{
       const entry=copyable.find(c=>c.profileId===b.dataset.copy);
@@ -2313,13 +2323,13 @@ function renderHome(){
     const fdn=focusSnap.done[fday.id+'__w'+focusSnap.week];
     focusCard=`<button class="homebtn" id="homeFocus">
         <span class="hic">💪</span>
-        <span class="ht"><b>${focusProgram.cfg.nom||'Programme focus'}</b><span>${fday.t} · ${fday.s}${fdn?' · déjà validée ✓':''}</span></span>
+        <span class="ht"><b>${focusProgram.cfg.nom||'Programme Focus Diane'}</b><span>${fday.t} · ${fday.s}${fdn?' · déjà validée ✓':''}</span></span>
         <span class="harrow">›</span>
       </button>`;
   }else{
     focusCard=`<button class="homebtn" id="homeFocus">
         <span class="hic">💪</span>
-        <span class="ht"><b>Programme focus</b><span>Renforcement ciblé — configurer</span></span>
+        <span class="ht"><b>Programme Focus Diane</b><span>Renforcement ciblé — configurer</span></span>
         <span class="harrow">›</span>
       </button>`;
   }
