@@ -105,3 +105,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Le cardio léger de fin de séance peut être coché comme fait et compte dans la progression de la séance
 - [x] Programme focus : Hip thrust disponible dans le groupe « Fessiers / mollets », et machine à adduction ajoutée en complément de l'abduction
 - [x] Correction d'un bug où le niveau débutant affichait des répétitions au lieu d'un temps de maintien sur le gainage (et cassait l'affichage du circuit abdos) — les séances déjà générées sont réparées automatiquement
+- [x] Programme focus : minimum relevé à 3 jours/semaine, et groupes jambes (quadriceps/ischios-fessiers/fessiers-mollets) pré-sélectionnés par défaut sur une configuration vierge

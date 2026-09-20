@@ -483,7 +483,6 @@
     <div class="d" style="margin-top:10px"><b>Groupes musculaires ciblés</b> — au moins un</div>
     <div id="fsGroups" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <select id="fsJours" class="acctin" style="margin-top:10px">
-      <option value="2">2 jours / semaine</option>
       <option value="3" selected>3 jours / semaine</option>
       <option value="4">4 jours / semaine</option>
       <option value="5">5 jours / semaine</option>
@@ -2075,11 +2074,20 @@ async function listCopyableFocusPrograms(){
   }
   return out;
 }
+// Retour utilisateur, à partir d'une analyse de composition corporelle (masse musculaire des DEUX jambes
+// classée « Basse » alors que les bras et la répartition de graisse sont partout « Normal » — donc un vrai
+// déficit musculaire localisé au bas du corps, pas une question d'esthétique) : « mettre à jour le programme
+// focus avec 3 séances par semaine minimum ». Objectif/niveau par défaut (recomp/intermédiaire) collaient
+// déjà à ce profil ; ce qui manquait, c'est un pré-remplissage des groupes ciblés et un plancher de jours —
+// appliqués uniquement à une CONFIGURATION FRAÎCHE (`prefill` vide, ex. premier accès à « Programme focus »
+// depuis l'Accueil) : une reconfiguration d'un programme focus déjà personnalisé (`prefill=focusProgram.cfg`)
+// garde toujours les groupes/jours réellement choisis, jamais écrasés par ce défaut.
+const FOCUS_DEFAULT_GROUPS=['quad','hinge','glutes'];
 async function openFocusSetup(prefill){
   const cfg=prefill||{};
   $('#fsNom').value=cfg.nom||'';
   $('#fsJours').value=cfg.joursParSemaine||'3';$('#fsNiveau').value=cfg.niveau||'intermediaire';$('#fsObjectif').value=cfg.objectif||'recomp';
-  fsGroupsSet=new Set(cfg.groups||[]);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||45;
+  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||45;
   renderChipSet('fsGroups',MUSCLE_GROUPS,fsGroupsSet);
   renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
   renderFsDurChips();
