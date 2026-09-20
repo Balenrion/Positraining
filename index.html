@@ -1456,7 +1456,16 @@ function goDay(delta){
 function sessionProgress(exList){
   let filled=0,total=0;
   exList.forEach(e=>{
-    if(e.note)return;
+    if(e.note){
+      // Seul le cardio a un bouton de validation (voir renderDay) — les autres notes (ex. « Circuit core »
+      // en description pure) restent hors du compteur, comme avant.
+      if(e.tag==='cardio'){
+        total++;
+        const arr=getLog(e.id,state.week);
+        if(arr&&arr[0]&&arr[0].d)filled++;
+      }
+      return;
+    }
     const sw=state.swaps[e.id],eid=sw?e.id+'~'+slug(sw):e.id;
     if(state.skips[logKey(eid,state.week)])return;
     total++;
@@ -1597,7 +1606,29 @@ function renderDay(){
   visible.forEach((e,i)=>{
     if(e.note){
       const c=document.createElement('div');c.className='ex note';
-      c.innerHTML=`<div class="exhead"><div class="idx">•</div><div class="name">${e.n}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">${e.cue}</div>`;
+      let doneTag='';
+      if(e.tag==='cardio'){
+        // Retour utilisateur : « le cardio doit aussi avoir un bouton de validation » — jusqu'ici le
+        // cardio ajouté en fin de séance (cardioNote) n'était qu'une carte descriptive, sans aucun moyen
+        // de la cocher, contrairement à un vrai exercice ; elle ne comptait donc jamais dans le compteur
+        // « X/Y exercices remplis ». Un seul faux « set » dans state.logs (pas de poids/reps à saisir pour
+        // du cardio) sert juste à porter le flag fait/pas fait, réutilisé tel quel par sessionProgress.
+        const key=logKey(e.id,state.week);
+        if(!state.logs[key])state.logs[key]=[{w:'',r:'',d:false}];
+        const cardioDone=state.logs[key][0].d;
+        doneTag=`<div class="exbtns"><button class="skipbtn cardiodone" style="padding:0;color:${cardioDone?'var(--go)':''}">${cardioDone?'✓ Fait':'Marquer comme fait'}</button></div>`;
+      }
+      c.innerHTML=`<div class="exhead"><div class="idx">•</div><div class="name">${e.n}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">${e.cue}</div>${doneTag}`;
+      if(e.tag==='cardio'){
+        const key=logKey(e.id,state.week);
+        c.querySelector('.cardiodone').onclick=ev=>{
+          const s=state.logs[key][0];s.d=!s.d;
+          ev.currentTarget.textContent=s.d?'✓ Fait':'Marquer comme fait';
+          ev.currentTarget.style.color=s.d?'var(--go)':'';
+          save();if(navigator.vibrate)navigator.vibrate(15);
+          refreshFinishBar();
+        };
+      }
       app.appendChild(c);return;
     }
     const nm=state.swaps[e.id]||e.n, sw=state.swaps[e.id];

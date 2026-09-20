@@ -102,3 +102,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Correction d'un bug où le compteur "exercices remplis" ne se mettait pas à jour en cours de séance
 - [x] Programme focus : correction d'un bug où les jours de la semaine pouvaient se ressembler beaucoup trop (variété insuffisante dans le choix des exercices)
 - [x] Le cardio léger ajouté en fin de séance (programme classique et focus) donne des repères concrets (vitesse, résistance, coups/min), pas juste un nom de machine
+- [x] Le cardio léger de fin de séance peut être coché comme fait et compte dans la progression de la séance
