@@ -106,4 +106,5 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Programme focus : Hip thrust disponible dans le groupe « Fessiers / mollets », et machine à adduction ajoutée en complément de l'abduction
 - [x] Correction d'un bug où le niveau débutant affichait des répétitions au lieu d'un temps de maintien sur le gainage (et cassait l'affichage du circuit abdos) — les séances déjà générées sont réparées automatiquement
 - [x] Programme focus : minimum relevé à 3 jours/semaine, et groupes jambes (quadriceps/ischios-fessiers/fessiers-mollets) pré-sélectionnés par défaut sur une configuration vierge
-- [x] Renommé en « Programme Focus Diane » ; ajout de Pectoraux + Dos aux groupes pré-sélectionnés par défaut (durée par défaut passée à 60 min en conséquence)
+- [x] Renommé en « Programme Focus Diane »
+- [x] Programme focus : répartition automatique bas du corps / haut du corps par jour (2 jours jambes, 1 jour haut du corps + gainage sur une semaine à 3 séances), pour coller au plan détaillé et éviter des séances trop longues

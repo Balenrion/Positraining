@@ -986,9 +986,22 @@ function pickExoAvoiding(group,idx,avoid){
   return EXO_POOL[n];
 }
 const FOCUS_MAX_PER_GROUP=2, FOCUS_MAX_SETS=5;
+// Retour utilisateur, à partir d'un plan ChatGPT en 3 séances/semaine détaillé séance par séance
+// (« Séances 1 & 2 - Bas du corps » / « Séance 3 - Haut du corps & gainage ») : plutôt qu'empiler TOUS les
+// groupes choisis sur CHAQUE jour (ce qui, avec jambes+haut du corps ensemble, faisait déjà grimper une
+// séance à 75-90 min hors cardio — voir plus bas dans FOCUS_DEFAULT_GROUPS), on retrouve la même
+// alternance 2 jours bas du corps / 1 jour haut du corps que le plan, ce qui garde chaque séance à une
+// durée raisonnable puisqu'elle ne pioche plus que dans un sous-ensemble des groupes ce jour-là.
+const FOCUS_LOWER_GROUPS=['quad','hinge','glutes'];
 function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
   avoid=avoid||new Set();
   const targetSec=(targetMinutes||45)*60;
+  const lowerGroups=groups.filter(g=>FOCUS_LOWER_GROUPS.includes(g));
+  const upperGroups=groups.filter(g=>!FOCUS_LOWER_GROUPS.includes(g));
+  // La bascule bas/haut du corps ne s'applique que si les deux sont réellement sélectionnés ensemble —
+  // un focus uniquement jambes (ou uniquement haut du corps) continue de piocher dans tous ses groupes
+  // chaque jour, comme avant ce correctif.
+  const splitLowerUpper=lowerGroups.length>0&&upperGroups.length>0;
   const days=[];
   for(let i=0;i<joursParSemaine;i++){
     // Retour utilisateur : « en rodage les séances semblent identiques ». Cause : une première version
@@ -1000,8 +1013,9 @@ function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
     // 1 par jour, `(i+gi+k)%names.length` — rotation glissante entre jours voisins, pas une réinitialisation
     // complète), et en comblant l'écart avec la durée visée en ajoutant des SÉRIES aux exercices déjà
     // choisis plutôt que d'empiler d'autres exercices distincts et vider le pool.
+    const dayGroups=splitLowerUpper?(i%3===2?upperGroups:lowerGroups):groups;
     const ex=[];
-    groups.forEach((g,gi)=>{
+    dayGroups.forEach((g,gi)=>{
       const names=(EXO_GROUP[g]||[]).filter(n=>!avoid.has(n));
       if(!names.length)return;
       const count=Math.min(FOCUS_MAX_PER_GROUP,names.length);
@@ -1021,7 +1035,7 @@ function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
       total+=exDuration(t)-before;
       stuck=0;
     }
-    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme Focus Diane — Jour '+(i+1),role:groupLabels(groups),ex});
+    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme Focus Diane — Jour '+(i+1),role:groupLabels(dayGroups),ex});
   }
   return days;
 }
@@ -2082,22 +2096,21 @@ async function listCopyableFocusPrograms(){
 // appliqués uniquement à une CONFIGURATION FRAÎCHE (`prefill` vide, ex. premier accès à « Programme Focus
 // Diane » depuis l'Accueil) : une reconfiguration d'un programme focus déjà personnalisé
 // (`prefill=focusProgram.cfg`) garde toujours les groupes/jours réellement choisis, jamais écrasés par ce
-// défaut. Complété ensuite (retour utilisateur : « ChatGPT préconisait malgré tout de la recomposition pour
-// le haut du corps aussi ») avec Pectoraux + Dos (« push »/« pull », les deux mouvements composés du haut du
-// corps), sans Épaules/Bras/Abdos pour limiter la casse sur la durée : chaque groupe ajoute jusqu'à
-// `FOCUS_MAX_PER_GROUP` exercices/jour, et le calcul de séance ne PLAFONNE jamais la durée (il ne fait
-// qu'ajouter des séries pour ATTEINDRE la cible, jamais retirer un exercice pour la respecter) — passer de 3
-// à 5 groupes fait donc grimper une séance générée d'environ 45-55 min à ~75-90 min hors cardio (mesuré par
-// stress-test), largement au-delà de la case « 45 min » ; la durée par défaut d'une config fraîche passe
-// donc de 45 à 60 min (le max proposé par `FOCUS_DURATIONS`) pour rester cohérente avec ce que 5 groupes
-// produisent réellement — la séance reste malgré tout plus longue que 60 min dans les faits, à ajuster à la
-// baisse (retirer un groupe, ou repasser à 3 via reconfiguration) si c'est trop pour elle au quotidien.
-const FOCUS_DEFAULT_GROUPS=['quad','hinge','glutes','push','pull'];
+// défaut.
+// Version suivante (retour utilisateur : plan détaillé fourni par ChatGPT, « Séances 1 & 2 - Bas du corps »
+// / « Séance 3 - Haut du corps & gainage ») : les 7 groupes du plan (Quadriceps/Ischios-fessiers/Fessiers-
+// mollets pour le bas, Pectoraux/Dos/Épaules/Abdos-gainage pour le haut) sont tous inclus par défaut — ce qui
+// aurait fait exploser la durée d'une seule séance si tout était empilé chaque jour (voir la tentative
+// précédente : ~75-90 min hors cardio avec seulement 5 groupes). Le vrai problème n'était donc pas le
+// nombre de groupes, mais le fait qu'ils étaient tous sur CHAQUE jour : `templateFocus` répartit maintenant
+// bas/haut du corps sur des jours différents (voir `FOCUS_LOWER_GROUPS`/`splitLowerUpper`), donc chaque
+// séance ne pioche plus que dans 3-4 groupes ce jour-là — la durée par défaut revient à 45 min.
+const FOCUS_DEFAULT_GROUPS=['quad','hinge','glutes','push','pull','shoulder','core'];
 async function openFocusSetup(prefill){
   const cfg=prefill||{};
   $('#fsNom').value=cfg.nom||'';
   $('#fsJours').value=cfg.joursParSemaine||'3';$('#fsNiveau').value=cfg.niveau||'intermediaire';$('#fsObjectif').value=cfg.objectif||'recomp';
-  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||(prefill?45:60);
+  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||45;
   renderChipSet('fsGroups',MUSCLE_GROUPS,fsGroupsSet);
   renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
   renderFsDurChips();
