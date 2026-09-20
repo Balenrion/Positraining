@@ -477,8 +477,6 @@
   <div class="card" style="max-height:85vh;overflow-y:auto">
     <h3>Programme Focus Diane</h3>
     <div id="fsCopySection" style="display:none"></div>
-    <input type="file" id="fsImportFile" accept="application/json,.json" style="display:none">
-    <button type="button" class="close" id="fsImportBtn" style="margin-bottom:14px">📥 Importer un programme reçu (fichier)</button>
     <input id="fsNom" class="acctin" placeholder="Nom du programme (ex. Raffermissement)">
     <div class="d" style="margin-top:10px"><b>Groupes musculaires ciblés</b> — au moins un</div>
     <div id="fsGroups" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
@@ -499,8 +497,6 @@
       <option value="maintien">Objectif : maintien / forme générale</option>
       <option value="masse">Objectif : prise de masse</option>
     </select>
-    <div class="d" style="margin-top:10px"><b>Durée visée par séance</b></div>
-    <div class="qxdur" id="fsDurChips"></div>
     <div class="d" style="margin-top:10px"><b>Limites / douleurs</b> — les exercices à risque seront retirés ou remplacés (optionnel)</div>
     <div id="fsLimiteZones" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px">
@@ -1035,21 +1031,30 @@ function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
       total+=exDuration(t)-before;
       stuck=0;
     }
-    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme Focus Diane — Jour '+(i+1),role:groupLabels(dayGroups),ex});
+    // `groups` (le sous-ensemble réellement entraîné ce jour-là, pas la liste complète des groupes cochés à
+    // la config) est conservé sur le jour lui-même pour que `addExtraFocusExercise()` (bouton « J'ai encore
+    // du temps ») sache dans quel(s) groupe(s) piocher un exercice cohérent, longtemps après la génération.
+    days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme Focus Diane — Jour '+(i+1),role:groupLabels(dayGroups),groups:dayGroups.slice(),ex});
   }
   return days;
 }
-function generateFocusProgram(cfg){
-  // Les exercices à risque (limites/périnée) sont écartés du pool AVANT le choix des exercices, plutôt
-  // que retirés après coup comme dans le programme classique (applyLimites/applyPerineum) : une séance
-  // focus n'a que quelques exercices, donc le garde-fou de plancher (30 min) d'applyLimites bloquerait souvent
-  // le retrait et laisserait l'exercice à risque en place (trouvé en stress-testant, voir CLAUDE.md).
+// Les exercices à risque (limites/périnée) sont écartés du pool AVANT le choix des exercices, plutôt que
+// retirés après coup comme dans le programme classique (applyLimites/applyPerineum) : une séance focus n'a
+// que quelques exercices, donc le garde-fou de plancher (30 min) d'applyLimites bloquerait souvent le retrait
+// et laisserait l'exercice à risque en place (trouvé en stress-testant, voir CLAUDE.md). Extrait en fonction
+// à part pour être réutilisé par `addExtraFocusExercise()` (bouton « J'ai encore du temps »), qui doit
+// respecter les mêmes limites/périnée qu'à la génération initiale.
+function focusAvoidSet(cfg){
   const avoid=new Set();
   (cfg.limiteZones||[]).forEach(key=>{
     const info=LIMITE_INFO.find(l=>l.key===key);
     if(info)info.exclude.forEach(n=>avoid.add(n));
   });
   if(cfg.perineum)Object.keys(PERINEUM_UNSAFE).forEach(n=>avoid.add(n));
+  return avoid;
+}
+function generateFocusProgram(cfg){
+  const avoid=focusAvoidSet(cfg);
   // La « durée visée » représente la séance complète (charges + cardio), pas seulement la partie charges :
   // on retire le cardio qu'applyObjectif va ajouter juste après, pour que le total s'approche de la cible.
   const CARDIO_MIN_BY_OBJECTIF={perte:15,recomp:10,maintien:8,masse:0};
@@ -1060,6 +1065,36 @@ function generateFocusProgram(cfg){
   applyNiveau(days,cfg.niveau);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
   return{days};
+}
+// Retour utilisateur : « à la fin des exercices tu mets un bouton "j'ai encore du temps" et à chaque clic
+// tu ajoutes un exercice cohérent avec la séance » — pioche parmi les groupes réellement entraînés CE
+// jour-là (`day.groups`, posé par `templateFocus`, jamais l'ensemble complet des groupes cochés à la
+// config), en excluant les exercices déjà présents et ceux à risque (mêmes limites/périnée qu'à la
+// génération). Équilibre entre les groupes du jour plutôt que de toujours piocher dans le premier : à
+// chaque appel, priorité au groupe le MOINS représenté dans la séance actuelle parmi ceux qui ont encore un
+// candidat disponible — pas besoin de mémoriser combien de fois le bouton a été cliqué.
+function pickExtraFocusExercise(day,avoid){
+  const present=new Set(day.ex.filter(e=>!e.note).map(e=>e.n));
+  let best=null,bestCount=Infinity;
+  (day.groups||[]).forEach(g=>{
+    const poolNames=EXO_GROUP[g]||[];
+    const candidates=poolNames.filter(n=>!avoid.has(n)&&!present.has(n));
+    if(!candidates.length)return;
+    const countInDay=poolNames.filter(n=>present.has(n)).length;
+    if(countInDay<bestCount){bestCount=countInDay;best=candidates[0];}
+  });
+  return best?EXO_POOL[best]:null;
+}
+function addExtraFocusExercise(){
+  const day=DAYS.find(d=>d.id===state.day);
+  if(!day||!day.groups)return;
+  const extra=pickExtraFocusExercise(day,focusAvoidSet(focusProgram.cfg));
+  if(!extra)return;
+  const newEx=Object.assign({},extra,{id:day.id+'x'+uid()});
+  const cardioIdx=day.ex.findIndex(e=>e.note&&e.tag==='cardio');
+  if(cardioIdx===-1)day.ex.push(newEx);else day.ex.splice(cardioIdx,0,newEx);
+  if(navigator.vibrate)navigator.vibrate(15);
+  persistActiveBundle();flush();renderDay();
 }
 
 const PHASES=[
@@ -1709,6 +1744,17 @@ function renderDay(){
   addBtn.onclick=()=>openAddEx(day.id);
   app.appendChild(addBtn);
 
+  // Retour utilisateur : « base 45 minutes, à la fin des exercices un bouton "j'ai encore du temps" qui
+  // ajoute un exercice cohérent à chaque clic » — seulement en mode focus (day.groups n'existe que sur un
+  // jour généré par templateFocus, jamais sur le programme classique ni une séance copiée) et seulement
+  // tant qu'il reste un candidat (voir pickExtraFocusExercise) : une fois les groupes du jour épuisés, le
+  // bouton disparaît plutôt que de rester affiché sans rien pouvoir ajouter.
+  if(state.mode==='focus'&&day.groups&&day.groups.length&&pickExtraFocusExercise(day,focusAvoidSet(focusProgram.cfg))){
+    const moreBtn=document.createElement('button');moreBtn.className='close';moreBtn.style.marginTop='10px';moreBtn.textContent='⏱ J’ai encore du temps';
+    moreBtn.onclick=addExtraFocusExercise;
+    app.appendChild(moreBtn);
+  }
+
   const dk=day.id+'__w'+state.week;
   const bar=document.createElement('div');bar.className='finish';
   bar.innerHTML=`<button class="finishbtn"><span class="fmain"></span><span class="fprog"></span></button>`;
@@ -2071,12 +2117,7 @@ $('#deleteProfileBtn').onclick=async()=>{
 };
 
 /* ---------- Programme focus : configuration ---------- */
-const FOCUS_DURATIONS=[30,45,60];
-let draftFocusCfg=null,draftFocusProgram=null,fsGroupsSet=new Set(),fsLimiteSet=new Set(),fsPerineum=false,fsDuration=45;
-function renderFsDurChips(){
-  $('#fsDurChips').innerHTML=FOCUS_DURATIONS.map(m=>`<button type="button" class="day${fsDuration===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('');
-  $('#fsDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{fsDuration=+b.dataset.m;renderFsDurChips();});
-}
+let draftFocusCfg=null,draftFocusProgram=null,fsGroupsSet=new Set(),fsLimiteSet=new Set(),fsPerineum=false;
 async function listCopyableFocusPrograms(){
   const others=profiles.filter(p=>p.id!==activeId);
   const out=[];
@@ -2105,15 +2146,20 @@ async function listCopyableFocusPrograms(){
 // nombre de groupes, mais le fait qu'ils étaient tous sur CHAQUE jour : `templateFocus` répartit maintenant
 // bas/haut du corps sur des jours différents (voir `FOCUS_LOWER_GROUPS`/`splitLowerUpper`), donc chaque
 // séance ne pioche plus que dans 3-4 groupes ce jour-là — la durée par défaut revient à 45 min.
+// Retour utilisateur (« voici ma vision pour le programme de Diane : base 45 minutes, à la fin des exercices
+// un bouton "j'ai encore du temps" qui ajoute un exercice cohérent à chaque clic ») : la durée visée n'est
+// plus un choix à faire à la configuration (chips 30/45/60 supprimées, `FOCUS_DURATIONS`) — la séance
+// générée cible désormais toujours 45 min (`FOCUS_BASE_MINUTES`), et se rallonge en direct pendant la
+// séance via `addExtraFocusExercise()` plutôt qu'en surdimensionnant le programme à l'avance.
+const FOCUS_BASE_MINUTES=45;
 const FOCUS_DEFAULT_GROUPS=['quad','hinge','glutes','push','pull','shoulder','core'];
 async function openFocusSetup(prefill){
   const cfg=prefill||{};
   $('#fsNom').value=cfg.nom||'';
   $('#fsJours').value=cfg.joursParSemaine||'3';$('#fsNiveau').value=cfg.niveau||'intermediaire';$('#fsObjectif').value=cfg.objectif||'recomp';
-  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;fsDuration=cfg.targetMinutes||45;
+  fsGroupsSet=new Set(cfg.groups||FOCUS_DEFAULT_GROUPS);fsLimiteSet=new Set(cfg.limiteZones||[]);fsPerineum=!!cfg.perineum;
   renderChipSet('fsGroups',MUSCLE_GROUPS,fsGroupsSet);
   renderChipSet('fsLimiteZones',LIMITE_INFO,fsLimiteSet);
-  renderFsDurChips();
   $('#fsPerineumSw').classList.toggle('on',fsPerineum);
   const copySec=$('#fsCopySection');
   // Proposé aussi en reconfiguration (pas seulement à la première configuration) : reconfigurer demande
@@ -2135,17 +2181,6 @@ async function openFocusSetup(prefill){
   }
   $('#sheet').classList.remove('show');$('#focusSetup').classList.add('show');
 }
-$('#fsImportBtn').onclick=()=>$('#fsImportFile').click();
-$('#fsImportFile').onchange=ev=>{
-  const f=ev.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{try{
-    const s=JSON.parse(r.result);
-    if(!s||typeof s!=='object'||!Array.isArray(s.days)||!s.days.length)throw 0;
-    adoptProgram('focus',s.days,s.cfg);
-  }catch(e){alert('Fichier invalide — ce n’est pas un programme focus PosiTraining.');}};
-  r.readAsText(f);ev.target.value='';
-};
 $('#copySessionFile').onchange=ev=>{
   const f=ev.target.files[0];if(!f)return;
   const r=new FileReader();
@@ -2161,7 +2196,7 @@ $('#focusSetupCancel').onclick=()=>$('#focusSetup').classList.remove('show');
 $('#focusSetup').onclick=e=>{if(e.target.id==='focusSetup')$('#focusSetup').classList.remove('show');};
 $('#focusSetupGenerate').onclick=()=>{
   if(!fsGroupsSet.size){alert('Choisis au moins un groupe musculaire à cibler.');return;}
-  draftFocusCfg={nom:($('#fsNom').value||'').trim(),groups:[...fsGroupsSet],joursParSemaine:$('#fsJours').value,niveau:$('#fsNiveau').value,objectif:$('#fsObjectif').value,limiteZones:[...fsLimiteSet],perineum:fsPerineum,targetMinutes:fsDuration};
+  draftFocusCfg={nom:($('#fsNom').value||'').trim(),groups:[...fsGroupsSet],joursParSemaine:$('#fsJours').value,niveau:$('#fsNiveau').value,objectif:$('#fsObjectif').value,limiteZones:[...fsLimiteSet],perineum:fsPerineum,targetMinutes:FOCUS_BASE_MINUTES};
   draftFocusProgram=generateFocusProgram(draftFocusCfg);
   if(draftFocusProgram.days.some(d=>d.ex.filter(e=>!e.note).length===0)){
     alert('Avec ces réglages, un jour se retrouve sans aucun exercice sûr (trop de limites pour les groupes choisis). Choisis un groupe musculaire de plus, ou décoche une limite.');

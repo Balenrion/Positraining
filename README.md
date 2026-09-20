@@ -108,3 +108,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Programme focus : minimum relevé à 3 jours/semaine, et groupes jambes (quadriceps/ischios-fessiers/fessiers-mollets) pré-sélectionnés par défaut sur une configuration vierge
 - [x] Renommé en « Programme Focus Diane »
 - [x] Programme focus : répartition automatique bas du corps / haut du corps par jour (2 jours jambes, 1 jour haut du corps + gainage sur une semaine à 3 séances), pour coller au plan détaillé et éviter des séances trop longues
+- [x] Programme Focus Diane : durée fixée à 45 min, avec un bouton « J'ai encore du temps » en fin de séance qui ajoute un exercice cohérent à chaque clic (disparaît une fois le groupe du jour épuisé) ; import de programme par fichier retiré (devenu inutile, le programme a désormais une identité fixe)
