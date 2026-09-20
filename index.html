@@ -634,6 +634,11 @@ DAYS_ORIGINAL.forEach(d=>d.ex.forEach(e=>{if(!e.note)EXO_POOL[e.n]=e;}));
 // le générateur (programme classique et programme focus), retour utilisateur : « il manque les dead bugs
 // en exercice abdos ».
 EXO_POOL['Dead bug']={n:'Dead bug',tag:'core',sets:3,reps:'10 / côté',rest:30,bw:true,cue:'Bas du dos plaqué au sol, bras et jambe opposés descendent lentement, respiration fluide.'};
+// « Adduction machine » n'appartient à aucun jour de DAYS_ORIGINAL — ajoutée ici à la main, même pattern que
+// Dead bug ci-dessus. Retour utilisateur : « il manque la machine à adduction (complément à abduction) » —
+// jusqu'ici seule l'abduction (fessier moyen) était disponible dans le groupe « Fessiers / mollets », sans
+// son complément pour l'intérieur de cuisse (adducteurs).
+EXO_POOL['Adduction machine']={n:'Adduction machine',tag:'adducteurs',sets:3,reps:'15-20',rest:45,cue:'Assis, dos calé, coussins entre les genoux légèrement écartés ; rapproche les cuisses jusqu’à la fermeture complète, pause 1 s, reviens lentement sans à-coups — intérieur de cuisse, complément de l’abduction.'};
 const EXO_GROUP={
  quad:['Presse à cuisses','Fentes marchées haltères','Leg extension'],
  hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl','Hip thrust'],
@@ -642,7 +647,14 @@ const EXO_GROUP={
  pull:['Tirage vertical prise large','Rowing haltère un bras','Pull-over poulie haute'],
  shoulder:['Développé épaules haltères','Développé épaules machine','Élévations latérales','Élévations latérales poulie','Face pull'],
  arms:['Curl haltères','Curl marteau','Extension triceps poulie corde','Extension triceps au-dessus de la tête','Curl barre EZ / haltères'],
- glutes:['Abduction machine','Mollets debout'],
+ // Hip thrust ajouté ici en plus de son entrée dans « hinge » (retour utilisateur : « il manque du hip
+ // thrust » — sélectionnable en choisissant « Ischios / fessiers », mais pas via « Fessiers / mollets »,
+ // le libellé le plus intuitif pour cibler spécifiquement les fessiers) : templateFocus déduplique par
+ // nom d'exercice au sein d'un même jour (voir plus bas), donc pas de doublon même si les deux groupes
+ // sont choisis ensemble. Adduction machine ajoutée en complément d'Abduction machine (même retour
+ // utilisateur). Ajoutés en fin de liste pour ne pas décaler les index 0/1 utilisés ailleurs (genderBias,
+ // templates fixes de buildDay) qui pointent vers Abduction machine / Mollets debout.
+ glutes:['Abduction machine','Mollets debout','Hip thrust','Adduction machine'],
  core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core']
 };
 function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
@@ -1192,6 +1204,7 @@ const HOWTO={
  "Soulevé de terre roumain haltères":{m:"Ischios, fessiers, dos",s:["Debout, haltères devant les cuisses, genoux à peine fléchis.","Pousse les fesses vers l'arrière (charnière de hanche), dos neutre.","Descends jusqu'à l'étirement des ischios, remonte en serrant les fessiers (sangles)."]},
  "Leg curl":{m:"Ischios",s:["Réglage : axe de rotation aligné avec les genoux.","Fléchis en amenant les talons vers les fessiers, pause en contraction.","Reviens lentement, ne décolle pas les hanches."]},
  "Abduction machine":{m:"Fessier moyen",s:["Assis, dos calé, léger buste penché en avant.","Écarte les cuisses jusqu'à l'ouverture complète, pause 1 s.","Reviens lentement en gardant la tension."]},
+ "Adduction machine":{m:"Adducteurs (intérieur de cuisse)",s:["Assis, dos calé, coussins entre les genoux légèrement écartés.","Rapproche les cuisses jusqu'à la fermeture complète, pause 1 s.","Reviens lentement en gardant la tension, sans à-coups."]},
  "Mollets debout":{m:"Mollets",s:["Avant-pieds sur le repose-pied, talons dans le vide.","Monte le plus haut possible sur la pointe, pause en haut.","Descends jusqu'à l'étirement, pause 1 s en bas."]},
  "Relevé de jambes suspendu":{m:"Bas des abdominaux",s:["Suspendu, épaules engagées, jambes tendues ou genoux fléchis.","Enroule le bassin vers le haut (pas seulement les jambes).","Redescends lentement sans balancer."]},
  "Développé incliné machine":{m:"Haut des pectoraux",s:["Règle le siège : poignées au niveau du haut des pecs.","Pousse en pensant à rapprocher les coudes.","Reviens contrôlé jusqu'à l'étirement."]},
