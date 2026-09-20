@@ -964,32 +964,41 @@ function pickExoAvoiding(group,idx,avoid){
   const n=names[idx%names.length];
   return EXO_POOL[n];
 }
+const FOCUS_MAX_PER_GROUP=2, FOCUS_MAX_SETS=5;
 function templateFocus(groups,joursParSemaine,avoid,targetMinutes){
   avoid=avoid||new Set();
   const targetSec=(targetMinutes||45)*60;
   const days=[];
   for(let i=0;i<joursParSemaine;i++){
-    // Construit le jour en cyclant les groupes choisis (1 exercice de plus par groupe à chaque tour)
-    // jusqu'à atteindre la durée visée, plutôt qu'un seul exercice fixe par groupe — retour utilisateur :
-    // « ta séance ne fait que 2 exercices, trop léger, il faut ~45 min quitte à demander un jour de
-    // repos derrière ». Un compteur par groupe (pas un décalage commun +groups.length) : sinon, dès que
-    // la taille d'un pool divise groups.length (fréquent avec des pools de 2-4 exercices), l'index modulo
-    // ne change jamais d'un tour à l'autre et ce groupe ne contribue plus jamais qu'un seul exercice —
-    // bug trouvé en stress-testant (les séances plafonnaient à 3-4 exercices quel que soit la durée visée).
+    // Retour utilisateur : « en rodage les séances semblent identiques ». Cause : une première version
+    // (qui répondait à « ta séance ne fait que 2 exercices, trop léger, il faut ~45 min ») cyclait chaque
+    // groupe jusqu'à épuiser tout son pool avant de s'arrêter — avec des pools de 2-4 exercices (fessiers,
+    // ischios...), viser 45 min épuisait le pool ENTIER dès le premier jour, donc tous les jours de la
+    // semaine finissaient par contenir (à peu près) les mêmes exercices, juste dans un ordre différent.
+    // Corrigé en plafonnant à FOCUS_MAX_PER_GROUP exercices distincts par groupe et par jour (décalés de
+    // 1 par jour, `(i+gi+k)%names.length` — rotation glissante entre jours voisins, pas une réinitialisation
+    // complète), et en comblant l'écart avec la durée visée en ajoutant des SÉRIES aux exercices déjà
+    // choisis plutôt que d'empiler d'autres exercices distincts et vider le pool.
     const ex=[];
-    const counters=groups.map((g,gi)=>i+gi);
-    let total=0;
-    while(total<targetSec){
-      let added=false;
-      groups.forEach((g,gi)=>{
-        if(total>=targetSec)return;
-        const base=pickExoAvoiding(g,counters[gi],avoid);
-        counters[gi]++;
-        if(!base||ex.some(e=>e.n===base.n))return;
-        const obj=Object.assign({},base);
-        ex.push(obj);total+=exDuration(obj);added=true;
-      });
-      if(!added)break; // tous les groupes sont soit exclus, soit épuisés (plus d'exercice inédit à ajouter)
+    groups.forEach((g,gi)=>{
+      const names=(EXO_GROUP[g]||[]).filter(n=>!avoid.has(n));
+      if(!names.length)return;
+      const count=Math.min(FOCUS_MAX_PER_GROUP,names.length);
+      for(let k=0;k<count;k++){
+        const n=names[(i+gi+k)%names.length];
+        if(ex.some(e=>e.n===n))continue;
+        ex.push(Object.assign({},EXO_POOL[n]));
+      }
+    });
+    let total=ex.reduce((s,o)=>s+exDuration(o),0);
+    let stuck=0;
+    for(let guard=0;total<targetSec&&ex.length&&stuck<ex.length;guard++){
+      const t=ex[guard%ex.length];
+      if((t.sets||3)>=FOCUS_MAX_SETS){stuck++;continue;}
+      const before=exDuration(t);
+      t.sets=(t.sets||3)+1;
+      total+=exDuration(t)-before;
+      stuck=0;
     }
     days.push({id:'fx'+(i+1),t:'J'+(i+1),s:'Focus '+(i+1),title:'Programme focus — Jour '+(i+1),role:groupLabels(groups),ex});
   }
