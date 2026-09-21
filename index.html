@@ -210,6 +210,8 @@
   .feelbtn{background:var(--raised);border:1px solid var(--border);border-radius:9px;width:32px;height:32px;
      font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.5;flex:0 0 auto;}
   .feelbtn.on{opacity:1;border-color:var(--go-dim);background:#1a2513;}
+  .feelbtn.prev{opacity:1;border-color:var(--deload);background:#2b2412;}
+  .feelbtn.on.prev{border-color:var(--go-dim);background:#1a2513;box-shadow:0 0 0 2px var(--deload);}
   .swtag{display:inline-block;font-family:var(--num);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--ramp);background:#16202e;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
   .ex.swapped{border-color:#2a3a52;}
   .swapsub{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.45;}
@@ -1624,7 +1626,18 @@ function renderExerciseCard(container,e,opts){
   });
   html+=`</div>`;
   const curFeel=state.feels[key];
-  html+=`<div class="exfeel"><span class="exfeel-lbl">Ressenti</span>${EX_FEELS.map(f=>`<button class="feelbtn${curFeel===f.key?' on':''}" data-k="${f.key}" aria-label="${f.label}">${f.icon}</button>`).join('')}</div>`;
+  // Retour utilisateur : « le bouton pour qualifier une séance, il faut reprendre cette qualification sur la
+  // séance +1 car ça permet de mieux adapter les poids » — le ressenti de la dernière fois (`lastFeel`,
+  // déjà calculé plus haut pour la ligne « Dernière fois » et suggestWeight) n'était visible que noyé dans
+  // du texte ; il ressort maintenant directement sur les boutons Ressenti eux-mêmes, en jaune (`.prev`,
+  // même couleur que la phase « décharge », pas de nouvelle couleur ajoutée) pour le ressenti d'il y a
+  // `lt.w` semaines, à côté du vert (`.on`) pour la sélection de cette semaine — les deux peuvent se
+  // superposer sur le même bouton (même ressenti les deux fois) sans se marcher dessus (`.on.prev`).
+  html+=`<div class="exfeel"><span class="exfeel-lbl">Ressenti</span>${EX_FEELS.map(f=>{
+    const cls=[curFeel===f.key?'on':'',lastFeel===f.key?'prev':''].filter(Boolean).join(' ');
+    const title=lastFeel===f.key?` title="Comme la dernière fois (S${lt.w})"`:'';
+    return `<button class="feelbtn${cls?' '+cls:''}" data-k="${f.key}" aria-label="${f.label}"${title}>${f.icon}</button>`;
+  }).join('')}</div>`;
   card.innerHTML=html;
 
   card.querySelectorAll('.feelbtn').forEach(b=>b.onclick=()=>{
