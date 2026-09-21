@@ -1727,6 +1727,14 @@ function renderDay(){
   }else if(state.mode==='copy'){
     modeTags=`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button> <button class="skipbtn" id="reimportCopyBtn" style="padding:0;margin-bottom:8px">📥 Importer une autre séance</button>`;
   }
+  // Retour utilisateur : « vu que j'ai déjà lancé mon programme, comment ajouter la journée Hyrox dans un
+  // programme en cours ? » — la préparation Hyrox n'existait qu'à la CRÉATION d'un profil (voir
+  // generateProgram/#obHyroxSw), donc inutilisable pour un programme déjà en cours (le sien : migré depuis
+  // PROGRAM_DEFAULT, jamais passé par generateProgram). Plutôt que de le faire recréer un profil (perte de
+  // continuité : nouvel id de profil, poids/nutrition à ressaisir), un bouton dans l'en-tête de séance
+  // convertit directement LE JOUR ACTUELLEMENT AFFICHÉ en séance Hyrox, sur le programme classique en
+  // cours — même fonction hyroxDay() que la génération, appliquée en place sur DAYS/program.days.
+  if(state.mode==='main')modeTags+=` <button class="skipbtn" id="convertHyroxBtn" style="padding:0;margin-bottom:8px">🏋️ Convertir en séance Hyrox</button>`;
   modeTags+=` <button class="skipbtn" id="shareDayBtn" style="padding:0;margin-bottom:8px">📤 Partager cette séance</button>`;
   hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>${modeTags}<div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
   app.appendChild(hd);
@@ -1743,6 +1751,18 @@ function renderDay(){
     const rib=hd.querySelector('#reimportCopyBtn');if(rib)rib.onclick=()=>$('#copySessionFile').click();
   }
   const sdb=hd.querySelector('#shareDayBtn');if(sdb)sdb.onclick=()=>shareCurrentDay();
+  const chb=hd.querySelector('#convertHyroxBtn');if(chb)chb.onclick=()=>{
+    if(!confirm(`Remplacer « ${day.t} ${day.s} » par une séance Hyrox ? L'historique de charges des exercices actuels de ce jour n'est pas supprimé (juste plus affiché ici) — action réversible en reconvertissant plus tard, mais ce jour n'affichera plus que le bloc Hyrox.`))return;
+    const dayIdx=DAYS.findIndex(d=>d.id===day.id);
+    if(dayIdx===-1)return;
+    // Contrairement à generateProgram (qui assigne les id de tous les jours d'un coup, à la fin), hyroxDay()
+    // seule ne pose aucun id sur ses blocs — sans ça, les 6 blocs partagent tous eid=undefined, donc UN
+    // seul state.logs partagé pour les 6 (cocher l'un les valide tous). Reproduit ici la même assignation.
+    const newDay=Object.assign(hyroxDay(),{id:day.id,t:day.t});
+    newDay.ex.forEach((e,i)=>e.id=newDay.id+'e'+(i+1));
+    DAYS[dayIdx]=newDay;
+    persistActiveBundle();flush();renderDay();
+  };
   hd.querySelectorAll('.day').forEach(b=>b.onclick=()=>{state.timeCap=+b.dataset.m;save();renderDay();});
   if(visible.length<day.ex.length){
     const hidden=day.ex.length-visible.length;

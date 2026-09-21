@@ -113,3 +113,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Nouvelle option « Préparation Hyrox » à la création du programme : remplace ta dernière séance de la semaine par un bloc dédié (sled, farmer carry, wall balls, burpees…) plutôt que d'ajouter un jour d'entraînement en plus
 - [x] Une note explique désormais que pour un exercice « /côté » (gainage latéral, Pallof press, rotations obliques…), chaque série couvre les deux côtés — pas besoin de doubler les séries
 - [x] Correction d'un bug où relancer l'abdos express plusieurs fois dans la même semaine réaffichait les séries déjà remplies de la séance précédente au lieu de repartir à zéro
+- [x] Bouton « Convertir en séance Hyrox » sur n'importe quel jour du programme classique en cours, pour activer la préparation Hyrox sans recréer un profil
