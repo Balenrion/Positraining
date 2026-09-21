@@ -934,23 +934,29 @@ function cardioNote(minutes){
 // avec ajout d'une option à la création du programme ». En tant que coach : pas un jour EN PLUS (le split
 // classique de Laurent tourne déjà sur 5-6 jours bien remplis — empiler un vrai bloc conditionnement
 // glycolytique par-dessus créerait un risque réel de sous-récupération) mais un jour REMPLACÉ — voir
-// generateProgram, qui substitue la dernière séance du split généré par ce bloc. Chaque station est un
-// bloc « note » (comme cardioNote/Circuit core) plutôt qu'un exercice à charge : les vraies stations Hyrox
-// (sled, farmer carry, wall balls…) se pilotent en distance/temps/reps sous fatigue, pas en séries de
-// musculation classiques — forcer ce format dans la grille kg×reps aurait recréé le même genre d'ambiguïté
-// que le bug reps-vs-secondes déjà corrigé sur le gainage. tag:'hyrox' réutilise tel quel le mécanisme de
-// bouton de validation déjà construit pour le cardio (voir renderDay/sessionProgress/exDuration) plutôt que
-// d'inventer un système parallèle.
+// generateProgram, qui substitue la dernière séance du split généré par ce bloc.
+// v2 (retour utilisateur, après avoir converti un jour : « au même titre que pour les autres séances, il
+// faut les boutons de validation, l'explication de l'exercice, les visuels, garder les perf n-1 ») :
+// chaque station est maintenant un VRAI exercice (plus une note comme cardioNote/Circuit core), pour
+// repasser par renderExerciseCard() comme n'importe quel jour et hériter gratuitement de tout — grille de
+// séries à cocher, fiche technique (HOWTO), Changer/Passer, sparkline, suggestWeight, ressenti. Les
+// distances (« 20-25 m », « 250 m ») utilisent le champ reps comme les autres formats spéciaux du pool
+// (voir distanceMeters, même principe que holdSeconds) plutôt que de forcer un format qui ne correspond à
+// rien. `bw:true` sur les mouvements sans charge externe réelle à suivre (ski erg/rameur : pas de poids à
+// logger, juste la distance ; burpees : poids de corps) ; `bw:false` (défaut) sur les mouvements chargés où
+// suivre le poids utilisé a un sens (sled, farmer carry, fentes lestées, wall balls si lestés) — même
+// logique que `e.bw` documenté plus bas pour le reste du pool. Pas de photo (`EXO_PHOTO`) : aucune image
+// pour ces mouvements n'existe dans `img/exercises/`, `moveViz()` dégrade déjà proprement sans photo.
 function hyroxDay(){
   return{
     id:'hx',t:'J?',s:'Hyrox',title:'Séance Hyrox — préparation course',role:'Force-endurance & engine · stations fonctionnelles',
     ex:[
-      {n:'Ski erg / Rameur',note:true,tag:'hyrox',mins:12,cue:'5 × 250 m à allure soutenue (RPE 7-8), récup 60-90 s entre les intervalles — travaille le "engine" sans t’épuiser avant le reste.'},
-      {n:'Sled push & pull',note:true,tag:'hyrox',mins:10,cue:'4 allers-retours de 20-25 m (sled si dispo, sinon poussée de charge lestée ou traîneau maison) — pousse en foulées courtes, tire en pas chassés, dos plat.'},
-      {n:'Farmer carry',note:true,tag:'hyrox',mins:8,cue:'4 × 40 m avec une charge lourde par main (haltères/kettlebells) — épaules basses, gainage serré, ne traîne pas les pieds.'},
-      {n:'Fentes lestées (sandbag/haltères)',note:true,tag:'hyrox',mins:8,cue:'3 × 20 m aller — sac ou haltères sur les épaules, pas long, genou arrière frôle le sol sans le toucher.'},
-      {n:'Wall balls',note:true,tag:'hyrox',mins:8,cue:'3 × 15-20 reps, ballon lesté contre un mur (ou squat + press haltères si pas de wall ball) — reçois la charge en position basse, enchaîne sans à-coup.'},
-      {n:'Burpees broad jumps',note:true,tag:'hyrox',mins:6,cue:'3 × 10 reps — burpee complet suivi d’un saut en longueur, enchaîne sans pause pour rester dans l’esprit course.'}
+      {n:'Ski erg / Rameur',tag:'hyrox',sets:5,reps:'250 m',rest:75,bw:true,cue:'Allure soutenue (RPE 7-8) sur chaque intervalle — travaille le "engine" sans t’épuiser avant le reste.'},
+      {n:'Sled push & pull',tag:'hyrox',sets:4,reps:'20-25 m',rest:90,cue:'Sled si dispo, sinon poussée de charge lestée ou traîneau maison — pousse en foulées courtes, tire en pas chassés, dos plat.'},
+      {n:'Farmer carry',tag:'hyrox',sets:4,reps:'40 m',rest:90,cue:'Charge lourde par main (haltères/kettlebells) — épaules basses, gainage serré, ne traîne pas les pieds.'},
+      {n:'Fentes lestées (sandbag/haltères)',tag:'hyrox',sets:3,reps:'20 m',rest:75,cue:'Sac ou haltères sur les épaules, pas long, genou arrière frôle le sol sans le toucher.'},
+      {n:'Wall balls',tag:'hyrox',sets:3,reps:'15-20',rest:60,cue:'Ballon lesté contre un mur (ou squat + press haltères si pas de wall ball) — reçois la charge en position basse, enchaîne sans à-coup.'},
+      {n:'Burpees broad jumps',tag:'hyrox',sets:3,reps:'10',rest:60,bw:true,cue:'Burpee complet suivi d’un saut en longueur, enchaîne sans pause pour rester dans l’esprit course.'}
     ]
   };
 }
@@ -1243,6 +1249,18 @@ function holdSeconds(reps){
   if(!m)return null;
   return parseInt(m[2]||m[1],10);
 }
+// Retour utilisateur (après avoir converti un jour en séance Hyrox) : « au même titre que pour les autres
+// séances, il faut les boutons de validation, l'explication de l'exercice, les visuels, garder les perf
+// n-1 » — voir hyroxDay() plus bas, réécrite en vrais exercices (plus des notes) pour repasser par
+// renderExerciseCard() comme n'importe quel jour, et donc hériter gratuitement de tout ce mécanisme
+// (grille de séries à cocher, Fiche/Changer/Passer, sparkline, suggestWeight, ressenti…). Les distances
+// Hyrox (« 20-25 m », « 250 m ») ne rentrent ni dans le format « reps » ni dans le format « s » déjà gérés
+// — distanceMeters() suit le même principe que holdSeconds() (borne haute si fourchette).
+function distanceMeters(reps){
+  const m=String(reps||'').match(/(\d+)(?:-(\d+))?\s*m\b/i);
+  if(!m)return null;
+  return parseInt(m[2]||m[1],10);
+}
 // Retour utilisateur (capture d'écran Gainage latéral, « 3×30-45 s /côté » avec seulement 3 lignes de
 // séries à remplir) : « je trouve bizarre 3 séries sachant que les obliques c'est chaque côté. Faut-il faire
 // 2 fois trois séries ? Ou juste 3 séries mais un côté ne sera pas fait ? » — la grille de séries affiche
@@ -1345,6 +1363,12 @@ const HOWTO={
 HOWTO["Hip thrust lourd"]=HOWTO["Hip thrust"];
 HOWTO["Extension triceps poulie"]=HOWTO["Extension triceps poulie corde"];
 HOWTO["Curl barre EZ / haltères"]=HOWTO["Curl haltères"];
+HOWTO["Ski erg / Rameur"]={m:"Dos, jambes, cardio (« engine »)",s:["Prise ferme, jambes qui initient chaque poussée avant les bras.","Enchaîne à un rythme soutenu et régulier, pas de à-coups.","Termine chaque intervalle en gardant une forme propre, même fatigué."]};
+HOWTO["Sled push & pull"]={m:"Jambes, dos, gainage",s:["Poussée : buste penché, bras tendus, foulées courtes et puissantes.","Traction : corde ou sangle en pas chassés, dos plat, coudes vers l'arrière.","Garde une respiration régulière, ne bloque pas en apnée sur la distance."]};
+HOWTO["Farmer carry"]={m:"Avant-bras, trapèzes, gainage",s:["Charge lourde dans chaque main, épaules basses et en arrière.","Marche à pas réguliers, gainage serré, regard devant.","Repose la charge en contrôle si la prise lâche, ne la laisse pas tomber."]};
+HOWTO["Fentes lestées (sandbag/haltères)"]={m:"Quadriceps, fessiers, gainage",s:["Charge sur les épaules ou en suitcase carry, buste droit.","Pas long, genou arrière frôle le sol sans le toucher.","Pousse sur la jambe avant pour enchaîner le pas suivant."]};
+HOWTO["Wall balls"]={m:"Quadriceps, épaules, cardio",s:["Squat complet, ballon tenu devant la poitrine.","Explose vers le haut, lance le ballon sur la cible en fin d'extension.","Réceptionne en position basse pour enchaîner directement le squat suivant."]};
+HOWTO["Burpees broad jumps"]={m:"Corps entier, cardio",s:["Burpee complet : mains au sol, pieds en arrière, poitrine au sol, remonte.","Enchaîne immédiatement par un saut en longueur, réception genoux souples.","Pas de pause entre le burpee et le saut — c'est l'enchaînement qui compte."]};
 
 const ALT={
  "Presse à cuisses":["Hack squat","Squat gobelet haltère","Squat guidé (Smith)"],
@@ -1593,9 +1617,10 @@ function sessionProgress(exList){
   let filled=0,total=0;
   exList.forEach(e=>{
     if(e.note){
-      // Seuls le cardio et les blocs Hyrox ont un bouton de validation (voir renderDay) — les autres notes
-      // (ex. « Circuit core » en description pure) restent hors du compteur, comme avant.
-      if(e.tag==='cardio'||e.tag==='hyrox'){
+      // Seul le cardio a un bouton de validation (voir renderDay) — les autres notes (ex. « Circuit core »
+      // en description pure) restent hors du compteur, comme avant. Les blocs Hyrox ne sont plus des notes
+      // (voir hyroxDay()) : ce sont de vrais exercices, comptés plus bas comme n'importe quel autre.
+      if(e.tag==='cardio'){
         total++;
         const arr=getLog(e.id,state.week);
         if(arr&&arr[0]&&arr[0].d)filled++;
@@ -1613,7 +1638,7 @@ function sessionProgress(exList){
 /* ---------- Temps disponible (masque la fin de la séance sans y toucher) ---------- */
 const TIMECAP_OPTIONS=[0,30,45,60,75,90];
 function exDuration(e){
-  if(e.note)return (e.tag==='cardio'||e.tag==='hyrox')?(e.mins||8)*60:180;
+  if(e.note)return e.tag==='cardio'?(e.mins||8)*60:180;
   return (e.sets||3)*(45+(e.rest||60));
 }
 function dayDuration(exList){return exList.reduce((sum,e)=>sum+exDuration(e),0);}
@@ -1639,7 +1664,8 @@ function renderExerciseCard(container,e,opts){
   const spk=sparkline(series(eid,e.bw,week));
   const inRamp=week<=2;
   const hold=holdSeconds(e.reps);
-  const repLabel=hold?'sec':'reps';
+  const dist=hold?null:distanceMeters(e.reps);
+  const repLabel=hold?'sec':(dist?'m':'reps');
 
   const card=document.createElement('div');
   card.className='ex'+(e.cls===CORE?' core':'')+(sw?' swapped':'');
@@ -1653,13 +1679,13 @@ function renderExerciseCard(container,e,opts){
   const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
   const sugg=suggestWeight(e,lt,lastFeel);
   if(lt){
-    const lastVal=e.bw?`<b>${lt.b.r} ${repLabel}</b>`:`<b>${lt.b.w} kg × ${lt.b.r}</b>`;
+    const lastVal=e.bw?`<b>${lt.b.r} ${repLabel}</b>`:`<b>${lt.b.w} kg × ${lt.b.r}${dist?' m':''}</b>`;
     html+=`<div class="last">Dernière fois (S${lt.w}) : ${lastVal}${lastFeel?' '+FEEL_ICON[lastFeel]:''} — à battre${sugg?` · essaie <b>${sugg} kg</b>`:''}</div>`;
   }
   const warm=warmupSets(e,lt);
   if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
   html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
-  const repPh=hold||e.reps.split('-')[0]||'';
+  const repPh=hold||dist||e.reps.split('-')[0]||'';
   html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?`<span></span><span>${repLabel}</span><span></span>`:`<span></span><span>kg</span><span></span><span>${repLabel}</span><span></span>`}</div>`;
   rows.forEach((s,si)=>{
     html+=e.bw?`<div class="setrow bw" data-ex="${eid}" data-si="${si}">
@@ -1752,12 +1778,26 @@ function renderDay(){
   }
   const sdb=hd.querySelector('#shareDayBtn');if(sdb)sdb.onclick=()=>shareCurrentDay();
   const chb=hd.querySelector('#convertHyroxBtn');if(chb)chb.onclick=()=>{
-    if(!confirm(`Remplacer « ${day.t} ${day.s} » par une séance Hyrox ? L'historique de charges des exercices actuels de ce jour n'est pas supprimé (juste plus affiché ici) — action réversible en reconvertissant plus tard, mais ce jour n'affichera plus que le bloc Hyrox.`))return;
+    if(!confirm(`Remplacer « ${day.t} ${day.s} » par une séance Hyrox ? L'historique de charges des exercices actuels de ce jour est effacé (pas juste masqué) — action réversible en reconvertissant plus tard, mais ce jour n'affichera plus que le bloc Hyrox.`))return;
     const dayIdx=DAYS.findIndex(d=>d.id===day.id);
     if(dayIdx===-1)return;
     // Contrairement à generateProgram (qui assigne les id de tous les jours d'un coup, à la fin), hyroxDay()
     // seule ne pose aucun id sur ses blocs — sans ça, les 6 blocs partagent tous eid=undefined, donc UN
     // seul state.logs partagé pour les 6 (cocher l'un les valide tous). Reproduit ici la même assignation.
+    // Bug trouvé en testant : garder le même id de JOUR (day.id) fait que les nouveaux blocs Hyrox
+    // héritent du même schéma d'id que les anciens exercices à la même position (dayId+'e'+position) — sans
+    // purge, un ancien historique (state.logs/feels/skips/swaps d'« Extension triceps poulie » à la
+    // position 4, par ex.) réapparaissait tel quel sous « Fentes lestées » à cette même position (lignes de
+    // séries en trop, mauvais poids suggéré, swap fantôme…). On efface donc explicitement l'historique des
+    // anciens exercices de CE jour avant de les remplacer, plutôt que d'utiliser des id jamais réutilisés
+    // (qui aurait cassé la convention dayId+'e'+position suivie partout ailleurs dans l'app).
+    const oldIds=day.ex.map(e=>e.id);
+    oldIds.forEach(id=>{
+      Object.keys(state.logs).forEach(k=>{if(k.startsWith(id+'__w'))delete state.logs[k];});
+      Object.keys(state.feels).forEach(k=>{if(k.startsWith(id+'__w'))delete state.feels[k];});
+      Object.keys(state.skips).forEach(k=>{if(k.startsWith(id+'__w'))delete state.skips[k];});
+      delete state.swaps[id];
+    });
     const newDay=Object.assign(hyroxDay(),{id:day.id,t:day.t});
     newDay.ex.forEach((e,i)=>e.id=newDay.id+'e'+(i+1));
     DAYS[dayIdx]=newDay;
@@ -1775,21 +1815,19 @@ function renderDay(){
     if(e.note){
       const c=document.createElement('div');c.className='ex note';
       let doneTag='';
-      if(e.tag==='cardio'||e.tag==='hyrox'){
+      if(e.tag==='cardio'){
         // Retour utilisateur : « le cardio doit aussi avoir un bouton de validation » — jusqu'ici le
         // cardio ajouté en fin de séance (cardioNote) n'était qu'une carte descriptive, sans aucun moyen
         // de la cocher, contrairement à un vrai exercice ; elle ne comptait donc jamais dans le compteur
         // « X/Y exercices remplis ». Un seul faux « set » dans state.logs (pas de poids/reps à saisir pour
         // du cardio) sert juste à porter le flag fait/pas fait, réutilisé tel quel par sessionProgress.
-        // Même mécanisme réutilisé pour les blocs Hyrox (tag==='hyrox') : eux non plus n'ont pas de poids/
-        // reps à saisir (distance/temps décrits dans le cue), juste un fait/pas fait par bloc.
         const key=logKey(e.id,state.week);
         if(!state.logs[key])state.logs[key]=[{w:'',r:'',d:false}];
         const cardioDone=state.logs[key][0].d;
         doneTag=`<div class="exbtns"><button class="skipbtn cardiodone" style="padding:0;color:${cardioDone?'var(--go)':''}">${cardioDone?'✓ Fait':'Marquer comme fait'}</button></div>`;
       }
       c.innerHTML=`<div class="exhead"><div class="idx">•</div><div class="name">${e.n}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">${e.cue}</div>${doneTag}`;
-      if(e.tag==='cardio'||e.tag==='hyrox'){
+      if(e.tag==='cardio'){
         const key=logKey(e.id,state.week);
         c.querySelector('.cardiodone').onclick=ev=>{
           const s=state.logs[key][0];s.d=!s.d;
@@ -2114,7 +2152,7 @@ function daysReviewHtml(days){
     html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
     d.ex.forEach((e,ei)=>{
       if(e.note){
-        html+=`<div style="padding:6px 0;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px">${e.tag==='cardio'?'🫀':(e.tag==='hyrox'?'🏋️':'•')} <b style="color:var(--ink)">${e.n}</b> — ${e.cue}</div>`;
+        html+=`<div style="padding:6px 0;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px">${e.tag==='cardio'?'🫀':'•'} <b style="color:var(--ink)">${e.n}</b> — ${e.cue}</div>`;
         return;
       }
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border)">

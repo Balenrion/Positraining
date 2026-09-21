@@ -114,3 +114,4 @@ Hébergée gratuitement sur GitHub Pages : **https://balenrion.github.io/Positra
 - [x] Une note explique désormais que pour un exercice « /côté » (gainage latéral, Pallof press, rotations obliques…), chaque série couvre les deux côtés — pas besoin de doubler les séries
 - [x] Correction d'un bug où relancer l'abdos express plusieurs fois dans la même semaine réaffichait les séries déjà remplies de la séance précédente au lieu de repartir à zéro
 - [x] Bouton « Convertir en séance Hyrox » sur n'importe quel jour du programme classique en cours, pour activer la préparation Hyrox sans recréer un profil
+- [x] Séance Hyrox : les 6 stations sont maintenant de vrais exercices comme les autres séances (grille de séries à cocher, fiche technique, historique/suggestion de charge d'une semaine à l'autre), plus de simples cases à cocher
