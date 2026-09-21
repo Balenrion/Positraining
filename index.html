@@ -457,6 +457,10 @@
       <div class="d"><b>Confort périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
       <button type="button" class="sw" id="obPerineumSw" aria-label="Activer le confort périnée"></button>
     </div>
+    <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px">
+      <div class="d"><b>Préparation Hyrox</b><br>Remplace ta dernière séance de la semaine par un bloc force-endurance (sled, farmer carry, wall balls…) — pas un jour en plus, pour ne pas surcharger ta récup</div>
+      <button type="button" class="sw" id="obHyroxSw" aria-label="Activer la préparation Hyrox"></button>
+    </div>
     <div class="d" style="margin-top:10px"><b>Points faibles</b> — à prioriser (optionnel)</div>
     <div id="obWeak" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     <div class="d" style="margin-top:10px"><b>Points forts</b> — déjà bien développés, à réduire (optionnel)</div>
@@ -926,6 +930,30 @@ function cardioNote(minutes){
   // où tu peux encore parler), condensés ici en une seule note plutôt qu'un choix de machine à faire.
   return{n:'Cardio léger',note:true,tag:'cardio',mins:minutes,cue:`${minutes} min en fin de séance, à une allure où tu peux encore parler : vélo (résistance 2-3/10, ~60-70 tr/min), rameur (~16-18 coups/min, résistance 3-4/10) ou tapis de marche (plat ou incliné 0-2 %, 4-5 km/h) — bon pour le cœur et la récup, sans te fatiguer avant demain.`};
 }
+// Retour utilisateur (préparation Hyrox) : « ajouter une journée dédiée hyrox dans le programme global,
+// avec ajout d'une option à la création du programme ». En tant que coach : pas un jour EN PLUS (le split
+// classique de Laurent tourne déjà sur 5-6 jours bien remplis — empiler un vrai bloc conditionnement
+// glycolytique par-dessus créerait un risque réel de sous-récupération) mais un jour REMPLACÉ — voir
+// generateProgram, qui substitue la dernière séance du split généré par ce bloc. Chaque station est un
+// bloc « note » (comme cardioNote/Circuit core) plutôt qu'un exercice à charge : les vraies stations Hyrox
+// (sled, farmer carry, wall balls…) se pilotent en distance/temps/reps sous fatigue, pas en séries de
+// musculation classiques — forcer ce format dans la grille kg×reps aurait recréé le même genre d'ambiguïté
+// que le bug reps-vs-secondes déjà corrigé sur le gainage. tag:'hyrox' réutilise tel quel le mécanisme de
+// bouton de validation déjà construit pour le cardio (voir renderDay/sessionProgress/exDuration) plutôt que
+// d'inventer un système parallèle.
+function hyroxDay(){
+  return{
+    id:'hx',t:'J?',s:'Hyrox',title:'Séance Hyrox — préparation course',role:'Force-endurance & engine · stations fonctionnelles',
+    ex:[
+      {n:'Ski erg / Rameur',note:true,tag:'hyrox',mins:12,cue:'5 × 250 m à allure soutenue (RPE 7-8), récup 60-90 s entre les intervalles — travaille le "engine" sans t’épuiser avant le reste.'},
+      {n:'Sled push & pull',note:true,tag:'hyrox',mins:10,cue:'4 allers-retours de 20-25 m (sled si dispo, sinon poussée de charge lestée ou traîneau maison) — pousse en foulées courtes, tire en pas chassés, dos plat.'},
+      {n:'Farmer carry',note:true,tag:'hyrox',mins:8,cue:'4 × 40 m avec une charge lourde par main (haltères/kettlebells) — épaules basses, gainage serré, ne traîne pas les pieds.'},
+      {n:'Fentes lestées (sandbag/haltères)',note:true,tag:'hyrox',mins:8,cue:'3 × 20 m aller — sac ou haltères sur les épaules, pas long, genou arrière frôle le sol sans le toucher.'},
+      {n:'Wall balls',note:true,tag:'hyrox',mins:8,cue:'3 × 15-20 reps, ballon lesté contre un mur (ou squat + press haltères si pas de wall ball) — reçois la charge en position basse, enchaîne sans à-coup.'},
+      {n:'Burpees broad jumps',note:true,tag:'hyrox',mins:6,cue:'3 × 10 reps — burpee complet suivi d’un saut en longueur, enchaîne sans pause pour rester dans l’esprit course.'}
+    ]
+  };
+}
 function applyObjectif(days,objectif){
   let restMul=1,cardioMin=0,everyDay=false;
   if(objectif==='perte'){restMul=0.65;cardioMin=15;everyDay=true;}
@@ -953,6 +981,10 @@ function generateProgram(ob){
   if(ob.perineum)limiteChanges.push(...applyPerineum(days));
   applyObjectif(days,ob.objectif);
   applyNiveau(days,ob.niveau);
+  // Remplace la DERNIÈRE séance du split déjà généré, jamais un jour de plus (voir hyroxDay ci-dessus) — le
+  // libellé t (« J5 », « J6 »…) de la séance remplacée est conservé pour que la numérotation des onglets de
+  // jour reste cohérente, seul son contenu change.
+  if(ob.hyrox&&days.length)days[days.length-1]=Object.assign(hyroxDay(),{t:days[days.length-1].t});
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
   const poids=parseFloat(ob.poids)||75,taille=parseFloat(ob.taille)||170,age=parseFloat(ob.age)||30;
   const sexOffset=ob.sexe==='H'?5:(ob.sexe==='F'?-161:-78);
@@ -1121,7 +1153,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{},mode:'main',focus:null,copy:null};}
+function freshState(){return{week:1,absWeek:0,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{},mode:'main',focus:null,copy:null};}
 function freshFocusState(dayId){return{week:1,day:dayId,logs:{},swaps:{},done:{},skips:{},feels:{}};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
@@ -1168,7 +1200,7 @@ function applyBundle(b){
   copiedSession=b.copiedSession||null;
   GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
   if(!state.mode)state.mode='main';
   if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
   const repaired=[repairHoldReps(program),repairHoldReps(focusProgram),repairHoldReps(copiedSession)].some(Boolean);
@@ -1211,10 +1243,27 @@ function holdSeconds(reps){
   if(!m)return null;
   return parseInt(m[2]||m[1],10);
 }
+// Retour utilisateur (capture d'écran Gainage latéral, « 3×30-45 s /côté » avec seulement 3 lignes de
+// séries à remplir) : « je trouve bizarre 3 séries sachant que les obliques c'est chaque côté. Faut-il faire
+// 2 fois trois séries ? Ou juste 3 séries mais un côté ne sera pas fait ? » — la grille de séries affiche
+// bien `e.sets` lignes quel que soit le format des reps, et pour un exercice « /côté » chaque ligne EST déjà
+// censée couvrir les deux côtés (convention standard : « 3×12/côté » = 3 séries, chaque série = un côté
+// PUIS l'autre) — mais rien dans l'UI ne le disait explicitement, d'où l'ambiguïté légitime. Détecté par
+// motif plutôt qu'un flag à poser à la main sur chaque exercice (Gainage latéral, Pallof press, Rotations
+// obliques, Woodchopper, Fentes marchées, Dead bug, Bird-dog… — actuel ET futurs ajouts au pool).
+// Pas de `\b` final : `\w`/`\b` en JS sont ASCII-only, donc `\b` juste après un accent (« côté ») ne
+// matche jamais (trouvé en testant — faux négatif silencieux sur tous les exercices concernés). Le
+// préfixe `/` suffit déjà à éviter les faux positifs, pas besoin de délimiteur de mot en plus.
+function isPerSide(reps){return /\/\s*(côté|jbe)/i.test(String(reps||''));}
 function getLog(exId,w){return state.logs[logKey(exId,w)]||null;}
 function bestSet(arr,bw){if(!arr)return null;let b=null;arr.forEach(s=>{const r=parseInt(s.r);if(isNaN(r))return;if(bw){if(!b||r>b.r)b={w:0,r};return;}const w=parseFloat(s.w);if(isNaN(w))return;if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};});return b;}
 function lastTime(exId,curW,bw){for(let k=curW-1;k>=1;k--){const b=bestSet(getLog(exId,k),bw);if(b)return{w:k,b};}return null;}
-function series(exId,bw){const pts=[];for(let k=1;k<=8;k++){const b=bestSet(getLog(exId,k),bw);if(b)pts.push({week:k,val:bw?b.r:b.w});}return pts;}
+// `upto` (par défaut 8, donc semaines 1-8, comportement historique inchangé pour le programme principal)
+// permet une fenêtre glissante des 8 derniers points se terminant à `upto` plutôt qu'un intervalle figé —
+// nécessaire pour l'abdos express (voir state.absWeek) dont le compteur de séance n'est pas plafonné à 8
+// comme le cycle de phases du programme principal ; sans ça, la sparkline resterait figée/vide après la
+// 8ᵉ séance d'abdos express au lieu de continuer à suivre les séances les plus récentes.
+function series(exId,bw,upto){const end=upto||8,start=Math.max(1,end-7);const pts=[];for(let k=start;k<=end;k++){const b=bestSet(getLog(exId,k),bw);if(b)pts.push({week:k,val:bw?b.r:b.w});}return pts;}
 function repsRange(reps){const m=String(reps||'').match(/(\d+)(?:-(\d+))?/);if(!m)return null;return{lo:+m[1],hi:m[2]?+m[2]:+m[1]};}
 function roundStep(v,step){return Math.round(v/step)*step;}
 const EX_FEELS=[{key:'facile',icon:'😌',label:'Facile'},{key:'ok',icon:'👍',label:'Ok'},{key:'dur',icon:'😓',label:'Trop dur'}];
@@ -1544,9 +1593,9 @@ function sessionProgress(exList){
   let filled=0,total=0;
   exList.forEach(e=>{
     if(e.note){
-      // Seul le cardio a un bouton de validation (voir renderDay) — les autres notes (ex. « Circuit core »
-      // en description pure) restent hors du compteur, comme avant.
-      if(e.tag==='cardio'){
+      // Seuls le cardio et les blocs Hyrox ont un bouton de validation (voir renderDay) — les autres notes
+      // (ex. « Circuit core » en description pure) restent hors du compteur, comme avant.
+      if(e.tag==='cardio'||e.tag==='hyrox'){
         total++;
         const arr=getLog(e.id,state.week);
         if(arr&&arr[0]&&arr[0].d)filled++;
@@ -1564,7 +1613,7 @@ function sessionProgress(exList){
 /* ---------- Temps disponible (masque la fin de la séance sans y toucher) ---------- */
 const TIMECAP_OPTIONS=[0,30,45,60,75,90];
 function exDuration(e){
-  if(e.note)return e.tag==='cardio'?(e.mins||8)*60:180;
+  if(e.note)return (e.tag==='cardio'||e.tag==='hyrox')?(e.mins||8)*60:180;
   return (e.sets||3)*(45+(e.rest||60));
 }
 function dayDuration(exList){return exList.reduce((sum,e)=>sum+exDuration(e),0);}
@@ -1587,7 +1636,7 @@ function renderExerciseCard(container,e,opts){
   const rows=state.logs[key];
   while(rows.length<e.sets)rows.push({w:'',r:'',d:false});
   const lt=lastTime(eid,week,e.bw);
-  const spk=sparkline(series(eid,e.bw));
+  const spk=sparkline(series(eid,e.bw,week));
   const inRamp=week<=2;
   const hold=holdSeconds(e.reps);
   const repLabel=hold?'sec':'reps';
@@ -1600,6 +1649,7 @@ function renderExerciseCard(container,e,opts){
   if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${fmtRest(e.rest)} ⏱</span>`;
   if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
   html+=`</div>`;
+  if(isPerSide(e.reps))html+=`<div class="last" style="color:var(--muted)">💡 Chaque série = les 2 côtés (l’un puis l’autre) — pas besoin de doubler les séries.</div>`;
   const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
   const sugg=suggestWeight(e,lt,lastFeel);
   if(lt){
@@ -1657,8 +1707,8 @@ function renderExerciseCard(container,e,opts){
   card.querySelectorAll('.setrow').forEach(row=>{
     const si=+row.dataset.si,exId=row.dataset.ex,k=logKey(exId,week);
     const wIn=row.querySelector('.w');
-    if(wIn)wIn.oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId,e.bw);if(onChange)onChange();};
-    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId,e.bw);if(onChange)onChange();};
+    if(wIn)wIn.oninput=ev=>{state.logs[k][si].w=ev.target.value;save();refreshSpark(card,exId,e.bw,week);if(onChange)onChange();};
+    row.querySelector('.r').oninput=ev=>{state.logs[k][si].r=ev.target.value;save();refreshSpark(card,exId,e.bw,week);if(onChange)onChange();};
     row.querySelector('.done').onclick=ev=>{const s=state.logs[k][si];s.d=!s.d;ev.currentTarget.classList.toggle('on',s.d);save();if(s.d){if(navigator.vibrate)navigator.vibrate(15);if(e.rest>0)startTimer(e.rest,nm);}if(onChange)onChange();};
   });
   container.appendChild(card);
@@ -1705,19 +1755,21 @@ function renderDay(){
     if(e.note){
       const c=document.createElement('div');c.className='ex note';
       let doneTag='';
-      if(e.tag==='cardio'){
+      if(e.tag==='cardio'||e.tag==='hyrox'){
         // Retour utilisateur : « le cardio doit aussi avoir un bouton de validation » — jusqu'ici le
         // cardio ajouté en fin de séance (cardioNote) n'était qu'une carte descriptive, sans aucun moyen
         // de la cocher, contrairement à un vrai exercice ; elle ne comptait donc jamais dans le compteur
         // « X/Y exercices remplis ». Un seul faux « set » dans state.logs (pas de poids/reps à saisir pour
         // du cardio) sert juste à porter le flag fait/pas fait, réutilisé tel quel par sessionProgress.
+        // Même mécanisme réutilisé pour les blocs Hyrox (tag==='hyrox') : eux non plus n'ont pas de poids/
+        // reps à saisir (distance/temps décrits dans le cue), juste un fait/pas fait par bloc.
         const key=logKey(e.id,state.week);
         if(!state.logs[key])state.logs[key]=[{w:'',r:'',d:false}];
         const cardioDone=state.logs[key][0].d;
         doneTag=`<div class="exbtns"><button class="skipbtn cardiodone" style="padding:0;color:${cardioDone?'var(--go)':''}">${cardioDone?'✓ Fait':'Marquer comme fait'}</button></div>`;
       }
       c.innerHTML=`<div class="exhead"><div class="idx">•</div><div class="name">${e.n}${e.tag?`<span class="tag">${e.tag}</span>`:''}</div></div><div class="notebody">${e.cue}</div>${doneTag}`;
-      if(e.tag==='cardio'){
+      if(e.tag==='cardio'||e.tag==='hyrox'){
         const key=logKey(e.id,state.week);
         c.querySelector('.cardiodone').onclick=ev=>{
           const s=state.logs[key][0];s.d=!s.d;
@@ -1820,8 +1872,8 @@ $('#axAdd').onclick=()=>{
   $('#addex').classList.remove('show');
   renderDay();
 };
-function refreshSpark(card,exId,bw){
-  const svg=sparkline(series(exId,bw));const head=card.querySelector('.exhead');
+function refreshSpark(card,exId,bw,week){
+  const svg=sparkline(series(exId,bw,week));const head=card.querySelector('.exhead');
   const old=head.querySelector('.spark');
   if(svg){const tmp=document.createElement('div');tmp.innerHTML=svg;const el=tmp.firstChild;
     if(old)old.replaceWith(el);else head.appendChild(el);}
@@ -1979,7 +2031,7 @@ $('#importFile').onchange=ev=>{
       focusProgram=null;copiedSession=null;
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
     if(!state.mode)state.mode='main';
     if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
     state.updatedAt=Date.now();
@@ -1991,7 +2043,7 @@ $('#importFile').onchange=ev=>{
 };
 
 /* ---------- Profils : nouveau / suppression ---------- */
-let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false;
+let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false,obHyrox=false;
 function renderChipSet(id,groups,selected){
   const el=$('#'+id);if(!el)return;
   el.innerHTML=groups.map(g=>`<button type="button" class="day${selected.has(g.key)?' on':''}" data-k="${g.key}" style="padding:6px 11px"><span class="t">${g.label}</span></button>`).join('');
@@ -2014,14 +2066,16 @@ function renderMuscleChips(id,selected,other){
 $('#newProfileBtn').onclick=()=>{
   ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
   $('#obSexe').value='H';
-  obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();obPerineum=false;
+  obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();obPerineum=false;obHyrox=false;
   renderMuscleChips('obWeak',obWeakSet,obStrongSet);
   renderMuscleChips('obStrong',obStrongSet,obWeakSet);
   renderChipSet('obLimiteZones',LIMITE_INFO,obLimiteSet);
   $('#obPerineumSw').classList.remove('on');
+  $('#obHyroxSw').classList.remove('on');
   $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
 };
 $('#obPerineumSw').onclick=()=>{obPerineum=!obPerineum;$('#obPerineumSw').classList.toggle('on',obPerineum);};
+$('#obHyroxSw').onclick=()=>{obHyrox=!obHyrox;$('#obHyroxSw').classList.toggle('on',obHyrox);};
 $('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
 $('#onboard').onclick=e=>{if(e.target.id==='onboard')$('#onboard').classList.remove('show');};
 $('#obGenerate').onclick=()=>{
@@ -2029,7 +2083,7 @@ $('#obGenerate').onclick=()=>{
   if(!prenom){$('#obPrenom').focus();return;}
   const poids=$('#obPoids').value,taille=$('#obTaille').value,age=$('#obAge').value;
   if(!poids||!taille||!age){if(!age)$('#obAge').focus();else if(!poids)$('#obPoids').focus();else $('#obTaille').focus();return;}
-  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet],limiteZones:[...obLimiteSet],perineum:obPerineum};
+  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet],limiteZones:[...obLimiteSet],perineum:obPerineum,hyrox:obHyrox};
   draftProgram=generateProgram(draftOnboarding);
   $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
 };
@@ -2040,7 +2094,7 @@ function daysReviewHtml(days){
     html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
     d.ex.forEach((e,ei)=>{
       if(e.note){
-        html+=`<div style="padding:6px 0;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px">${e.tag==='cardio'?'🫀':'•'} <b style="color:var(--ink)">${e.n}</b> — ${e.cue}</div>`;
+        html+=`<div style="padding:6px 0;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px">${e.tag==='cardio'?'🫀':(e.tag==='hyrox'?'🏋️':'•')} <b style="color:var(--ink)">${e.n}</b> — ${e.cue}</div>`;
         return;
       }
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border)">
@@ -2069,6 +2123,7 @@ function renderReview(){
     html+=`<div class="insight warn">Adapté aux limites signalées — ${lines}.</div>`;
   }
   if(draftOnboarding.perineum)html+=`<div class="insight warn">${CORE_SAFE_NOTE}</div>`;
+  if(draftOnboarding.hyrox)html+=`<div class="insight ok">Préparation Hyrox activée : ta dernière séance de la semaine (${draftProgram.days[draftProgram.days.length-1].t}) est remplacée par un bloc force-endurance dédié, pas ajoutée en plus.</div>`;
   if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
   html+=daysReviewHtml(draftProgram.days);
   html+=`<div class="opt" style="display:block;flex-direction:column">
@@ -2504,15 +2559,15 @@ function renderAbsSession(){
     const e=swapSrc?Object.assign({},swapSrc,{n:x.n}):x;
     const nm=swappedName||x.n;
     const eid='abs_'+slug(nm);
-    const skipKey=logKey(eid,state.week);
+    const skipKey=logKey(eid,state.absWeek);
     if(state.skips[skipKey]){
       const c=document.createElement('div');c.className='ex note';
-      c.innerHTML=`<div class="exhead"><div class="idx">${i+1}</div><div class="name">${nm}</div></div><div class="notebody">Passé cette semaine. <button class="skipbtn" style="padding:0">↩ Reprendre</button></div>`;
+      c.innerHTML=`<div class="exhead"><div class="idx">${i+1}</div><div class="name">${nm}</div></div><div class="notebody">Passé cette séance. <button class="skipbtn" style="padding:0">↩ Reprendre</button></div>`;
       c.querySelector('.skipbtn').onclick=()=>{delete state.skips[skipKey];save();renderAbsSession();};
       container.appendChild(c);return;
     }
     renderExerciseCard(container,e,{
-      eid,nm,sw:swappedName?x.n:null,week:state.week,idx:i+1,
+      eid,nm,sw:swappedName?x.n:null,week:state.absWeek,idx:i+1,
       allowSwap:true,allowSkip:true,allowRemove:false,
       onSwap:()=>openAbsSwap(x),
       onSkip:()=>{state.skips[skipKey]=true;save();renderAbsSession();}
@@ -2536,6 +2591,16 @@ $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.
 $('#absMain').onclick=()=>{
   if(!absStarted){
     absStarted=true;
+    // Retour utilisateur : « sur la capture des abdos express, ça garde apparemment la séance précédente
+    // sans revenir à zéro à la nouvelle séance » — cause : les cartes d'exercice de l'abdos express étaient
+    // journalisées sous logKey(eid, state.week), la semaine du programme PRINCIPAL, alors que l'abdos
+    // express peut être relancé plusieurs fois dans la même semaine (c'est une fonctionnalité rapide
+    // indépendante du calendrier hebdomadaire) — une 2e séance dans la même semaine retombait donc sur EXACTEMENT
+    // les mêmes entrées déjà cochées/remplies que la 1ère, au lieu de partir vierge. state.absWeek est un
+    // compteur dédié, incrémenté à chaque VRAI démarrage (pas à l'ouverture du sheet) : chaque nouvelle
+    // séance d'abdos express obtient un numéro jamais utilisé, donc des séries forcément vides au départ —
+    // et « Dernière fois » compare bien à la séance d'abdos précédente, pas à une semaine du programme.
+    state.absWeek=(state.absWeek||0)+1;
     state.perineumCare=absSetup.safe;state.absLevel=absSetup.level;save();
     renderAbsSheet();
     return;
