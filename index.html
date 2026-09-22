@@ -581,7 +581,16 @@ const DAYS_ORIGINAL=[
    {n:'Face pull',sets:3,reps:'15-20',rest:60,cue:'Tire vers le front, rotation externe — deltoïdes postérieurs.'},
    {n:'Curl haltères',tag:'coude',sets:3,reps:'10-12',rest:60,cue:'Léger si ça tire (épitrochléite), coudes fixes, contrôle la descente. Marteau si besoin.'},
    {n:'Pallof press poulie',tag:'obliques',sets:3,reps:'12 /côté',rest:45,cls:CORE,cue:'Anti-rotation : résiste à la traction, bras tendus, gainage total.'},
-   {n:'Gainage latéral',tag:'core',sets:3,reps:'30-45 s /côté',rest:45,cls:CORE,bw:true,cue:'Corps aligné, hanches hautes, ne t\u2019affaisse pas.'}
+   {n:'Gainage latéral',tag:'core',sets:3,reps:'30-45 s /côté',rest:45,cls:CORE,bw:true,cue:'Corps aligné, hanches hautes, ne t\u2019affaisse pas.'},
+   // Retour utilisateur (prise de masse, délégation coach : « c'est à toi de définir les bons programmes ») :
+   // le programme de Laurent n'avait jusqu'ici AUCUN travail dédié aux trapèzes (Shrugs haltères tout juste
+   // ajouté au pool ci-dessus) — un vrai trou pour un objectif de prise de masse générale. Ajouté en FIN de
+   // tableau (jamais au milieu) : DAYS_ORIGINAL assigne les id par position (`d.id+'e'+(i+1)`), et ce
+   // programme est celui déjà suivi par Laurent (`freshProgramDefault`, jamais passé par `generateProgram`)
+   // — insérer au milieu aurait décalé l'id de Pallof press/Gainage latéral et fait apparaître leur
+   // historique déjà loggé sous le mauvais exercice (même piège que la contamination d'historique déjà
+   // rencontrée et corrigée sur la conversion Hyrox).
+   {n:'Shrugs haltères',sets:4,reps:'12-15',rest:60,cue:'Haltères le long du corps, hausse les épaules vers les oreilles sans les rouler, pause 1 s en haut, contrôle la descente.'}
  ]},
  {id:'d4',t:'J4',s:'Bas B',title:'Bas B — Chaîne postérieure',role:'Volume jambes #2 · dominante ischios/fessiers',
   ex:[
