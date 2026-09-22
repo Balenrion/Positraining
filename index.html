@@ -649,14 +649,35 @@ EXO_POOL['Adduction machine']={n:'Adduction machine',tag:'adducteurs',sets:3,rep
 // sollicite différemment les ischios biarticulaires, donc chacun garde sa propre prescription et son
 // propre historique de charges).
 EXO_POOL['Leg curl assis']={n:'Leg curl assis',sets:4,reps:'10-15',rest:90,cue:'Cuisse bien bloquée sous le rouleau, hanche fléchie ; fléchis les genoux jusqu’à la contraction complète, pas d’à-coups avec le buste, contrôle le retour.'};
+// Retour utilisateur, à partir de 5 programmes de prise de masse achetés (usage personnel, lui et sa
+// femme) : « ce qui va être intéressant c'est de rajouter des exercices qui peuvent manquer [...] c'est à
+// toi de définir les bons programmes ». En comparant EXO_GROUP à ces documents, plusieurs mouvements de
+// base pour la prise de masse manquaient complètement au pool (aucun mouvement de squat dans `quad`, aucun
+// développé couché ou militaire à la barre, pas de rowing dos-épaisseur, pas de trapèzes) — alors que
+// `img/exercises/` contenait déjà des photos jamais utilisées pour bon nombre d'entre eux (laissés en
+// simples options de `ALT` sans jamais devenir de vrais exercices du pool, sélectionnables par les
+// générateurs). Ajoutés ici avec leur propre prescription, en réutilisant les photos/fiches déjà présentes
+// quand elles existent (`Hack squat`, `Squat gobelet haltère`, `Tirage horizontal poulie` avaient déjà
+// HOWTO+photo ; `HOWTO` complété pour les 5 autres, voir plus bas).
+EXO_POOL['Hack squat']={n:'Hack squat',sets:4,reps:'8-12',rest:120,cue:'Épaules sous les cales, dos plaqué, descends jusqu’aux cuisses parallèles sans décoller le bas du dos, pousse dans les talons.'};
+EXO_POOL['Squat gobelet haltère']={n:'Squat gobelet haltère',sets:4,reps:'10-15',rest:90,cue:'Haltère vertical contre la poitrine, descends cuisses parallèles ou plus bas, coudes qui glissent entre les genoux, buste droit.'};
+EXO_POOL['Développé couché barre']={n:'Développé couché barre',sets:4,reps:'6-10',rest:150,cue:'Prise un peu plus large que les épaules, omoplates serrées et basses, descends jusqu’à effleurer la poitrine, pousse sans rebondir.'};
+EXO_POOL['Développé militaire Smith']={n:'Développé militaire Smith',sets:4,reps:'8-12',rest:120,cue:'Barre guidée, prise un peu plus large que les épaules, pousse au-dessus de la tête sans cambrer excessivement le bas du dos.'};
+EXO_POOL['Tirage horizontal poulie']={n:'Tirage horizontal poulie',sets:4,reps:'8-12',rest:90,cue:'Assis, genoux à peine fléchis, dos droit, tire vers le nombril en serrant les omoplates, reviens en contrôlant l’étirement.'};
+EXO_POOL['Rowing T-bar']={n:'Rowing T-bar',sets:4,reps:'8-12',rest:120,cue:'Buste penché ~45°, dos plat, tire la barre vers le bas du ventre en serrant les omoplates, redescends en contrôle.'};
+EXO_POOL['Skullcrusher barre EZ']={n:'Skullcrusher barre EZ',sets:3,reps:'10-12',rest:75,cue:'Allongé, barre EZ au-dessus du front, coudes fixes pointés au plafond, descends en contrôle puis tends sans décoller les coudes.'};
+EXO_POOL['Shrugs haltères']={n:'Shrugs haltères',tag:'trapèzes',sets:4,reps:'12-15',rest:60,cue:'Haltères le long du corps, hausse les épaules vers les oreilles sans les rouler, pause 1 s en haut, contrôle la descente.'};
+EXO_POOL['Mollets assis']={n:'Mollets assis',sets:4,reps:'12-15',rest:60,cue:'Genoux sous le rouleau, talons dans le vide, monte le plus haut possible sur la pointe, pause 1 s, étirement complet en bas — cible plutôt le soléaire, complément du mollet debout.'};
 const EXO_GROUP={
- quad:['Presse à cuisses','Fentes marchées haltères','Leg extension'],
+ // Ajouts « prise de masse » en fin de chaque tableau (jamais insérés au milieu) pour ne pas décaler les
+ // index fixes utilisés ailleurs par position (genderBias, templates fixes de buildDay, pickExo(g,2) etc.).
+ quad:['Presse à cuisses','Fentes marchées haltères','Leg extension','Hack squat','Squat gobelet haltère'],
  hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl allongé','Hip thrust','Leg curl assis'],
- push:['Développé couché haltères','Développé incliné haltères','Développé incliné machine','Chest press machine convergente','Dips machine / assistées'],
+ push:['Développé couché haltères','Développé incliné haltères','Développé incliné machine','Chest press machine convergente','Dips machine / assistées','Développé couché barre'],
  pushIso:['Écarté poulies','Écarté incliné haltères'],
- pull:['Tirage vertical prise large','Rowing haltère un bras','Pull-over poulie haute'],
- shoulder:['Développé épaules haltères','Développé épaules machine','Élévations latérales','Élévations latérales poulie','Face pull'],
- arms:['Curl haltères','Curl marteau','Extension triceps poulie corde','Extension triceps au-dessus de la tête','Curl barre EZ / haltères'],
+ pull:['Tirage vertical prise large','Rowing haltère un bras','Pull-over poulie haute','Tirage horizontal poulie','Rowing T-bar','Shrugs haltères'],
+ shoulder:['Développé épaules haltères','Développé épaules machine','Élévations latérales','Élévations latérales poulie','Face pull','Développé militaire Smith'],
+ arms:['Curl haltères','Curl marteau','Extension triceps poulie corde','Extension triceps au-dessus de la tête','Curl barre EZ / haltères','Skullcrusher barre EZ'],
  // Hip thrust ajouté ici en plus de son entrée dans « hinge » (retour utilisateur : « il manque du hip
  // thrust » — sélectionnable en choisissant « Ischios / fessiers », mais pas via « Fessiers / mollets »,
  // le libellé le plus intuitif pour cibler spécifiquement les fessiers) : templateFocus déduplique par
@@ -664,7 +685,7 @@ const EXO_GROUP={
  // sont choisis ensemble. Adduction machine ajoutée en complément d'Abduction machine (même retour
  // utilisateur). Ajoutés en fin de liste pour ne pas décaler les index 0/1 utilisés ailleurs (genderBias,
  // templates fixes de buildDay) qui pointent vers Abduction machine / Mollets debout.
- glutes:['Abduction machine','Mollets debout','Hip thrust','Adduction machine'],
+ glutes:['Abduction machine','Mollets debout','Hip thrust','Adduction machine','Mollets assis'],
  core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core']
 };
 function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
@@ -719,12 +740,12 @@ function applyMuscleFocus(days,weak,strong){
   return days;
 }
 const LIMITE_INFO=[
- {key:'genou',label:'Genou',exclude:['Presse à cuisses','Fentes marchées haltères','Leg extension']},
- {key:'epaule',label:'Épaule',exclude:['Développé épaules haltères','Développé épaules machine','Dips machine / assistées']},
+ {key:'genou',label:'Genou',exclude:['Presse à cuisses','Fentes marchées haltères','Leg extension','Hack squat','Squat gobelet haltère']},
+ {key:'epaule',label:'Épaule',exclude:['Développé épaules haltères','Développé épaules machine','Dips machine / assistées','Développé militaire Smith']},
  {key:'dos',label:'Bas du dos',exclude:['Soulevé de terre roumain haltères','Hip thrust lourd'],substitute:'Leg curl allongé'},
- {key:'coude',label:'Coude',exclude:['Extension triceps au-dessus de la tête','Curl barre EZ / haltères','Écarté poulies']},
+ {key:'coude',label:'Coude',exclude:['Extension triceps au-dessus de la tête','Curl barre EZ / haltères','Écarté poulies','Skullcrusher barre EZ']},
  {key:'poignet',label:'Poignet',exclude:['Tirage vertical prise large','Rowing haltère un bras']},
- {key:'cheville',label:'Cheville',exclude:['Mollets debout']}
+ {key:'cheville',label:'Cheville',exclude:['Mollets debout','Mollets assis']}
 ];
 
 /* ---------- Abdos express (accueil) ---------- */
@@ -836,8 +857,17 @@ function applyLimites(days,limiteZones){
             return;
           }
         }
-        const without=d.ex.slice(0,idx).concat(d.ex.slice(idx+1));
-        if(dayDuration(without)<30*60)return;
+        // Bug trouvé en stress-testant les ajouts « prise de masse » (pas causé par eux — reproductible sur
+        // du code déjà en place) : un garde-fou de plancher 30 min, copié du même garde-fou d'applyMuscleFocus,
+        // bloquait ici TOUTE exclusion dès que le jour (calculé sur les sets/repos bruts de DAYS_ORIGINAL, avant
+        // applyObjectif/applyNiveau) passait sous 30 min une fois l'exercice retiré — ex. J1 « Bas A » a 3
+        // exercices genou (Presse à cuisses, Fentes marchées, Leg extension) : retirer le premier faisait déjà
+        // passer le jour sous le seuil, donc les 2 autres restaient bloqués eux aussi, et limiteChanges finissait
+        // vide sans aucun signal — un exercice contre-indiqué restait affiché malgré la case cochée. Pour
+        // applyMuscleFocus (préférence de variété), un plancher de durée a du sens. Pour une limite articulaire
+        // (contre-indication médicale), la sécurité prime sur la durée : mieux vaut une séance plus courte que
+        // garder un mouvement à risque pour respecter un plancher arbitraire. Vérifié qu'aucun jour ne se
+        // retrouve vide (pire cas : J1 genou → 2 exercices restants, Hip thrust + Woodchopper).
         d.ex.splice(idx,1);
         changes.push({label:info.label,from:name,to:null});
       });
@@ -1394,6 +1424,12 @@ HOWTO["Farmer carry"]={m:"Avant-bras, trapèzes, gainage",s:["Charge lourde dans
 HOWTO["Fentes lestées (sandbag/haltères)"]={m:"Quadriceps, fessiers, gainage",s:["Charge sur les épaules ou en suitcase carry, buste droit.","Pas long, genou arrière frôle le sol sans le toucher.","Pousse sur la jambe avant pour enchaîner le pas suivant."]};
 HOWTO["Wall balls"]={m:"Quadriceps, épaules, cardio",s:["Squat complet, ballon tenu devant la poitrine.","Explose vers le haut, lance le ballon sur la cible en fin d'extension.","Réceptionne en position basse pour enchaîner directement le squat suivant."]};
 HOWTO["Burpees broad jumps"]={m:"Corps entier, cardio",s:["Burpee complet : mains au sol, pieds en arrière, poitrine au sol, remonte.","Enchaîne immédiatement par un saut en longueur, réception genoux souples.","Pas de pause entre le burpee et le saut — c'est l'enchaînement qui compte."]};
+HOWTO["Développé couché barre"]={m:"Pectoraux, triceps, épaules",s:["Prise un peu plus large que les épaules, omoplates serrées et basses.","Descends jusqu'à effleurer la poitrine, coudes ~45°.","Pousse en gardant les pieds ancrés au sol, sans rebondir sur la poitrine."]};
+HOWTO["Développé militaire Smith"]={m:"Épaules, triceps",s:["Barre guidée réglée à hauteur d'épaules, prise un peu plus large que les épaules.","Pousse au-dessus de la tête sans verrouiller brutalement les coudes.","Redescends en contrôle sans cambrer excessivement le bas du dos."]};
+HOWTO["Rowing T-bar"]={m:"Dos (épaisseur), biceps",s:["Buste penché ~45°, dos plat, prise ferme sur la barre en T.","Tire vers le bas du ventre en serrant les omoplates.","Redescends en contrôle jusqu'à l'étirement complet."]};
+HOWTO["Skullcrusher barre EZ"]={m:"Triceps",s:["Allongé, barre EZ tenue au-dessus du front, coudes fixes pointés au plafond.","Descends en contrôle jusqu'au front ou juste derrière.","Tends les bras sans décoller les coudes vers l'extérieur."]};
+HOWTO["Shrugs haltères"]={m:"Trapèzes",s:["Haltères le long du corps, bras tendus, épaules relâchées.","Hausse les épaules vers les oreilles sans les rouler vers l'avant/l'arrière.","Pause 1 s en haut, redescends en contrôle."]};
+HOWTO["Mollets assis"]={m:"Mollets (soléaire)",s:["Genoux sous le rouleau, avant-pieds sur le repose-pied, talons dans le vide.","Monte le plus haut possible sur la pointe, pause 1 s en haut.","Descends jusqu'à l'étirement complet, pause 1 s en bas."]};
 
 const ALT={
  "Presse à cuisses":["Hack squat","Squat gobelet haltère","Squat guidé (Smith)"],
