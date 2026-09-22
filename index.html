@@ -587,7 +587,7 @@ const DAYS_ORIGINAL=[
   ex:[
    {n:'Soulevé de terre roumain haltères',sets:4,reps:'8-12',rest:120,cue:'Charnière de hanche, dos neutre, sens l\u2019étirement des ischios. Sangles.'},
    {n:'Hip thrust lourd',sets:4,reps:'8-12',rest:120,cue:'Extension complète, pause 1 s en haut, menton rentré.'},
-   {n:'Leg curl',sets:4,reps:'10-15',rest:90,cue:'Pause en contraction, ne décolle pas les hanches, contrôle le retour.'},
+   {n:'Leg curl allongé',sets:4,reps:'10-15',rest:90,cue:'Pause en contraction, ne décolle pas les hanches, contrôle le retour.'},
    {n:'Abduction machine',sets:3,reps:'15-20',rest:60,cue:'Buste légèrement penché en avant, pause en position ouverte — fessier moyen.'},
    {n:'Mollets debout',sets:4,reps:'10-15',rest:60,cue:'Amplitude max, pause d\u2019étirement 1 s en bas.'},
    {n:'Relevé de jambes suspendu',tag:'bas abdos',sets:3,reps:'10-15',rest:60,cls:CORE,bw:true,cue:'Bascule le bassin (il s\u2019enroule), ne balance pas.'}
@@ -640,9 +640,18 @@ EXO_POOL['Dead bug']={n:'Dead bug',tag:'core',sets:3,reps:'10 / côté',rest:30,
 // jusqu'ici seule l'abduction (fessier moyen) était disponible dans le groupe « Fessiers / mollets », sans
 // son complément pour l'intérieur de cuisse (adducteurs).
 EXO_POOL['Adduction machine']={n:'Adduction machine',tag:'adducteurs',sets:3,reps:'15-20',rest:45,cue:'Assis, dos calé, coussins entre les genoux légèrement écartés ; rapproche les cuisses jusqu’à la fermeture complète, pause 1 s, reviens lentement sans à-coups — intérieur de cuisse, complément de l’abduction.'};
+// Retour utilisateur, sur « Leg curl » du programme classique (J4 Bas B) : « tu vois quel leg curl
+// exactement ? allongé sur le ventre ? assis ? car ça n'engage pas les mêmes muscles. Peut-être les 2 ? »
+// — l'exercice de base a été renommé « Leg curl allongé » (son cue « ne décolle pas les hanches » ne
+// s'applique qu'en position ventrale, l'ambiguïté était réelle). « Leg curl assis » ajouté ici comme
+// exercice à part entière — pas un simple swap cosmétique (voir openSwap : un swap ne fait que changer le
+// nom affiché, garde le même cue/sets/reps de l'original — inadapté ici puisque hanche fléchie vs neutre
+// sollicite différemment les ischios biarticulaires, donc chacun garde sa propre prescription et son
+// propre historique de charges).
+EXO_POOL['Leg curl assis']={n:'Leg curl assis',sets:4,reps:'10-15',rest:90,cue:'Cuisse bien bloquée sous le rouleau, hanche fléchie ; fléchis les genoux jusqu’à la contraction complète, pas d’à-coups avec le buste, contrôle le retour.'};
 const EXO_GROUP={
  quad:['Presse à cuisses','Fentes marchées haltères','Leg extension'],
- hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl','Hip thrust'],
+ hinge:['Soulevé de terre roumain haltères','Hip thrust lourd','Leg curl allongé','Hip thrust','Leg curl assis'],
  push:['Développé couché haltères','Développé incliné haltères','Développé incliné machine','Chest press machine convergente','Dips machine / assistées'],
  pushIso:['Écarté poulies','Écarté incliné haltères'],
  pull:['Tirage vertical prise large','Rowing haltère un bras','Pull-over poulie haute'],
@@ -712,7 +721,7 @@ function applyMuscleFocus(days,weak,strong){
 const LIMITE_INFO=[
  {key:'genou',label:'Genou',exclude:['Presse à cuisses','Fentes marchées haltères','Leg extension']},
  {key:'epaule',label:'Épaule',exclude:['Développé épaules haltères','Développé épaules machine','Dips machine / assistées']},
- {key:'dos',label:'Bas du dos',exclude:['Soulevé de terre roumain haltères','Hip thrust lourd'],substitute:'Leg curl'},
+ {key:'dos',label:'Bas du dos',exclude:['Soulevé de terre roumain haltères','Hip thrust lourd'],substitute:'Leg curl allongé'},
  {key:'coude',label:'Coude',exclude:['Extension triceps au-dessus de la tête','Curl barre EZ / haltères','Écarté poulies']},
  {key:'poignet',label:'Poignet',exclude:['Tirage vertical prise large','Rowing haltère un bras']},
  {key:'cheville',label:'Cheville',exclude:['Mollets debout']}
@@ -1199,6 +1208,20 @@ function repairHoldReps(prog){
   }));
   return changed;
 }
+// Retour utilisateur : « tu vois quel leg curl exactement ? allongé sur le ventre ? assis ? » — l'exercice
+// « Leg curl » du pool a été renommé « Leg curl allongé » pour lever l'ambiguïté (voir EXO_POOL). Un
+// programme déjà généré/sauvegardé AVANT ce renommage garde le nom figé « Leg curl » dans son bundle JSON
+// (même mécanisme que repairHoldReps ci-dessus) — répare au chargement en renommant l'exercice EN PLACE :
+// l'id ne change pas (dayId+'e'+position), donc l'historique de charges (state.logs, gardé par id, pas par
+// nom) n'est pas affecté, seul le libellé affiché se corrige.
+function renameLegacyExerciseNames(prog){
+  if(!prog||!prog.days)return false;
+  let changed=false;
+  prog.days.forEach(d=>d.ex.forEach(e=>{
+    if(!e.note&&e.n==='Leg curl'){e.n='Leg curl allongé';changed=true;}
+  }));
+  return changed;
+}
 function applyBundle(b){
   onboarding=b.onboarding||null;
   program=b.program||freshProgramDefault();
@@ -1209,7 +1232,8 @@ function applyBundle(b){
   if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
   if(!state.mode)state.mode='main';
   if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
-  const repaired=[repairHoldReps(program),repairHoldReps(focusProgram),repairHoldReps(copiedSession)].some(Boolean);
+  const repaired=[repairHoldReps(program),repairHoldReps(focusProgram),repairHoldReps(copiedSession),
+    renameLegacyExerciseNames(program),renameLegacyExerciseNames(focusProgram),renameLegacyExerciseNames(copiedSession)].some(Boolean);
   DAYS=programForMode(state.mode).days;
   if(repaired)persistActiveBundle();
 }
@@ -1343,7 +1367,8 @@ const HOWTO={
  "Gainage latéral":{m:"Obliques, gainage",s:["Sur l'avant-bras, coude sous l'épaule, corps aligné.","Hanches hautes et décollées, ne t'affaisse pas.","Tiens la durée en respirant (chaque côté)."]},
  "Dead bug":{m:"Transverse, gainage profond",s:["Allongé sur le dos, bras tendus vers le plafond, hanches et genoux fléchis à 90°.","Descends lentement un bras vers l'arrière et la jambe opposée vers l'avant, sans décoller le bas du dos du sol.","Reviens à la position de départ et alterne, en respirant normalement (chaque côté)."]},
  "Soulevé de terre roumain haltères":{m:"Ischios, fessiers, dos",s:["Debout, haltères devant les cuisses, genoux à peine fléchis.","Pousse les fesses vers l'arrière (charnière de hanche), dos neutre.","Descends jusqu'à l'étirement des ischios, remonte en serrant les fessiers (sangles)."]},
- "Leg curl":{m:"Ischios",s:["Réglage : axe de rotation aligné avec les genoux.","Fléchis en amenant les talons vers les fessiers, pause en contraction.","Reviens lentement, ne décolle pas les hanches."]},
+ "Leg curl allongé":{m:"Ischios",s:["Réglage : axe de rotation aligné avec les genoux.","Fléchis en amenant les talons vers les fessiers, pause en contraction.","Reviens lentement, ne décolle pas les hanches."]},
+ "Leg curl assis":{m:"Ischios",s:["Cuisse bloquée sous le rouleau, dos calé contre le dossier.","Fléchis les genoux jusqu'à la contraction complète, pause 1 s.","Reviens lentement, sans à-coups avec le buste."]},
  "Abduction machine":{m:"Fessier moyen",s:["Assis, dos calé, léger buste penché en avant.","Écarte les cuisses jusqu'à l'ouverture complète, pause 1 s.","Reviens lentement en gardant la tension."]},
  "Adduction machine":{m:"Adducteurs (intérieur de cuisse)",s:["Assis, dos calé, coussins entre les genoux légèrement écartés.","Rapproche les cuisses jusqu'à la fermeture complète, pause 1 s.","Reviens lentement en gardant la tension, sans à-coups."]},
  "Mollets debout":{m:"Mollets",s:["Avant-pieds sur le repose-pied, talons dans le vide.","Monte le plus haut possible sur la pointe, pause en haut.","Descends jusqu'à l'étirement, pause 1 s en bas."]},
@@ -1393,8 +1418,8 @@ const ALT={
  "Curl haltères":["Curl à la poulie","Curl barre EZ","Curl machine ou pupitre"],
  "Pallof press poulie":["Gainage anti-rotation haltère","Planche classique","Woodchopper léger"],
  "Gainage latéral":["Rotations obliques poulie","Suitcase carry (marche lestée un bras)","Side crunch"],
- "Soulevé de terre roumain haltères":["RDL à la barre ou au Smith","Good morning léger","Leg curl (si le dos fatigue)"],
- "Leg curl":["Leg curl assis ⇄ allongé (l'autre variante)","RDL léger","Nordic curl"],
+ "Soulevé de terre roumain haltères":["RDL à la barre ou au Smith","Good morning léger","Leg curl allongé (si le dos fatigue)"],
+ "Leg curl allongé":["Leg curl à la poulie au sol","RDL léger","Nordic curl"],
  "Abduction machine":["Abduction à la poulie ou élastique","Kickback fessier","Abduction allongé lesté"],
  "Mollets debout":["Mollets à la presse à cuisses","Mollets assis","Mollets sur marche avec haltère"],
  "Relevé de jambes suspendu":["Relevé de genoux sur chaise romaine","Crunch inversé au sol","Relevé de jambes au banc"],
@@ -1422,7 +1447,7 @@ const EXO_PHOTO={
  "Squat gobelet haltère":"squat-gobelet",
  "Fentes marchées haltères":"fentes-marchees",
  "Leg extension":"leg-extension",
- "Leg curl":"leg-curl",
+ "Leg curl allongé":"leg-curl",
  "Soulevé de terre roumain haltères":"souleve-terre-roumain",
  "Hip thrust":"hip-thrust",
  "Hip thrust lourd":"hip-thrust-lourd",
