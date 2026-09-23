@@ -1768,6 +1768,11 @@ function renderExerciseCard(container,e,opts){
   const inRamp=week<=2;
   const hold=holdSeconds(e.reps);
   const dist=hold?null:distanceMeters(e.reps);
+  // `mins` sert encore à l'unité affichée (repLabel/repPh, voir cardioMinutes plus haut) mais plus au bouton
+  // Chrono (retour utilisateur, sur le Stepper ajouté au sélecteur : « pas utile de mettre un timer, la
+  // machine le fait » — contrairement à un maintien chronométré (`hold`, ex. gainage) où il n'y a aucun
+  // minuteur externe, une machine de cardio affiche déjà son propre décompte, doubler avec un chrono dans
+  // l'app n'apporte rien). Voir plus bas : le bouton Chrono reste réservé à `hold`.
   const mins=(hold||dist)?null:cardioMinutes(e.reps);
   const repLabel=hold?'sec':(dist?'m':(mins?'min':'reps'));
 
@@ -1788,7 +1793,7 @@ function renderExerciseCard(container,e,opts){
   }
   const warm=warmupSets(e,lt);
   if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
-  html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:(mins?`<button class="chronobtn">⏱ Chrono ${mins} min</button>`:'')}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
+  html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
   const repPh=hold||dist||mins||e.reps.split('-')[0]||'';
   html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?`<span></span><span>${repLabel}</span><span></span>`:`<span></span><span>kg</span><span></span><span>${repLabel}</span><span></span>`}</div>`;
   rows.forEach((s,si)=>{
@@ -1828,7 +1833,7 @@ function renderExerciseCard(container,e,opts){
     if(navigator.vibrate)navigator.vibrate(10);
   });
   const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
-  const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>(hold?startTimer(hold,nm,'Maintien'):startTimer(mins*60,nm,'Cardio'));
+  const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>startTimer(hold,nm,'Maintien');
   if(allowSwap){const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=onSwap;}
   if(allowSkip){const skb=card.querySelector('.skipbtn');if(skb)skb.onclick=onSkip;}
   if(allowRemove){const rmb=card.querySelector('.rmbtn');if(rmb)rmb.onclick=onRemove;}
