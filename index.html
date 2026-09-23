@@ -81,6 +81,14 @@
         background:var(--raised);border-radius:6px;padding:3px 8px;}
   .chip.rest{cursor:pointer;color:var(--ink);}
   .chip.rest:active{background:var(--go-dim);}
+  /* Séance Hyrox optionnelle (retour utilisateur, spec Hyrox multi-jours) : pastille en pointillés, jamais
+     pleine — distincte visuellement d'un chip normal, pour signaler « ne compte pas si sautée » sans avoir
+     l'air d'une erreur ou d'un avertissement. Réutilisée sur l'onglet de jour, l'en-tête de séance et la
+     review de génération. */
+  .opttag{display:inline-block;font-family:var(--num);font-size:9.5px;font-weight:600;letter-spacing:.04em;
+        text-transform:uppercase;color:var(--muted);border:1px dashed var(--border);border-radius:999px;
+        padding:1px 7px;vertical-align:middle;}
+  .day .opttag{display:block;margin-top:2px;font-size:8.5px;padding:0 5px;}
   .last{padding:2px 13px 0;font-size:11.5px;color:var(--faint);}
   .last b{color:var(--go);font-weight:600;}
   .cuebtn{background:none;border:0;color:var(--faint);font-size:11.5px;text-decoration:underline;
@@ -365,7 +373,7 @@
 </div>
 
 <div class="sheet" id="sheet">
-  <div class="card">
+  <div class="card" style="max-height:85vh;overflow-y:auto">
     <h3>Réglages</h3>
     <div class="acct">
       <div class="d"><b>Qui s'entraîne ?</b></div>
@@ -376,6 +384,13 @@
     <div class="opt">
       <div class="d"><b>Afficher le 6ᵉ jour</b><br>Bras + rappel pecs + core (variante 6 séances)</div>
       <button class="sw" id="sw6" aria-label="Activer le 6e jour"></button>
+    </div>
+    <div class="opt" style="display:block">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div class="d"><b>Préparation Hyrox</b><br>Remplace une ou plusieurs séances par un bloc force-endurance — modifiable ici sans recréer ton profil</div>
+        <button type="button" class="sw" id="setHyroxSw" aria-label="Activer la préparation Hyrox"></button>
+      </div>
+      <div id="setHyroxConfig" style="display:none;margin-top:10px"></div>
     </div>
     <div class="opt">
       <div class="d"><b>Sauvegarde automatique</b><br>Tes charges sont enregistrées sur cet appareil.</div>
@@ -457,9 +472,12 @@
       <div class="d"><b>Confort périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
       <button type="button" class="sw" id="obPerineumSw" aria-label="Activer le confort périnée"></button>
     </div>
-    <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px">
-      <div class="d"><b>Préparation Hyrox</b><br>Remplace ta dernière séance de la semaine par un bloc force-endurance (sled, farmer carry, wall balls…) — pas un jour en plus, pour ne pas surcharger ta récup</div>
-      <button type="button" class="sw" id="obHyroxSw" aria-label="Activer la préparation Hyrox"></button>
+    <div class="opt" style="border-top:0;padding-top:12px;margin-top:4px;display:block">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div class="d"><b>Préparation Hyrox</b><br>Remplace une ou plusieurs séances de la semaine par un bloc force-endurance (sled, farmer carry, wall balls…) — jamais ajoutées en plus, pour ne pas surcharger ta récup</div>
+        <button type="button" class="sw" id="obHyroxSw" aria-label="Activer la préparation Hyrox"></button>
+      </div>
+      <div id="obHyroxConfig" style="display:none;margin-top:10px"></div>
     </div>
     <div class="d" style="margin-top:10px"><b>Points faibles</b> — à prioriser (optionnel)</div>
     <div id="obWeak" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
@@ -1029,6 +1047,129 @@ function hyroxDay(){
     ]
   };
 }
+// Retour utilisateur (feature complète, remplace le bouton manuel « Convertir en séance Hyrox ») : « Hyrox
+// devient une option choisie à la création du programme, avec des jours dédiés » — 1 à 3 jours Hyrox par
+// semaine, chacun avec un statut (obligatoire/optionnel) et un placement (jour dédié ou soir). Reprend et
+// généralise le principe déjà validé en coaching (remplacer, jamais ajouter en plus) à N jours au lieu d'1
+// seul, et rend le nombre/statut/placement réellement configurables plutôt que figés au dernier jour.
+// `hyroxConfig` : {enabled, days:[{status:'required'|'optional', placement:'dedicated'|'evening'}]}.
+//
+// Placement « soir » : réutilise le jour « Soir » déjà existant (id 'ds', uniquement présent sur les
+// templates 5-6 jours/semaine — template56) plutôt que d'inventer une notion de « deuxième séance sur le
+// même jour » qui n'existe nulle part ailleurs dans l'app (un jour = un onglet = une séance, partout).
+// Placement « dédié » : remplace, dans l'ordre, le DERNIER jour non-Soir encore disponible, puis l'avant-
+// dernier, etc. — généralisation directe du comportement à 1 seul jour déjà en place. Si le jour Soir n'existe
+// pas pour ce template (jours < 5) ou est déjà pris, un placement « soir » retombe silencieusement sur
+// « dédié » plutôt que d'échouer.
+// Calcule QUELS jours (par id) doivent devenir Hyrox et avec quelle config, sans rien installer — pure,
+// réutilisée à la fois par applyHyroxConfig (génération d'un nouveau programme) et reconcileHyroxDays
+// (reconfiguration d'un programme déjà en cours depuis les Réglages, voir plus bas), pour que les deux
+// chemins assignent toujours les jours de la même façon.
+function assignHyroxDays(days,hyroxConfig){
+  const assignment=new Map();
+  if(!hyroxConfig||!hyroxConfig.enabled||!hyroxConfig.days||!hyroxConfig.days.length)return assignment;
+  const soirDay=days.find(d=>d.id==='ds');
+  const dedicatedPool=days.filter(d=>d.id!=='ds').slice().reverse();
+  let dedicatedIdx=0;
+  hyroxConfig.days.forEach(cfg=>{
+    let target=null;
+    if(cfg.placement==='evening'&&soirDay&&!assignment.has(soirDay.id)){
+      target=soirDay;
+    }else{
+      while(dedicatedIdx<dedicatedPool.length&&assignment.has(dedicatedPool[dedicatedIdx].id))dedicatedIdx++;
+      target=dedicatedPool[dedicatedIdx];dedicatedIdx++;
+    }
+    if(!target||assignment.has(target.id))return;
+    assignment.set(target.id,cfg);
+  });
+  return assignment;
+}
+function applyHyroxConfig(days,hyroxConfig){
+  const assignment=assignHyroxDays(days,hyroxConfig);
+  assignment.forEach((cfg,dayId)=>{
+    const idx=days.findIndex(d=>d.id===dayId);
+    if(idx===-1)return;
+    const target=days[idx];
+    const newDay=Object.assign(hyroxDay(),{id:target.id,t:target.t});
+    newDay.ex.forEach((e,i)=>e.id=newDay.id+'e'+(i+1));
+    newDay.optionalSession=cfg.status==='optional';
+    days[idx]=newDay;
+  });
+  return days;
+}
+// Purge l'historique (logs/ressenti/passés/swap) des exercices remplacés avant d'installer un nouveau
+// contenu au même id de jour — même bug/correctif que la première version du bouton « Convertir en séance
+// Hyrox » (voir plus bas) : sans ça, un nouvel exercice hérite silencieusement de l'historique de l'ancien
+// exercice qui occupait la même position (dayId+'e'+position). Réutilisée par la reconfiguration Hyrox
+// depuis les Réglages (même risque que la conversion manuelle d'origine).
+function purgeExerciseHistory(exIds){
+  exIds.forEach(id=>{
+    Object.keys(state.logs).forEach(k=>{if(k.startsWith(id+'__w'))delete state.logs[k];});
+    Object.keys(state.feels).forEach(k=>{if(k.startsWith(id+'__w'))delete state.feels[k];});
+    Object.keys(state.skips).forEach(k=>{if(k.startsWith(id+'__w'))delete state.skips[k];});
+    delete state.swaps[id];
+  });
+}
+// Retour à un contenu de jour NON-Hyrox quand aucun snapshot (`program.hyroxBaseDays`) n'existe pour ce jour
+// — normalement rare (le réconciliateur en sauvegarde un systématiquement avant de convertir un jour, voir
+// reconcileHyroxDays), mais nécessaire pour migrer un jour converti par l'ANCIEN bouton « Convertir en
+// séance Hyrox » (celui-ci effaçait l'historique et le contenu d'origine sans jamais le sauvegarder, voir
+// migrateHyroxConversion) : impossible de restaurer un contenu qui n'a jamais été gardé, donc on retombe sur
+// la meilleure source disponible — DAYS_ORIGINAL pour le profil historique de Laurent (jamais passé par
+// generateProgram, ses jours correspondent id pour id à DAYS_ORIGINAL), sinon on regénère depuis les
+// réponses au questionnaire sauvegardées (`onboarding`, toujours présent pour un profil créé via
+// generateProgram) et on reprend le jour correspondant par id — la structure du template (nombre de
+// groupes/jours) ne change pas après création, donc regénérer retrouve la même forme.
+function restoreDayFallback(dayId){
+  const orig=DAYS_ORIGINAL.find(d=>d.id===dayId);
+  if(orig)return{...orig,ex:orig.ex.map(e=>({...e}))};
+  if(onboarding){
+    const fresh=generateProgram(onboarding);
+    const d=fresh.days.find(d=>d.id===dayId);
+    if(d)return d;
+  }
+  return null;
+}
+// Reconfigure Hyrox sur un programme DÉJÀ EN COURS (Réglages, sans recréer le profil) — contrairement à
+// applyHyroxConfig (utilisée une seule fois à la génération d'un programme neuf), doit gérer le cas où un
+// jour est DÉJÀ Hyrox (juste changer son statut), DEVIENT Hyrox (sauvegarder son contenu actuel avant de
+// l'écraser, pour pouvoir le restaurer plus tard) ou REDEVIENT normal (restaurer ce qui avait été sauvegardé).
+// `program.hyroxBaseDays` (id de jour → contenu original) est le mécanisme qui rend ça possible sans jamais
+// regénérer tout le programme depuis les réponses au questionnaire (ce qui aurait perdu toute personnalisation
+// faite depuis : swaps, exercices ajoutés à la main…).
+function reconcileHyroxDays(prog,hyroxConfig){
+  if(!prog.hyroxBaseDays)prog.hyroxBaseDays={};
+  const days=prog.days;
+  const assignment=assignHyroxDays(days,hyroxConfig);
+  days.forEach(d=>{
+    const isHyroxNow=d.ex.some(e=>e.tag==='hyrox');
+    const cfg=assignment.get(d.id);
+    if(cfg){
+      if(!isHyroxNow){
+        prog.hyroxBaseDays[d.id]={...d,ex:d.ex.map(e=>({...e}))};
+        purgeExerciseHistory(d.ex.map(e=>e.id));
+        const idx=days.findIndex(x=>x.id===d.id);
+        const newDay=Object.assign(hyroxDay(),{id:d.id,t:d.t});
+        newDay.ex.forEach((e,i)=>e.id=newDay.id+'e'+(i+1));
+        newDay.optionalSession=cfg.status==='optional';
+        days[idx]=newDay;
+      }else{
+        d.optionalSession=cfg.status==='optional';
+      }
+    }else if(isHyroxNow){
+      const restored=prog.hyroxBaseDays[d.id]||restoreDayFallback(d.id);
+      if(!restored)return;
+      purgeExerciseHistory(d.ex.map(e=>e.id));
+      delete prog.hyroxBaseDays[d.id];
+      const idx=days.findIndex(x=>x.id===d.id);
+      const newDay={...restored,id:d.id,t:d.t,ex:restored.ex.map(e=>({...e}))};
+      newDay.ex.forEach((e,i)=>e.id=newDay.id+'e'+(i+1));
+      delete newDay.optionalSession;
+      days[idx]=newDay;
+    }
+  });
+  prog.hyroxConfig=hyroxConfig;
+}
 function applyObjectif(days,objectif){
   let restMul=1,cardioMin=0,everyDay=false;
   if(objectif==='perte'){restMul=0.65;cardioMin=15;everyDay=true;}
@@ -1056,10 +1197,10 @@ function generateProgram(ob){
   if(ob.perineum)limiteChanges.push(...applyPerineum(days));
   applyObjectif(days,ob.objectif);
   applyNiveau(days,ob.niveau);
-  // Remplace la DERNIÈRE séance du split déjà généré, jamais un jour de plus (voir hyroxDay ci-dessus) — le
-  // libellé t (« J5 », « J6 »…) de la séance remplacée est conservé pour que la numérotation des onglets de
-  // jour reste cohérente, seul son contenu change.
-  if(ob.hyrox&&days.length)days[days.length-1]=Object.assign(hyroxDay(),{t:days[days.length-1].t});
+  // Remplace un ou plusieurs jours du split déjà généré selon ob.hyroxConfig, jamais un jour de plus (voir
+  // applyHyroxConfig ci-dessus) — le libellé t (« J5 », « J6 »…) de chaque séance remplacée est conservé pour
+  // que la numérotation des onglets de jour reste cohérente, seul son contenu change.
+  applyHyroxConfig(days,ob.hyroxConfig);
   days.forEach(d=>d.ex.forEach((e,i)=>e.id=d.id+'e'+(i+1)));
   const poids=parseFloat(ob.poids)||75,taille=parseFloat(ob.taille)||170,age=parseFloat(ob.age)||30;
   const sexOffset=ob.sexe==='H'?5:(ob.sexe==='F'?-161:-78);
@@ -1079,7 +1220,9 @@ function generateProgram(ob){
     days,
     goal:Math.round((poids+deltaKg)*10)/10,
     nutrition:{kcal,protein,fat,carbs},
-    limiteChanges
+    limiteChanges,
+    hyroxConfig:ob.hyroxConfig||{enabled:false,days:[]},
+    hyroxBaseDays:{}
   };
 }
 
@@ -1282,6 +1425,23 @@ function renameLegacyExerciseNames(prog){
   }));
   return changed;
 }
+// Migre un jour converti par l'ANCIEN bouton « Convertir en séance Hyrox » (retiré, remplacé par la config
+// Hyrox à la création + Réglages, voir applyHyroxConfig/reconcileHyroxDays) vers le nouveau modèle de
+// données : ces jours existent déjà en base (contenu + id + historique déjà en place, aucune régénération
+// nécessaire), il ne leur manque que `program.hyroxConfig`/`day.optionalSession` pour être reconnus par le
+// nouveau système. Marqué « optionnel » par défaut (retour utilisateur, règle de migration explicite : « si
+// une séance a déjà été convertie, créer un jour Hyrox optionnel »). Aucun snapshot dans `hyroxBaseDays`
+// n'est créé ici : l'ancien bouton effaçait déjà l'historique/contenu d'origine sans le sauvegarder, donc il
+// n'y a rien à restaurer — un retour en arrière plus tard passera par `restoreDayFallback` (DAYS_ORIGINAL ou
+// régénération depuis `onboarding`, voir reconcileHyroxDays).
+function migrateHyroxConversion(prog){
+  if(!prog||!prog.days||prog.hyroxConfig)return false;
+  const hyroxDayObj=prog.days.find(d=>d.ex.some(e=>e.tag==='hyrox'));
+  if(!hyroxDayObj)return false;
+  hyroxDayObj.optionalSession=true;
+  prog.hyroxConfig={enabled:true,days:[{status:'optional',placement:hyroxDayObj.id==='ds'?'evening':'dedicated'}]};
+  return true;
+}
 function applyBundle(b){
   onboarding=b.onboarding||null;
   program=b.program||freshProgramDefault();
@@ -1293,7 +1453,10 @@ function applyBundle(b){
   if(!state.mode)state.mode='main';
   if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
   const repaired=[repairHoldReps(program),repairHoldReps(focusProgram),repairHoldReps(copiedSession),
-    renameLegacyExerciseNames(program),renameLegacyExerciseNames(focusProgram),renameLegacyExerciseNames(copiedSession)].some(Boolean);
+    renameLegacyExerciseNames(program),renameLegacyExerciseNames(focusProgram),renameLegacyExerciseNames(copiedSession),
+    migrateHyroxConversion(program)].some(Boolean);
+  if(!program.hyroxConfig)program.hyroxConfig={enabled:false,days:[]};
+  if(!program.hyroxBaseDays)program.hyroxBaseDays={};
   DAYS=programForMode(state.mode).days;
   if(repaired)persistActiveBundle();
 }
@@ -1702,7 +1865,7 @@ function renderDays(){
     const b=document.createElement('div');
     b.className='day'+(d.id===state.day?' on':'');
     const dn=state.done[d.id+'__w'+state.week];
-    b.innerHTML=`<span class="t">${d.t}</span><span class="s">${d.s}</span>${dn?'<span class="dcheck">✓</span>':''}`;
+    b.innerHTML=`<span class="t">${d.t}</span><span class="s">${d.s}</span>${d.optionalSession?'<span class="opttag">opt.</span>':''}${dn?'<span class="dcheck">✓</span>':''}`;
     b.onclick=()=>{state.day=d.id;save();renderAll();};
     el.appendChild(b);
   });
@@ -1862,16 +2025,8 @@ function renderDay(){
   }else if(state.mode==='copy'){
     modeTags=`<button class="skipbtn" id="exitFocusBtn" style="padding:0;margin-bottom:8px">↩ Revenir au programme classique</button> <button class="skipbtn" id="reimportCopyBtn" style="padding:0;margin-bottom:8px">📥 Importer une autre séance</button>`;
   }
-  // Retour utilisateur : « vu que j'ai déjà lancé mon programme, comment ajouter la journée Hyrox dans un
-  // programme en cours ? » — la préparation Hyrox n'existait qu'à la CRÉATION d'un profil (voir
-  // generateProgram/#obHyroxSw), donc inutilisable pour un programme déjà en cours (le sien : migré depuis
-  // PROGRAM_DEFAULT, jamais passé par generateProgram). Plutôt que de le faire recréer un profil (perte de
-  // continuité : nouvel id de profil, poids/nutrition à ressaisir), un bouton dans l'en-tête de séance
-  // convertit directement LE JOUR ACTUELLEMENT AFFICHÉ en séance Hyrox, sur le programme classique en
-  // cours — même fonction hyroxDay() que la génération, appliquée en place sur DAYS/program.days.
-  if(state.mode==='main')modeTags+=` <button class="skipbtn" id="convertHyroxBtn" style="padding:0;margin-bottom:8px">🏋️ Convertir en séance Hyrox</button>`;
   modeTags+=` <button class="skipbtn" id="shareDayBtn" style="padding:0;margin-bottom:8px">📤 Partager cette séance</button>`;
-  hd.innerHTML=`<h1>${day.title}</h1><div class="role">${day.role}</div>${modeTags}<div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
+  hd.innerHTML=`<h1>${day.title}${day.optionalSession?' <span class="opttag">optionnel</span>':''}</h1><div class="role">${day.role}</div>${modeTags}<div class="days" style="padding:10px 0 0;margin:0">${capHtml}</div>`;
   app.appendChild(hd);
   if(state.mode!=='main'){
     const efb=hd.querySelector('#exitFocusBtn');if(efb)efb.onclick=()=>exitToMain();
@@ -1886,32 +2041,6 @@ function renderDay(){
     const rib=hd.querySelector('#reimportCopyBtn');if(rib)rib.onclick=()=>$('#copySessionFile').click();
   }
   const sdb=hd.querySelector('#shareDayBtn');if(sdb)sdb.onclick=()=>shareCurrentDay();
-  const chb=hd.querySelector('#convertHyroxBtn');if(chb)chb.onclick=()=>{
-    if(!confirm(`Remplacer « ${day.t} ${day.s} » par une séance Hyrox ? L'historique de charges des exercices actuels de ce jour est effacé (pas juste masqué) — action réversible en reconvertissant plus tard, mais ce jour n'affichera plus que le bloc Hyrox.`))return;
-    const dayIdx=DAYS.findIndex(d=>d.id===day.id);
-    if(dayIdx===-1)return;
-    // Contrairement à generateProgram (qui assigne les id de tous les jours d'un coup, à la fin), hyroxDay()
-    // seule ne pose aucun id sur ses blocs — sans ça, les 6 blocs partagent tous eid=undefined, donc UN
-    // seul state.logs partagé pour les 6 (cocher l'un les valide tous). Reproduit ici la même assignation.
-    // Bug trouvé en testant : garder le même id de JOUR (day.id) fait que les nouveaux blocs Hyrox
-    // héritent du même schéma d'id que les anciens exercices à la même position (dayId+'e'+position) — sans
-    // purge, un ancien historique (state.logs/feels/skips/swaps d'« Extension triceps poulie » à la
-    // position 4, par ex.) réapparaissait tel quel sous « Fentes lestées » à cette même position (lignes de
-    // séries en trop, mauvais poids suggéré, swap fantôme…). On efface donc explicitement l'historique des
-    // anciens exercices de CE jour avant de les remplacer, plutôt que d'utiliser des id jamais réutilisés
-    // (qui aurait cassé la convention dayId+'e'+position suivie partout ailleurs dans l'app).
-    const oldIds=day.ex.map(e=>e.id);
-    oldIds.forEach(id=>{
-      Object.keys(state.logs).forEach(k=>{if(k.startsWith(id+'__w'))delete state.logs[k];});
-      Object.keys(state.feels).forEach(k=>{if(k.startsWith(id+'__w'))delete state.feels[k];});
-      Object.keys(state.skips).forEach(k=>{if(k.startsWith(id+'__w'))delete state.skips[k];});
-      delete state.swaps[id];
-    });
-    const newDay=Object.assign(hyroxDay(),{id:day.id,t:day.t});
-    newDay.ex.forEach((e,i)=>e.id=newDay.id+'e'+(i+1));
-    DAYS[dayIdx]=newDay;
-    persistActiveBundle();flush();renderDay();
-  };
   hd.querySelectorAll('.day').forEach(b=>b.onclick=()=>{state.timeCap=+b.dataset.m;save();renderDay();});
   if(visible.length<day.ex.length){
     const hidden=day.ex.length-visible.length;
@@ -2176,7 +2305,40 @@ function celebrate(sub){
 $('#celebrate').onclick=()=>{clearTimeout(celebTimer);$('#celebrate').classList.remove('show');};
 
 /* ---------- Réglages ---------- */
-$('#cog').onclick=()=>{$('#sw6').classList.toggle('on',state.show6);$('#sheet').classList.add('show');};
+// Retour utilisateur (spec complète, remplace le bouton « Convertir en séance Hyrox ») : « activer/désactiver
+// Hyrox et modifier les jours sans recréer le programme ». Contrairement à l'onboarding (config d'un
+// programme pas encore créé), ce bloc édite program.hyroxConfig du profil ACTIF directement, via
+// reconcileHyroxDays (voir plus haut) qui sait restaurer le contenu d'origine d'un jour repassé en normal —
+// c'est ce qui rend un aller-retour Hyrox/normal possible sans jamais régénérer tout le programme (ce qui
+// aurait écrasé tout ajustement fait depuis : swaps, exercices ajoutés à la main…). Toujours sur `program`,
+// jamais sur `DAYS` (qui peut pointer vers focusProgram/copiedSession selon state.mode — Hyrox reste une
+// fonctionnalité du programme classique uniquement, comme à l'origine).
+let setHyroxOn=false,setHyroxDays=[{status:'required',placement:'dedicated'}];
+function renderSetHyroxConfig(){
+  renderHyroxConfigBlock('setHyroxConfig',setHyroxDays,program.days.some(d=>d.id==='ds'),onSetHyroxChange);
+}
+function applySetHyroxConfig(){
+  reconcileHyroxDays(program,{enabled:setHyroxOn,days:setHyroxDays.map(d=>({...d}))});
+  if(state.mode==='main'){DAYS=program.days;renderDays();renderDay();}
+  persistActiveBundle();flush();
+}
+function onSetHyroxChange(){applySetHyroxConfig();renderSetHyroxConfig();}
+$('#cog').onclick=()=>{
+  $('#sw6').classList.toggle('on',state.show6);
+  setHyroxOn=!!(program.hyroxConfig&&program.hyroxConfig.enabled);
+  setHyroxDays=(program.hyroxConfig&&program.hyroxConfig.days&&program.hyroxConfig.days.length)?program.hyroxConfig.days.map(d=>({...d})):[{status:'required',placement:'dedicated'}];
+  $('#setHyroxSw').classList.toggle('on',setHyroxOn);
+  $('#setHyroxConfig').style.display=setHyroxOn?'':'none';
+  if(setHyroxOn)renderSetHyroxConfig();
+  $('#sheet').classList.add('show');
+};
+$('#setHyroxSw').onclick=()=>{
+  setHyroxOn=!setHyroxOn;
+  $('#setHyroxSw').classList.toggle('on',setHyroxOn);
+  $('#setHyroxConfig').style.display=setHyroxOn?'':'none';
+  if(setHyroxOn)renderSetHyroxConfig();
+  applySetHyroxConfig();
+};
 $('#closeSheet').onclick=()=>$('#sheet').classList.remove('show');
 $('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('show');};
 $('#sw6').onclick=()=>{state.show6=!state.show6;$('#sw6').classList.toggle('on',state.show6);
@@ -2218,7 +2380,49 @@ $('#importFile').onchange=ev=>{
 };
 
 /* ---------- Profils : nouveau / suppression ---------- */
-let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false,obHyrox=false;
+let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false,obHyrox=false,obHyroxDays=[{status:'required',placement:'dedicated'}];
+// Bloc de config Hyrox (nombre de jours 1-3, statut obligatoire/optionnel + placement dédié/soir par jour) —
+// réutilisé tel quel par l'onboarding (#obHyroxConfig) et par les Réglages (#setHyroxConfig, reconfiguration
+// d'un profil déjà en cours) pour ne jamais avoir deux implémentations de la même UI à maintenir en parallèle.
+// `soirAvailable` : le placement « soir » n'a de sens que si un jour Soir existe réellement dans le
+// programme (template56, 5-6 jours/semaine) — retombe sur « dédié » ailleurs (voir assignHyroxDays).
+function renderHyroxConfigBlock(containerId,hyroxDays,soirAvailable,onChange){
+  const el=$('#'+containerId);if(!el)return;
+  let html=`<div class="d" style="font-size:12.5px"><b>Jours Hyrox / semaine</b></div>
+    <div class="hxcount" style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px">
+      ${[1,2,3].map(n=>`<button type="button" class="day${hyroxDays.length===n?' on':''}" data-n="${n}" style="padding:6px 11px"><span class="t">${n} jour${n>1?'s':''}</span></button>`).join('')}
+    </div>`;
+  hyroxDays.forEach((cfg,i)=>{
+    const evTaken=hyroxDays.some((c,j)=>j!==i&&c.placement==='evening');
+    const evDisabled=!soirAvailable||evTaken;
+    html+=`<div style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px">
+      <div class="d" style="font-size:12.5px"><b>Jour Hyrox ${i+1}</b></div>
+      <div class="hxstatus" data-i="${i}" style="display:flex;gap:6px;margin:6px 0">
+        <button type="button" class="day${cfg.status==='required'?' on':''}" data-v="required" style="padding:6px 11px"><span class="t">Obligatoire</span></button>
+        <button type="button" class="day${cfg.status==='optional'?' on':''}" data-v="optional" style="padding:6px 11px"><span class="t">Optionnel</span></button>
+      </div>
+      <div class="hxplacement" data-i="${i}" style="display:flex;gap:6px">
+        <button type="button" class="day${cfg.placement==='dedicated'?' on':''}" data-v="dedicated" style="padding:6px 11px"><span class="t">Jour dédié</span></button>
+        <button type="button" class="day${cfg.placement==='evening'?' on':''}" data-v="evening" ${evDisabled?'disabled':''} style="padding:6px 11px${evDisabled?';opacity:.4':''}"><span class="t">Soir${soirAvailable?'':' (5-6j)'}</span></button>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.hxcount button').forEach(b=>b.onclick=()=>{
+    const n=+b.dataset.n;
+    while(hyroxDays.length<n)hyroxDays.push({status:'required',placement:'dedicated'});
+    hyroxDays.length=n;
+    onChange();
+  });
+  el.querySelectorAll('.hxstatus button').forEach(b=>b.onclick=()=>{
+    hyroxDays[+b.parentElement.dataset.i].status=b.dataset.v;
+    onChange();
+  });
+  el.querySelectorAll('.hxplacement button:not([disabled])').forEach(b=>b.onclick=()=>{
+    hyroxDays[+b.parentElement.dataset.i].placement=b.dataset.v;
+    onChange();
+  });
+}
 function renderChipSet(id,groups,selected){
   const el=$('#'+id);if(!el)return;
   el.innerHTML=groups.map(g=>`<button type="button" class="day${selected.has(g.key)?' on':''}" data-k="${g.key}" style="padding:6px 11px"><span class="t">${g.label}</span></button>`).join('');
@@ -2238,19 +2442,28 @@ function renderMuscleChips(id,selected,other){
     renderMuscleChips(id==='obWeak'?'obStrong':'obWeak',other,selected);
   });
 }
+function renderObHyroxConfig(){
+  renderHyroxConfigBlock('obHyroxConfig',obHyroxDays,+$('#obJours').value>=5,renderObHyroxConfig);
+}
 $('#newProfileBtn').onclick=()=>{
   ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
   $('#obSexe').value='H';
-  obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();obPerineum=false;obHyrox=false;
+  obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();obPerineum=false;obHyrox=false;obHyroxDays=[{status:'required',placement:'dedicated'}];
   renderMuscleChips('obWeak',obWeakSet,obStrongSet);
   renderMuscleChips('obStrong',obStrongSet,obWeakSet);
   renderChipSet('obLimiteZones',LIMITE_INFO,obLimiteSet);
   $('#obPerineumSw').classList.remove('on');
   $('#obHyroxSw').classList.remove('on');
+  $('#obHyroxConfig').style.display='none';
   $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
 };
 $('#obPerineumSw').onclick=()=>{obPerineum=!obPerineum;$('#obPerineumSw').classList.toggle('on',obPerineum);};
-$('#obHyroxSw').onclick=()=>{obHyrox=!obHyrox;$('#obHyroxSw').classList.toggle('on',obHyrox);};
+$('#obHyroxSw').onclick=()=>{
+  obHyrox=!obHyrox;$('#obHyroxSw').classList.toggle('on',obHyrox);
+  $('#obHyroxConfig').style.display=obHyrox?'':'none';
+  if(obHyrox)renderObHyroxConfig();
+};
+$('#obJours').addEventListener('change',()=>{if(obHyrox)renderObHyroxConfig();});
 $('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
 $('#onboard').onclick=e=>{if(e.target.id==='onboard')$('#onboard').classList.remove('show');};
 $('#obGenerate').onclick=()=>{
@@ -2258,7 +2471,7 @@ $('#obGenerate').onclick=()=>{
   if(!prenom){$('#obPrenom').focus();return;}
   const poids=$('#obPoids').value,taille=$('#obTaille').value,age=$('#obAge').value;
   if(!poids||!taille||!age){if(!age)$('#obAge').focus();else if(!poids)$('#obPoids').focus();else $('#obTaille').focus();return;}
-  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet],limiteZones:[...obLimiteSet],perineum:obPerineum,hyrox:obHyrox};
+  draftOnboarding={prenom,sexe:$('#obSexe').value,age,poids,taille,objectif:$('#obObjectif').value,joursParSemaine:$('#obJours').value,niveau:$('#obNiveau').value,limites:($('#obLimites').value||'').trim(),weakGroups:[...obWeakSet],strongGroups:[...obStrongSet],limiteZones:[...obLimiteSet],perineum:obPerineum,hyroxConfig:{enabled:obHyrox,days:obHyroxDays.map(d=>({...d}))}};
   draftProgram=generateProgram(draftOnboarding);
   $('#onboard').classList.remove('show');$('#review').classList.add('show');renderReview();
 };
@@ -2266,7 +2479,7 @@ function groupLabels(keys){return keys.map(k=>(MUSCLE_GROUPS.find(g=>g.key===k)|
 function daysReviewHtml(days){
   let html='';
   days.forEach((d,di)=>{
-    html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b><div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
+    html+=`<div class="opt" style="display:block;flex-direction:column"><b>${d.title}</b>${d.optionalSession?' <span class="opttag">optionnel</span>':''}<div style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">${d.role}</div>`;
     d.ex.forEach((e,ei)=>{
       if(e.note){
         html+=`<div style="padding:6px 0;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px">${e.tag==='cardio'?'🫀':'•'} <b style="color:var(--ink)">${e.n}</b> — ${e.cue}</div>`;
@@ -2298,7 +2511,13 @@ function renderReview(){
     html+=`<div class="insight warn">Adapté aux limites signalées — ${lines}.</div>`;
   }
   if(draftOnboarding.perineum)html+=`<div class="insight warn">${CORE_SAFE_NOTE}</div>`;
-  if(draftOnboarding.hyrox)html+=`<div class="insight ok">Préparation Hyrox activée : ta dernière séance de la semaine (${draftProgram.days[draftProgram.days.length-1].t}) est remplacée par un bloc force-endurance dédié, pas ajoutée en plus.</div>`;
+  if(draftOnboarding.hyroxConfig&&draftOnboarding.hyroxConfig.enabled){
+    const hxDays=draftProgram.days.filter(d=>d.ex.some(e=>e.tag==='hyrox'));
+    if(hxDays.length){
+      const list=hxDays.map(d=>`${d.t}${d.optionalSession?' (optionnel)':''}`).join(', ');
+      html+=`<div class="insight ok">Préparation Hyrox activée : ${list} remplacé${hxDays.length>1?'s':''} par un bloc force-endurance dédié, jamais ajouté en plus.</div>`;
+    }
+  }
   if(draftOnboarding.limites)html+=`<div class="insight warn">Limites signalées : ${draftOnboarding.limites} — utilise « ⇄ Changer » sur un exercice si besoin.</div>`;
   html+=daysReviewHtml(draftProgram.days);
   html+=`<div class="opt" style="display:block;flex-direction:column">
