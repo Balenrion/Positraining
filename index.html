@@ -677,6 +677,13 @@ EXO_POOL['Rowing T-bar']={n:'Rowing T-bar',sets:4,reps:'8-12',rest:120,cue:'Bust
 EXO_POOL['Skullcrusher barre EZ']={n:'Skullcrusher barre EZ',sets:3,reps:'10-12',rest:75,cue:'Allongé, barre EZ au-dessus du front, coudes fixes pointés au plafond, descends en contrôle puis tends sans décoller les coudes.'};
 EXO_POOL['Shrugs haltères']={n:'Shrugs haltères',tag:'trapèzes',sets:4,reps:'12-15',rest:60,cue:'Haltères le long du corps, hausse les épaules vers les oreilles sans les rouler, pause 1 s en haut, contrôle la descente.'};
 EXO_POOL['Mollets assis']={n:'Mollets assis',sets:4,reps:'12-15',rest:60,cue:'Genoux sous le rouleau, talons dans le vide, monte le plus haut possible sur la pointe, pause 1 s, étirement complet en bas — cible plutôt le soléaire, complément du mollet debout.'};
+// Retour utilisateur (« je ne la trouve pas dans le sélecteur », après avoir ajouté le stepper à Cardio
+// express et aux notes cardio classiques) : « + Ajouter un exercice » (populateExSelect) ne liste que les
+// noms d'EXO_POOL — les machines de cardio n'y ont jamais existé, gérées seulement via les notes
+// `cardioNote`/Cardio express, un système entièrement séparé. Ajouté ici comme un vrai exercice suivi (sets:1,
+// bw:true — pas de charge à suivre, juste une durée), format « 8-10 min » détecté par cardioMinutes() (voir
+// plus haut) plutôt que par holdSeconds/distanceMeters, pour un affichage/placeholder cohérent (unité « min »).
+EXO_POOL['Stepper']={n:'Stepper',tag:'cardio',sets:1,reps:'8-10 min',rest:0,bw:true,cue:'Niveau 2-3/10, ~40-50 pas/min, allure où tu peux encore parler — 8-10 min en continu.'};
 const EXO_GROUP={
  // Ajouts « prise de masse » en fin de chaque tableau (jamais insérés au milieu) pour ne pas décaler les
  // index fixes utilisés ailleurs par position (genderBias, templates fixes de buildDay, pickExo(g,2) etc.).
@@ -695,10 +702,14 @@ const EXO_GROUP={
  // utilisateur). Ajoutés en fin de liste pour ne pas décaler les index 0/1 utilisés ailleurs (genderBias,
  // templates fixes de buildDay) qui pointent vers Abduction machine / Mollets debout.
  glutes:['Abduction machine','Mollets debout','Hip thrust','Adduction machine','Mollets assis'],
- core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core']
+ core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core'],
+ // Groupe « Cardio » à part, jamais référencé par les générateurs (generateProgram/templateFocus/buildDay
+ // n'utilisent que quad/hinge/push/pushIso/pull/shoulder/arms/glutes/core par position fixe) — uniquement
+ // sélectionnable à la main via « + Ajouter un exercice », jamais ajouté d'office à un programme généré.
+ cardio:['Stepper']
 };
 function pickExo(group,idx){const names=EXO_GROUP[group]||[];if(!names.length)return null;const n=names[idx%names.length];return EXO_POOL[n];}
-const EXO_GROUP_LABELS={quad:'Quadriceps',hinge:'Ischios / fessiers',push:'Pectoraux',pushIso:'Pectoraux (isolation)',pull:'Dos',shoulder:'Épaules',arms:'Bras',glutes:'Fessiers / mollets',core:'Abdos / gainage',autre:'Autre'};
+const EXO_GROUP_LABELS={quad:'Quadriceps',hinge:'Ischios / fessiers',push:'Pectoraux',pushIso:'Pectoraux (isolation)',pull:'Dos',shoulder:'Épaules',arms:'Bras',glutes:'Fessiers / mollets',core:'Abdos / gainage',cardio:'Cardio',autre:'Autre'};
 function populateExSelect(sel){
   const groupOf={};
   Object.keys(EXO_GROUP).forEach(g=>EXO_GROUP[g].forEach(n=>{if(!groupOf[n])groupOf[n]=g;}));
@@ -707,7 +718,7 @@ function populateExSelect(sel){
     const g=groupOf[n]||'autre';
     (byGroup[g]=byGroup[g]||[]).push(n);
   });
-  const order=['quad','hinge','push','pushIso','pull','shoulder','arms','glutes','core','autre'];
+  const order=['quad','hinge','push','pushIso','pull','shoulder','arms','glutes','core','cardio','autre'];
   let html='<option value="" disabled selected>Choisis un exercice…</option>';
   order.forEach(g=>{
     if(!byGroup[g])return;
@@ -1334,6 +1345,17 @@ function distanceMeters(reps){
   if(!m)return null;
   return parseInt(m[2]||m[1],10);
 }
+// Retour utilisateur (« je ne la trouve pas dans le sélecteur », à propos du stepper) : « + Ajouter un
+// exercice » (`populateExSelect`) ne liste que `EXO_POOL`, jamais les machines de cardio (gérées séparément
+// via les notes `cardioNote`/Cardio express) — aucune option pour ajouter un cardio machine comme un vrai
+// exercice suivi dans la grille de séries. `cardioMinutes()` suit le même principe que `holdSeconds()`/
+// `distanceMeters()` (borne haute si fourchette) pour détecter un format en minutes (« 8-10 min », voir
+// `EXO_POOL['Stepper']` plus bas) et lui donner son unité `min` plutôt que de tomber sur « reps ».
+function cardioMinutes(reps){
+  const m=String(reps||'').match(/(\d+)(?:-(\d+))?\s*min\b/i);
+  if(!m)return null;
+  return parseInt(m[2]||m[1],10);
+}
 // Retour utilisateur (capture d'écran Gainage latéral, « 3×30-45 s /côté » avec seulement 3 lignes de
 // séries à remplir) : « je trouve bizarre 3 séries sachant que les obliques c'est chaque côté. Faut-il faire
 // 2 fois trois séries ? Ou juste 3 séries mais un côté ne sera pas fait ? » — la grille de séries affiche
@@ -1449,6 +1471,7 @@ HOWTO["Rowing T-bar"]={m:"Dos (épaisseur), biceps",s:["Buste penché ~45°, dos
 HOWTO["Skullcrusher barre EZ"]={m:"Triceps",s:["Allongé, barre EZ tenue au-dessus du front, coudes fixes pointés au plafond.","Descends en contrôle jusqu'au front ou juste derrière.","Tends les bras sans décoller les coudes vers l'extérieur."]};
 HOWTO["Shrugs haltères"]={m:"Trapèzes",s:["Haltères le long du corps, bras tendus, épaules relâchées.","Hausse les épaules vers les oreilles sans les rouler vers l'avant/l'arrière.","Pause 1 s en haut, redescends en contrôle."]};
 HOWTO["Mollets assis"]={m:"Mollets (soléaire)",s:["Genoux sous le rouleau, avant-pieds sur le repose-pied, talons dans le vide.","Monte le plus haut possible sur la pointe, pause 1 s en haut.","Descends jusqu'à l'étirement complet, pause 1 s en bas."]};
+HOWTO["Stepper"]={m:"Cardio · fessiers/cuisses",s:["Niveau 2-3/10, mains posées légèrement sur les barres (ne t'appuie pas de tout ton poids dessus).","Cadence régulière ~40-50 pas/min, foulée complète (ne reste pas sur la pointe des pieds).","Maintiens l'allure 8-10 min, tu dois pouvoir tenir une conversation."]};
 
 const ALT={
  "Presse à cuisses":["Hack squat","Squat gobelet haltère","Squat guidé (Smith)"],
@@ -1745,7 +1768,8 @@ function renderExerciseCard(container,e,opts){
   const inRamp=week<=2;
   const hold=holdSeconds(e.reps);
   const dist=hold?null:distanceMeters(e.reps);
-  const repLabel=hold?'sec':(dist?'m':'reps');
+  const mins=(hold||dist)?null:cardioMinutes(e.reps);
+  const repLabel=hold?'sec':(dist?'m':(mins?'min':'reps'));
 
   const card=document.createElement('div');
   card.className='ex'+(e.cls===CORE?' core':'')+(sw?' swapped':'');
@@ -1764,8 +1788,8 @@ function renderExerciseCard(container,e,opts){
   }
   const warm=warmupSets(e,lt);
   if(warm)html+=`<div class="last" style="color:var(--ramp)">Échauffement : ${warm.map(w=>`${w.w} kg × ${w.reps}`).join(' → ')}</div>`;
-  html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:''}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
-  const repPh=hold||dist||e.reps.split('-')[0]||'';
+  html+=`<div class="exbtns"><button class="howbtn">Fiche ▸</button>${hold?`<button class="chronobtn">⏱ Chrono ${hold} s</button>`:(mins?`<button class="chronobtn">⏱ Chrono ${mins} min</button>`:'')}${allowSwap?'<button class="swapbtn">⇄ Changer</button>':''}${allowSkip?'<button class="skipbtn">⏭ Passer</button>':''}${allowRemove?'<button class="rmbtn">✕ Retirer</button>':''}</div>`;
+  const repPh=hold||dist||mins||e.reps.split('-')[0]||'';
   html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?`<span></span><span>${repLabel}</span><span></span>`:`<span></span><span>kg</span><span></span><span>${repLabel}</span><span></span>`}</div>`;
   rows.forEach((s,si)=>{
     html+=e.bw?`<div class="setrow bw" data-ex="${eid}" data-si="${si}">
@@ -1804,7 +1828,7 @@ function renderExerciseCard(container,e,opts){
     if(navigator.vibrate)navigator.vibrate(10);
   });
   const hb=card.querySelector('.howbtn');if(hb)hb.onclick=()=>openHow(nm,e.cue);
-  const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>startTimer(hold,nm,'Maintien');
+  const cb=card.querySelector('.chronobtn');if(cb)cb.onclick=()=>(hold?startTimer(hold,nm,'Maintien'):startTimer(mins*60,nm,'Cardio'));
   if(allowSwap){const sb=card.querySelector('.swapbtn');if(sb)sb.onclick=onSwap;}
   if(allowSkip){const skb=card.querySelector('.skipbtn');if(skb)skb.onclick=onSkip;}
   if(allowRemove){const rmb=card.querySelector('.rmbtn');if(rmb)rmb.onclick=onRemove;}
@@ -2000,7 +2024,15 @@ $('#axAdd').onclick=()=>{
   if(!name){$('#axName').focus();return;}
   const sets=Math.max(1,parseInt($('#axSets').value)||3);
   const reps=($('#axReps').value||'10-12').trim();
-  const rest=Math.max(0,parseInt($('#axRest').value)||60);
+  // Retour utilisateur (« je ne la trouve pas dans le sélecteur », stepper) : en ajoutant `EXO_POOL['Stepper']`
+  // avec `rest:0` (un seul bloc continu, pas de repos entre séries), ce `||60` a révélé un bug latent —
+  // `parseInt('0')` vaut bien `0`, mais `0||60` retombe sur `60` (0 est falsy en JS), donc un repos
+  // volontairement nul repassait toujours à 60 s. Aucun exercice du pool n'avait `rest:0` avant Stepper, donc
+  // jamais manifesté jusqu'ici. Corrigé par un contrôle explicite `Number.isNaN`, seul cas où le repli à
+  // 60 s doit s'appliquer (champ vide/non numérique) — même principe que `state.absWeek===undefined` déjà
+  // utilisé ailleurs dans l'app pour ne pas confondre "valeur 0 légitime" et "valeur absente".
+  const restRaw=parseInt($('#axRest').value);
+  const rest=Math.max(0,Number.isNaN(restRaw)?60:restRaw);
   const dayIdx=DAYS.findIndex(d=>d.id===addExDayId);
   if(dayIdx===-1)return;
   const base=EXO_POOL[name]||{};
