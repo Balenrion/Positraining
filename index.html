@@ -3000,6 +3000,13 @@ $('#absMain').onclick=()=>{
     return;
   }
   state.extraSessions.push({date:today(),type:'abs',label:'Abdos express'+(absSetup.safe?' (adapté)':''),minutes:absSetup.minutes});
+  // Retour utilisateur : « il faut faire un reset quand terminé » — `absStarted` restait à `true` après
+  // "✓ Terminer" (jamais remis à `false` ici). Sans conséquence visible jusqu'ici : `openAbsSession()`
+  // (seul point d'entrée, bouton "Abdos express" de l'Accueil) le remet déjà à `false` inconditionnellement à
+  // la réouverture, donc la prochaine séance repart bien sur l'écran de config puis un `state.absWeek` neuf
+  // au clic sur "C'est parti" (voir plus haut). Remis à `false` ici aussi pour que l'état reflète correctement
+  // « aucune séance en cours » dès la fin, plutôt que de dépendre du seul point d'entrée pour corriger l'état.
+  absStarted=false;
   flush();
   if(navigator.vibrate)navigator.vibrate(20);
   $('#absSheet').classList.remove('show');
