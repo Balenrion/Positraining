@@ -708,7 +708,11 @@ EXO_POOL['Stepper']={n:'Stepper',tag:'cardio',sets:1,reps:'8-10 min',rest:0,bw:t
 // Crunch oblique au sol » nulle part. Ajoutés ici en vrais exercices `EXO_GROUP.core` (au poids du corps,
 // tag `'obliques'` comme Woodchopper) — utilisables dans le programme classique/focus en plus de l'abdos
 // express (voir CORE_STANDARD plus haut).
-EXO_POOL['Russian twist']={n:'Russian twist',tag:'obliques',sets:3,reps:'15 /côté',rest:30,bw:true,cue:'Assis, buste incliné en arrière ~45°, talons légèrement décollés si possible, fais pivoter le buste d’un côté à l’autre en touchant le sol, dos droit.'};
+// Retour utilisateur, une fois l'exercice testé en vrai (capture d'écran) : « il faut penser à ajouter des
+// poids » — le Russian twist se fait très souvent avec une charge en main (disque, haltère, medicine-ball),
+// pas seulement au poids du corps. `bw:true` retiré pour faire apparaître la colonne kg (reste éditable —
+// laisser vide si fait au poids du corps, comme pour n'importe quel autre exercice à charge non rempli).
+EXO_POOL['Russian twist']={n:'Russian twist',tag:'obliques',sets:3,reps:'15 /côté',rest:30,cue:'Assis, buste incliné en arrière ~45°, talons légèrement décollés si possible. Tiens un poids (disque, haltère, medicine-ball) des deux mains si tu veux charger, fais pivoter le buste d’un côté à l’autre en touchant le sol, dos droit.'};
 EXO_POOL['Crunch oblique au sol']={n:'Crunch oblique au sol',tag:'obliques',sets:3,reps:'15 /côté',rest:30,bw:true,cue:'Allongé, genoux fléchis inclinés d’un côté, enroule les épaules vers le plafond — contraction de l’oblique, pas de traction sur la nuque.'};
 // Retour utilisateur, juste après les deux ci-dessus : « il en manque encore, par exemple bicycle, crunch
 // croisés, allongé et toucher les chevilles (obliques), planche avec touche épaule ». « Crunch croisé »
@@ -818,7 +822,7 @@ const CORE_STANDARD=[
  // Woodchopper poulie (ALT), et « Crunch oblique au sol » n'était référencé nulle part. Version au poids du
  // corps ici (abdos express = zéro équipement supposé) — la variante lestée (poids/médecine-ball) reste
  // disponible via ⇄ Changer sur Woodchopper poulie dans le programme classique, inchangée.
- {n:'Russian twist',sets:3,reps:'15 /côté',rest:30,bw:true,cue:'Assis, buste incliné en arrière ~45°, talons légèrement décollés si possible, fais pivoter le buste d’un côté à l’autre en touchant le sol, dos droit.'},
+ {n:'Russian twist',sets:3,reps:'15 /côté',rest:30,cue:'Assis, buste incliné en arrière ~45°, talons légèrement décollés si possible. Tiens un poids (disque, haltère, medicine-ball) des deux mains si tu veux charger, fais pivoter le buste d’un côté à l’autre en touchant le sol, dos droit.'},
  {n:'Crunch oblique au sol',sets:3,reps:'15 /côté',rest:30,bw:true,cue:'Allongé, genoux fléchis inclinés d’un côté, enroule les épaules vers le plafond — contraction de l’oblique, pas de traction sur la nuque.'},
  // Retour utilisateur, juste après les deux ci-dessus : « il en manque encore, par exemple bicycle, crunch
  // croisés, allongé et toucher les chevilles (obliques), planche avec touche épaule ».
@@ -1667,7 +1671,7 @@ HOWTO["Skullcrusher barre EZ"]={m:"Triceps",s:["Allongé, barre EZ tenue au-dess
 HOWTO["Shrugs haltères"]={m:"Trapèzes",s:["Haltères le long du corps, bras tendus, épaules relâchées.","Hausse les épaules vers les oreilles sans les rouler vers l'avant/l'arrière.","Pause 1 s en haut, redescends en contrôle."]};
 HOWTO["Mollets assis"]={m:"Mollets (soléaire)",s:["Genoux sous le rouleau, avant-pieds sur le repose-pied, talons dans le vide.","Monte le plus haut possible sur la pointe, pause 1 s en haut.","Descends jusqu'à l'étirement complet, pause 1 s en bas."]};
 HOWTO["Stepper"]={m:"Cardio · fessiers/cuisses",s:["Niveau 2-3/10, mains posées légèrement sur les barres (ne t'appuie pas de tout ton poids dessus).","Cadence régulière ~40-50 pas/min, foulée complète (ne reste pas sur la pointe des pieds).","Maintiens l'allure 8-10 min, tu dois pouvoir tenir une conversation."]};
-HOWTO["Russian twist"]={m:"Obliques",s:["Assis, genoux fléchis, buste incliné en arrière ~45°, talons légèrement décollés du sol si possible.","Mains jointes devant toi, pivote le buste d'un côté puis l'autre en touchant le sol à chaque fois.","Garde le dos droit et le mouvement lent — la vitesse ne remplace pas l'amplitude."]};
+HOWTO["Russian twist"]={m:"Obliques",s:["Assis, genoux fléchis, buste incliné en arrière ~45°, talons légèrement décollés du sol si possible.","Tiens un poids des deux mains (disque, haltère, medicine-ball) si tu veux charger, ou mains jointes au poids du corps — pivote le buste d'un côté puis l'autre en touchant le sol à chaque fois.","Garde le dos droit et le mouvement lent — la vitesse ne remplace pas l'amplitude."]};
 HOWTO["Crunch oblique au sol"]={m:"Obliques",s:["Allongé sur le dos, genoux fléchis inclinés d'un côté, pieds au sol.","Mains derrière la tête sans tirer, enroule les épaules vers le plafond.","Contraction 1 s en haut, redescends en contrôle — inverse le côté des genoux pour l'autre série."]};
 HOWTO["Crunch croisé"]={m:"Abdominaux, obliques",s:["Allongé sur le dos, genoux fléchis à ~60°, mains derrière la tête sans tirer.","Enroule le buste en amenant un coude vers le genou opposé, l'autre jambe se tend.","Reviens à la position de départ et alterne côté à chaque répétition."]};
 HOWTO["Toucher chevilles"]={m:"Obliques",s:["Allongé sur le dos, genoux fléchis, pieds au sol écartés, bras tendus le long du corps.","Enroule légèrement le buste vers l'avant et sur le côté pour toucher une cheville.","Reviens à plat puis touche l'autre cheville — 1 touche de chaque côté = 1 répétition."]};
