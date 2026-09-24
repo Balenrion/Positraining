@@ -1969,7 +1969,17 @@ function renderExerciseCard(container,e,opts){
   const key=logKey(eid,week);
   if(!state.logs[key])state.logs[key]=[];
   const rows=state.logs[key];
-  while(rows.length<e.sets)rows.push({w:'',r:'',d:false});
+  // Retour utilisateur (capture d'écran de Gainage latéral, « 3×30-45 s /côté » avec seulement 3 lignes) :
+  // « si c'est latéral soit c'est exo par paires soit même timings mais indication de chaque côté » — un
+  // maintien chronométré par côté (contrairement à un exercice en répétitions comme Russian twist) ne peut
+  // pas se faire « des deux côtés » dans une seule ligne : le chrono tourne pour UN côté à la fois, donc 3
+  // séries × 2 côtés = 6 maintiens distincts à faire et à pouvoir cocher/noter séparément, pas 3. Détecté par
+  // motif (`holdSeconds(e.reps)&&isPerSide(e.reps)`, ex. Gainage latéral) plutôt qu'un flag à poser à la main
+  // — couvre aussi tout futur ajout du même genre (maintien + côté). Les exercices en répétitions par côté
+  // (Russian twist, Woodchopper…) ne sont pas concernés : une série de reps couvre naturellement les deux
+  // côtés en continu, pas besoin de deux chronos distincts.
+  const perSideHold=holdSeconds(e.reps)&&isPerSide(e.reps);
+  while(rows.length<e.sets*(perSideHold?2:1))rows.push({w:'',r:'',d:false});
   const lt=lastTime(eid,week,e.bw);
   const spk=sparkline(series(eid,e.bw,week));
   const inRamp=week<=2;
@@ -1991,7 +2001,7 @@ function renderExerciseCard(container,e,opts){
   if(e.rest>0)html+=`<span class="chip rest" data-rest="${e.rest}" data-name="${nm}">repos ${fmtRest(e.rest)} ⏱</span>`;
   if(e.start&&inRamp&&!sw)html+=`<span class="chip" style="color:var(--ramp)">départ ${e.start}</span>`;
   html+=`</div>`;
-  if(isPerSide(e.reps))html+=`<div class="last" style="color:var(--muted)">💡 Chaque série = les 2 côtés (l’un puis l’autre) — pas besoin de doubler les séries.</div>`;
+  if(isPerSide(e.reps))html+=perSideHold?`<div class="last" style="color:var(--muted)">💡 Chaque ligne = un côté (G puis D) — le chrono se relance pour chacune.</div>`:`<div class="last" style="color:var(--muted)">💡 Chaque série = les 2 côtés (l’un puis l’autre) — pas besoin de doubler les séries.</div>`;
   const lastFeel=lt?state.feels[logKey(eid,lt.w)]:null;
   const sugg=suggestWeight(e,lt,lastFeel);
   if(lt){
@@ -2004,12 +2014,13 @@ function renderExerciseCard(container,e,opts){
   const repPh=hold||dist||mins||e.reps.split('-')[0]||'';
   html+=`<div class="sets"><div class="unit${e.bw?' bw':''}">${e.bw?`<span></span><span>${repLabel}</span><span></span>`:`<span></span><span>kg</span><span></span><span>${repLabel}</span><span></span>`}</div>`;
   rows.forEach((s,si)=>{
+    const sn=perSideHold?`${Math.floor(si/2)+1}${si%2===0?'G':'D'}`:(si+1);
     html+=e.bw?`<div class="setrow bw" data-ex="${eid}" data-si="${si}">
-      <div class="sn">${si+1}</div>
+      <div class="sn">${sn}</div>
       <input class="r" inputmode="numeric" placeholder="${repPh}" value="${s.r}">
       <button class="done${s.d?' on':''}">✓</button>
     </div>`:`<div class="setrow" data-ex="${eid}" data-si="${si}">
-      <div class="sn">${si+1}</div>
+      <div class="sn">${sn}</div>
       <input class="w" inputmode="decimal" placeholder="${lt?lt.b.w:'–'}" value="${s.w}">
       <div class="x">×</div>
       <input class="r" inputmode="numeric" placeholder="${repPh}" value="${s.r}">
