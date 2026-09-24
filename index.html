@@ -1407,7 +1407,7 @@ async function readVal(k){
 function delVal(k){delete mem[k];
   try{if(window.storage){const p=window.storage.delete(k,false);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
   try{localStorage.removeItem(k);}catch(e){}}
-function freshState(){return{week:1,absWeek:0,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{},mode:'main',focus:null,copy:null};}
+function freshState(){return{week:1,absWeek:0,day:'d1',show6:false,view:'home',weights:[],wseed:true,swaps:{},absSwaps:{},done:{},logs:{},skips:{},updatedAt:0,timeCap:0,measures:{waist:[],arm:[],hip:[]},perineumCare:false,absLevel:'modere',extraSessions:[],feels:{},mode:'main',focus:null,copy:null,lastStatsPush:0};}
 function freshFocusState(dayId){return{week:1,day:dayId,logs:{},swaps:{},done:{},skips:{},feels:{}};}
 function freshProgramDefault(){return{days:DAYS_ORIGINAL.map(d=>({...d,ex:d.ex.map(e=>({...e}))})),goal:92,nutrition:{kcal:3100,protein:175,fat:80,carbs:420}};}
 let state=freshState();
@@ -1485,7 +1485,7 @@ function applyBundle(b){
   copiedSession=b.copiedSession||null;
   GOAL=program.goal;NUTRI=program.nutrition;
   state=Object.assign(freshState(),b.state||{});
-  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+  if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};if(state.lastStatsPush===undefined)state.lastStatsPush=0;
   if(!state.mode)state.mode='main';
   if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
   const repaired=[repairHoldReps(program),repairHoldReps(focusProgram),repairHoldReps(copiedSession),
@@ -1500,6 +1500,64 @@ function persistActiveBundle(){
   if(!activeId)return;
   writeNow(profileKey(activeId),JSON.stringify(bundleFromCurrent()));
   writeNow(ACTIVE_KEY,activeId);
+}
+/* ---------- Stats hebdo (Supabase, écriture seule anonyme) ----------
+   Retour utilisateur : « je voudrais que tu génères automatiquement les exports et que tu les récupères »
+   — un « agent » externe ne peut pas venir lire le localStorage d'un téléphone (l'app n'a pas de backend,
+   voir plus haut/README), donc à la place l'app pousse elle-même, en silence, un résumé de la semaine vers
+   une table dédiée. Écriture ANONYME uniquement (clé publique dans le code, prévue pour l'être — protégée
+   par une politique RLS qui n'autorise que l'INSERT, jamais le SELECT) : n'importe qui pourrait en théorie
+   lire le code source et pousser de fausses lignes, mais personne ne peut lire les vraies, y compris nous
+   sans la clé secrète gardée hors de l'app. Ancien projet Supabase de l'app (retiré plus tôt pour la synchro
+   complète — voir plus bas « Ce qui existe déjà ») réutilisé, mais pour un usage complètement différent et
+   beaucoup plus simple : pas de login, pas de compte, juste un résumé jeté dans une table une fois/semaine.
+*/
+const STATS_URL='https://nwirxyyirkidiwaqaxjc.supabase.co/rest/v1/weekly_snapshots';
+const STATS_KEY='sb_publishable_mCDGXglTY8R8hmD-V3m52g_dym-VSsQ';
+const STATS_INTERVAL_MS=7*24*60*60*1000;
+function buildWeeklySummary(){
+  // Uniquement le programme classique (state.mode==='main') : le focus/la copie de séance ne sont pas
+  // couverts par cette première version — le programme classique est celui visé par « adapter mon
+  // programme », pas une extension impossible à borner proprement dans ce premier jet.
+  if(state.mode!=='main'||!program||!program.days)return null;
+  const days=program.days.map(d=>({
+    day:d.t,label:d.s,
+    done:!!state.done[d.id+'__w'+state.week],
+    exercises:d.ex.filter(e=>!e.note).map(e=>{
+      const sw=state.swaps[e.id],eid=sw?e.id+'~'+slug(sw):e.id;
+      const skipKey=logKey(eid,state.week);
+      const arr=getLog(eid,state.week)||[];
+      return{
+        n:sw||e.n,sets:e.sets,reps:e.reps,bw:!!e.bw,
+        skipped:!!state.skips[skipKey],
+        feel:state.feels[skipKey]||null,
+        logged:arr.filter(s=>String(s.r).trim()!==''||String(s.w).trim()!=='').map(s=>({w:s.w,r:s.r,done:s.d}))
+      };
+    })
+  }));
+  return{
+    week:state.week,
+    objectif:(onboarding&&onboarding.objectif)||null,
+    niveau:(onboarding&&onboarding.niveau)||null,
+    weight_recent:state.weights.slice(-4),
+    days
+  };
+}
+async function pushWeeklyStatsIfDue(){
+  if(!activeId)return;
+  if(Date.now()-(state.lastStatsPush||0)<STATS_INTERVAL_MS)return;
+  const summary=buildWeeklySummary();
+  if(!summary)return;
+  try{
+    const res=await fetch(STATS_URL,{
+      method:'POST',
+      headers:{'apikey':STATS_KEY,'Authorization':'Bearer '+STATS_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({profile_id:activeId,payload:summary})
+    });
+    // Échec (pas de réseau, table pas encore créée...) : on retente simplement au prochain chargement de
+    // l'app, state.lastStatsPush n'est mis à jour qu'en cas de succès confirmé.
+    if(res.ok){state.lastStatsPush=Date.now();save();}
+  }catch(e){}
 }
 function renderProfileChips(){
   const el=$('#profileChips');if(!el)return;
@@ -2423,7 +2481,7 @@ $('#importFile').onchange=ev=>{
       focusProgram=null;copiedSession=null;
       state=Object.assign(freshState(),s);
     }
-    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};
+    if(!state.logs)state.logs={};if(!state.weights)state.weights=[];if(!state.swaps)state.swaps={};if(!state.absSwaps)state.absSwaps={};if(!state.done)state.done={};if(!state.skips)state.skips={};if(!state.measures)state.measures={waist:[],arm:[],hip:[]};if(state.perineumCare===undefined)state.perineumCare=false;if(!state.absLevel)state.absLevel='modere';if(state.absWeek===undefined)state.absWeek=0;if(!state.extraSessions)state.extraSessions=[];if(!state.feels)state.feels={};if(state.lastStatsPush===undefined)state.lastStatsPush=0;
     if(!state.mode)state.mode='main';
     if(state.mode!=='main'&&!programForMode(state.mode))state.mode='main';
     state.updatedAt=Date.now();
@@ -3278,6 +3336,7 @@ document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>setView(b.dataset.
   }
   renderProfileChips();
   renderAll();setView('home');save();
+  pushWeeklyStatsIfDue();
 })();
 </script>
 </body>
