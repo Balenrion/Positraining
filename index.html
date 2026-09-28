@@ -392,6 +392,10 @@
       </div>
       <div id="setHyroxConfig" style="display:none;margin-top:10px"></div>
     </div>
+    <div class="opt" style="display:block">
+      <div class="d"><b>Mettre à jour mon programme</b><br>Redemande objectif, limites/douleurs et points faibles/forts, puis régénère ton programme — ton historique de charges est conservé pour les exercices qui reviennent, et les 2 semaines de remise en route sont sautées (tu es déjà entraîné·e).</div>
+      <button class="close" id="updateProfileBtn" style="display:none;margin-top:10px">🔄 Mettre à jour mon programme</button>
+    </div>
     <div class="opt">
       <div class="d"><b>Sauvegarde automatique</b><br>Tes charges sont enregistrées sur cet appareil.</div>
       <span style="font-family:var(--num);color:var(--go);font-weight:600">ON</span>
@@ -438,7 +442,7 @@
 
 <div class="sheet" id="onboard">
   <div class="card" style="max-height:85vh;overflow-y:auto">
-    <h3>Nouveau profil</h3>
+    <h3 id="onboardTitle">Nouveau profil</h3>
     <input id="obPrenom" class="acctin" placeholder="Prénom">
     <select id="obSexe" class="acctin">
       <option value="H">Sexe : homme</option>
@@ -490,7 +494,7 @@
 
 <div class="sheet" id="review">
   <div class="card" style="max-height:85vh;overflow-y:auto">
-    <h3>Vérifie ton programme</h3>
+    <h3 id="reviewTitle">Vérifie ton programme</h3>
     <div id="reviewBody"></div>
     <button class="close" id="reviewValidate" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Valider et commencer</button>
     <button class="close" id="reviewCancel">Annuler</button>
@@ -2448,6 +2452,7 @@ function applySetHyroxConfig(){
 function onSetHyroxChange(){applySetHyroxConfig();renderSetHyroxConfig();}
 $('#cog').onclick=()=>{
   $('#sw6').classList.toggle('on',state.show6);
+  $('#updateProfileBtn').style.display=onboarding?'':'none';
   setHyroxOn=!!(program.hyroxConfig&&program.hyroxConfig.enabled);
   setHyroxDays=(program.hyroxConfig&&program.hyroxConfig.days&&program.hyroxConfig.days.length)?program.hyroxConfig.days.map(d=>({...d})):[{status:'required',placement:'dedicated'}];
   $('#setHyroxSw').classList.toggle('on',setHyroxOn);
@@ -2503,7 +2508,7 @@ $('#importFile').onchange=ev=>{
 };
 
 /* ---------- Profils : nouveau / suppression ---------- */
-let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false,obHyrox=false,obHyroxDays=[{status:'required',placement:'dedicated'}];
+let draftOnboarding=null,draftProgram=null,obWeakSet=new Set(),obStrongSet=new Set(),obLimiteSet=new Set(),obPerineum=false,obHyrox=false,obHyroxDays=[{status:'required',placement:'dedicated'}],obUpdateMode=false;
 // Bloc de config Hyrox (nombre de jours 1-3, statut obligatoire/optionnel + placement dédié/soir par jour) —
 // réutilisé tel quel par l'onboarding (#obHyroxConfig) et par les Réglages (#setHyroxConfig, reconfiguration
 // d'un profil déjà en cours) pour ne jamais avoir deux implémentations de la même UI à maintenir en parallèle.
@@ -2568,7 +2573,14 @@ function renderMuscleChips(id,selected,other){
 function renderObHyroxConfig(){
   renderHyroxConfigBlock('obHyroxConfig',obHyroxDays,+$('#obJours').value>=5,renderObHyroxConfig);
 }
+function setObTitles(update){
+  $('#onboardTitle').textContent=update?'Mettre à jour mon programme':'Nouveau profil';
+  $('#obGenerate').textContent=update?'Régénérer mon programme':'Générer mon programme';
+  $('#reviewTitle').textContent=update?'Vérifie ton programme mis à jour':'Vérifie ton programme';
+  $('#reviewValidate').textContent=update?'Mettre à jour et continuer':'Valider et commencer';
+}
 $('#newProfileBtn').onclick=()=>{
+  obUpdateMode=false;setObTitles(false);
   ['obPrenom','obAge','obPoids','obTaille','obLimites'].forEach(id=>{$('#'+id).value='';});
   $('#obSexe').value='H';
   obWeakSet=new Set();obStrongSet=new Set();obLimiteSet=new Set();obPerineum=false;obHyrox=false;obHyroxDays=[{status:'required',placement:'dedicated'}];
@@ -2580,6 +2592,41 @@ $('#newProfileBtn').onclick=()=>{
   $('#obHyroxConfig').style.display='none';
   $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
 };
+// Retour utilisateur : « il faut pouvoir garder l'historique et accepter un changement du programme en cours
+// de route [...] un bouton "mettre à jour mon programme" [...] tout en conservant l'historique des
+// performances passées (et skipper le warmup de 2 semaines) » — réutilise entièrement le questionnaire et
+// l'écran de vérification déjà en place pour un nouveau profil (même chips, même `generateProgram`, même
+// review avec swap), pré-rempli avec les réponses actuelles au lieu d'être vierge. Seule la validation finale
+// diverge (voir `applyProgramUpdate`, câblé sur `#reviewValidate` via `obUpdateMode`) : au lieu de créer un
+// nouveau profil, elle réattribue l'historique existant aux exercices du programme régénéré et met à jour le
+// profil actif en place.
+$('#updateProfileBtn').onclick=()=>{
+  if(!onboarding)return;
+  $('#obPrenom').value=onboarding.prenom||'';
+  $('#obSexe').value=onboarding.sexe||'H';
+  $('#obAge').value=onboarding.age||'';
+  $('#obPoids').value=onboarding.poids||'';
+  $('#obTaille').value=onboarding.taille||'';
+  $('#obObjectif').value=onboarding.objectif||'recomp';
+  $('#obJours').value=onboarding.joursParSemaine||'5';
+  $('#obNiveau').value=onboarding.niveau||'intermediaire';
+  $('#obLimites').value=onboarding.limites||'';
+  obWeakSet=new Set(onboarding.weakGroups||[]);
+  obStrongSet=new Set(onboarding.strongGroups||[]);
+  obLimiteSet=new Set(onboarding.limiteZones||[]);
+  obPerineum=!!onboarding.perineum;
+  obHyrox=!!(program.hyroxConfig&&program.hyroxConfig.enabled);
+  obHyroxDays=(program.hyroxConfig&&program.hyroxConfig.days&&program.hyroxConfig.days.length)?program.hyroxConfig.days.map(d=>({...d})):[{status:'required',placement:'dedicated'}];
+  renderMuscleChips('obWeak',obWeakSet,obStrongSet);
+  renderMuscleChips('obStrong',obStrongSet,obWeakSet);
+  renderChipSet('obLimiteZones',LIMITE_INFO,obLimiteSet);
+  $('#obPerineumSw').classList.toggle('on',obPerineum);
+  $('#obHyroxSw').classList.toggle('on',obHyrox);
+  $('#obHyroxConfig').style.display=obHyrox?'':'none';
+  if(obHyrox)renderObHyroxConfig();
+  obUpdateMode=true;setObTitles(true);
+  $('#sheet').classList.remove('show');$('#onboard').classList.add('show');
+};
 $('#obPerineumSw').onclick=()=>{obPerineum=!obPerineum;$('#obPerineumSw').classList.toggle('on',obPerineum);};
 $('#obHyroxSw').onclick=()=>{
   obHyrox=!obHyrox;$('#obHyroxSw').classList.toggle('on',obHyrox);
@@ -2587,7 +2634,7 @@ $('#obHyroxSw').onclick=()=>{
   if(obHyrox)renderObHyroxConfig();
 };
 $('#obJours').addEventListener('change',()=>{if(obHyrox)renderObHyroxConfig();});
-$('#obCancel').onclick=()=>$('#onboard').classList.remove('show');
+$('#obCancel').onclick=()=>{obUpdateMode=false;$('#onboard').classList.remove('show');};
 $('#onboard').onclick=e=>{if(e.target.id==='onboard')$('#onboard').classList.remove('show');};
 $('#obGenerate').onclick=()=>{
   const prenom=($('#obPrenom').value||'').trim();
@@ -2673,10 +2720,68 @@ function openSwapDraft(e,onPick){
   });
   $('#swap').classList.add('show');
 }
-$('#reviewCancel').onclick=()=>$('#review').classList.remove('show');
+$('#reviewCancel').onclick=()=>{obUpdateMode=false;$('#review').classList.remove('show');};
 $('#review').onclick=e=>{if(e.target.id==='review')$('#review').classList.remove('show');};
+// Réassocie l'historique (charges + ressenti) de l'ancien programme au nouveau, par nom d'exercice
+// **réellement entraîné** (après swap, pas le nom d'origine) : les id d'exercice sont positionnels
+// (`d.id+'e'+index`, voir generateProgram) donc jamais stables d'une génération à l'autre — seul le nom
+// permet de relier un exercice à son historique. Un exercice swappé (`state.swaps[oldId]`) est aussi
+// cherché sous son nom D'ORIGINE (`reapplySwap`) : si le nouveau programme le propose à nouveau sous ce nom
+// de base, le swap et son historique sont réappliqués sur le nouvel id. `ref.used` (partagé entre les deux
+// entrées d'un même exercice swappé) évite qu'un même historique ne soit distribué deux fois.
+function applyProgramUpdate(){
+  draftProgram.goal=parseFloat(($('#revGoal').value||'').replace(',','.'))||draftProgram.goal;
+  draftProgram.nutrition.kcal=parseInt($('#revKcal').value)||draftProgram.nutrition.kcal;
+  draftProgram.nutrition.protein=parseInt($('#revProt').value)||draftProgram.nutrition.protein;
+  const oldByName={};
+  program.days.forEach(d=>d.ex.forEach(e=>{
+    if(e.note)return;
+    const sw=state.swaps[e.id];
+    const srcPrefix=sw?e.id+'~'+slug(sw):e.id;
+    const ref={used:false};
+    (oldByName[sw||e.n]=oldByName[sw||e.n]||[]).push({ref,srcPrefix,reapplySwap:null});
+    if(sw)(oldByName[e.n]=oldByName[e.n]||[]).push({ref,srcPrefix,reapplySwap:sw});
+  }));
+  function claimOld(name){
+    const list=oldByName[name];if(!list)return null;
+    const m=list.find(x=>!x.ref.used);if(!m)return null;
+    m.ref.used=true;return m;
+  }
+  function remapHistory(srcPrefix,destPrefix){
+    ['logs','feels'].forEach(bucket=>{
+      Object.keys(state[bucket]).forEach(k=>{
+        if(k.startsWith(srcPrefix+'__w'))state[bucket][destPrefix+k.slice(srcPrefix.length)]=state[bucket][k];
+      });
+    });
+  }
+  const newSwaps={};
+  draftProgram.days.forEach(d=>d.ex.forEach(e=>{
+    if(e.note)return;
+    const match=claimOld(e.n);if(!match)return;
+    const destPrefix=match.reapplySwap?(e.id+'~'+slug(match.reapplySwap)):e.id;
+    remapHistory(match.srcPrefix,destPrefix);
+    if(match.reapplySwap)newSwaps[e.id]=match.reapplySwap;
+  }));
+  const prof=profiles.find(p=>p.id===activeId);
+  if(prof&&draftOnboarding.prenom)prof.name=draftOnboarding.prenom;
+  saveProfilesIndex();
+  onboarding=draftOnboarding;program=draftProgram;
+  state.swaps=newSwaps;
+  // On ne refait jamais les 2 semaines de « remise en route » (PHASES) sur une mise à jour : contrairement à
+  // un nouveau profil, l'utilisateur est déjà entraîné — seul un profil encore dans ses 2 premières semaines
+  // réelles n'est pas avancé de force.
+  state.week=Math.max(state.week,3);
+  if(state.mode==='main')DAYS=program.days;
+  GOAL=program.goal;NUTRI=program.nutrition;
+  state.day=program.days[0].id;
+  obUpdateMode=false;
+  persistActiveBundle();
+  $('#review').classList.remove('show');$('#sheet').classList.remove('show');
+  renderProfileChips();renderAll();setView('train');
+}
 $('#reviewValidate').onclick=()=>{
   if(navigator.vibrate)navigator.vibrate(20);
+  if(obUpdateMode){applyProgramUpdate();return;}
   draftProgram.goal=parseFloat(($('#revGoal').value||'').replace(',','.'))||draftProgram.goal;
   draftProgram.nutrition.kcal=parseInt($('#revKcal').value)||draftProgram.nutrition.kcal;
   draftProgram.nutrition.protein=parseInt($('#revProt').value)||draftProgram.nutrition.protein;

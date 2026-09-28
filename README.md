@@ -17,6 +17,7 @@ Réglages (⚙︎) → **Qui s'entraîne ?** : chaque personne a son profil, son
   - un **point faible** ajoute du volume dessus, un **point fort** en retire ;
   - le **confort périnée** (sans pression abdominale — post-partum, gêne, désir de grossesse) remplace ou retire automatiquement les exercices d'abdos à risque (crunch, relevé de jambes, rotations chargées), comme pour l'abdos express.
   - Tout reste ajustable (changer un exercice, l'objectif de poids, les cibles nutrition) avant de valider.
+- **🔄 Mettre à jour mon programme** (dans Réglages, sous Préparation Hyrox) : rejoue le même questionnaire, préremplie avec tes réponses actuelles — utile si une douleur apparaît, si tu veux renforcer un nouveau groupe musculaire, ou changer d'objectif en cours de route. Contrairement à un nouveau profil, **ton historique de charges est conservé** pour chaque exercice qui revient dans le programme régénéré (même s'il change de jour ou de place), et les 2 semaines de remise en route ne sont jamais rejouées — tu es déjà entraîné·e, pas un nouveau profil qui démarre de zéro.
 - Les chips affichent les profils existants — touche-en un pour basculer dessus. Aucune connexion n'est nécessaire pour changer de profil.
 - **Supprimer ce profil** efface définitivement un profil et ses données (disponible dès qu'il y en a plusieurs).
 - Les données de chaque profil restent sur l'appareil ; utilise Export/Import (voir ci-dessous) pour les transférer vers un autre appareil.
