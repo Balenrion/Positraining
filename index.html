@@ -394,7 +394,7 @@
     </div>
     <div class="opt" style="display:block">
       <div class="d"><b>Mettre à jour mon programme</b><br>Redemande objectif, limites/douleurs et points faibles/forts, puis régénère ton programme — ton historique de charges est conservé pour les exercices qui reviennent, et les 2 semaines de remise en route sont sautées (tu es déjà entraîné·e).</div>
-      <button class="close" id="updateProfileBtn" style="display:none;margin-top:10px">🔄 Mettre à jour mon programme</button>
+      <button class="close" id="updateProfileBtn" style="margin-top:10px">🔄 Mettre à jour mon programme</button>
     </div>
     <div class="opt">
       <div class="d"><b>Sauvegarde automatique</b><br>Tes charges sont enregistrées sur cet appareil.</div>
@@ -2452,7 +2452,6 @@ function applySetHyroxConfig(){
 function onSetHyroxChange(){applySetHyroxConfig();renderSetHyroxConfig();}
 $('#cog').onclick=()=>{
   $('#sw6').classList.toggle('on',state.show6);
-  $('#updateProfileBtn').style.display=onboarding?'':'none';
   setHyroxOn=!!(program.hyroxConfig&&program.hyroxConfig.enabled);
   setHyroxDays=(program.hyroxConfig&&program.hyroxConfig.days&&program.hyroxConfig.days.length)?program.hyroxConfig.days.map(d=>({...d})):[{status:'required',placement:'dedicated'}];
   $('#setHyroxSw').classList.toggle('on',setHyroxOn);
@@ -2601,20 +2600,26 @@ $('#newProfileBtn').onclick=()=>{
 // nouveau profil, elle réattribue l'historique existant aux exercices du programme régénéré et met à jour le
 // profil actif en place.
 $('#updateProfileBtn').onclick=()=>{
-  if(!onboarding)return;
-  $('#obPrenom').value=onboarding.prenom||'';
-  $('#obSexe').value=onboarding.sexe||'H';
-  $('#obAge').value=onboarding.age||'';
-  $('#obPoids').value=onboarding.poids||'';
-  $('#obTaille').value=onboarding.taille||'';
-  $('#obObjectif').value=onboarding.objectif||'recomp';
-  $('#obJours').value=onboarding.joursParSemaine||'5';
-  $('#obNiveau').value=onboarding.niveau||'intermediaire';
-  $('#obLimites').value=onboarding.limites||'';
-  obWeakSet=new Set(onboarding.weakGroups||[]);
-  obStrongSet=new Set(onboarding.strongGroups||[]);
-  obLimiteSet=new Set(onboarding.limiteZones||[]);
-  obPerineum=!!onboarding.perineum;
+  // Profil migré depuis l'ancienne version mono-utilisateur (`onboarding===null`, voir « Modèle de données :
+  // profils ») : pas de questionnaire à préremplir, mais rien n'empêche d'en démarrer un maintenant — repli sur
+  // des valeurs par défaut sensées (dernier poids connu si dispo, nombre de jours du programme actuel) plutôt
+  // que de bloquer la fonctionnalité pour ces profils-là (souvent les plus anciens, donc les plus concernés).
+  const ob=onboarding||{};
+  const lastW=(state.weights&&state.weights.length)?state.weights[state.weights.length-1].kg:null;
+  const prof=profiles.find(p=>p.id===activeId);
+  $('#obPrenom').value=ob.prenom||(prof&&prof.name)||'';
+  $('#obSexe').value=ob.sexe||'H';
+  $('#obAge').value=ob.age||'';
+  $('#obPoids').value=ob.poids||(lastW!=null?lastW:'');
+  $('#obTaille').value=ob.taille||'';
+  $('#obObjectif').value=ob.objectif||'recomp';
+  $('#obJours').value=ob.joursParSemaine||String(program.days.length)||'5';
+  $('#obNiveau').value=ob.niveau||'intermediaire';
+  $('#obLimites').value=ob.limites||'';
+  obWeakSet=new Set(ob.weakGroups||[]);
+  obStrongSet=new Set(ob.strongGroups||[]);
+  obLimiteSet=new Set(ob.limiteZones||[]);
+  obPerineum=!!ob.perineum;
   obHyrox=!!(program.hyroxConfig&&program.hyroxConfig.enabled);
   obHyroxDays=(program.hyroxConfig&&program.hyroxConfig.days&&program.hyroxConfig.days.length)?program.hyroxConfig.days.map(d=>({...d})):[{status:'required',placement:'dedicated'}];
   renderMuscleChips('obWeak',obWeakSet,obStrongSet);
