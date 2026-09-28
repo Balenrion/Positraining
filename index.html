@@ -1501,19 +1501,25 @@ function persistActiveBundle(){
   writeNow(profileKey(activeId),JSON.stringify(bundleFromCurrent()));
   writeNow(ACTIVE_KEY,activeId);
 }
-/* ---------- Stats hebdo (Supabase, écriture seule anonyme) ----------
+/* ---------- Stats hebdo (Gist GitHub privé, « quick & dirty ») ----------
    Retour utilisateur : « je voudrais que tu génères automatiquement les exports et que tu les récupères »
    — un « agent » externe ne peut pas venir lire le localStorage d'un téléphone (l'app n'a pas de backend,
-   voir plus haut/README), donc à la place l'app pousse elle-même, en silence, un résumé de la semaine vers
-   une table dédiée. Écriture ANONYME uniquement (clé publique dans le code, prévue pour l'être — protégée
-   par une politique RLS qui n'autorise que l'INSERT, jamais le SELECT) : n'importe qui pourrait en théorie
-   lire le code source et pousser de fausses lignes, mais personne ne peut lire les vraies, y compris nous
-   sans la clé secrète gardée hors de l'app. Ancien projet Supabase de l'app (retiré plus tôt pour la synchro
-   complète — voir plus bas « Ce qui existe déjà ») réutilisé, mais pour un usage complètement différent et
-   beaucoup plus simple : pas de login, pas de compte, juste un résumé jeté dans une table une fois/semaine.
+   voir plus haut/README), donc à la place l'app pousse elle-même, en silence, un résumé de la semaine.
+   Destination initialement prévue : une table Supabase en écriture anonyme (clé publique, protégée côté
+   serveur par une politique RLS insert-only). Écartée après coup : l'environnement d'exécution utilisé pour
+   la relecture périodique ne peut pas atteindre un domaine Supabase personnalisé (politique réseau
+   organisationnelle bloquant les domaines tiers arbitraires — confirmé y compris sur l'exécution programmée
+   réelle, pas juste un test manuel), alors que l'API GitHub (déjà utilisée pour héberger ce dépôt) reste
+   joignable. Retenu à la place, en connaissance de cause (« tentons ton approche quick & dirty ») : un Gist
+   **privé** créé chaque semaine via l'API GitHub.
+   — Différence de sécurité importante avec Supabase, assumée explicitement avec l'utilisateur : la clé
+   Supabase était *prévue* pour être publique (protection côté serveur). Ce jeton GitHub, lui, n'est PAS prévu
+   pour être public — n'importe qui lisant le code source de cette page (publique, GitHub Pages) peut
+   l'extraire. Risque borné volontairement : jeton scopé **uniquement** `gist` (aucun accès `repo`), donc au
+   pire quelqu'un pourrait créer des gists indésirables sur le compte de l'utilisateur, jamais toucher son
+   code. Un token avec plus de portée n'aurait jamais dû finir ici.
 */
-const STATS_URL='https://nwirxyyirkidiwaqaxjc.supabase.co/rest/v1/weekly_snapshots';
-const STATS_KEY='sb_publishable_mCDGXglTY8R8hmD-V3m52g_dym-VSsQ';
+const STATS_GIST_TOKEN='PENDING_GITHUB_GIST_TOKEN';
 const STATS_INTERVAL_MS=7*24*60*60*1000;
 function buildWeeklySummary(){
   // Uniquement le programme classique (state.mode==='main') : le focus/la copie de séance ne sont pas
@@ -1549,12 +1555,16 @@ async function pushWeeklyStatsIfDue(){
   const summary=buildWeeklySummary();
   if(!summary)return;
   try{
-    const res=await fetch(STATS_URL,{
+    const res=await fetch('https://api.github.com/gists',{
       method:'POST',
-      headers:{'apikey':STATS_KEY,'Authorization':'Bearer '+STATS_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({profile_id:activeId,payload:summary})
+      headers:{'Authorization':'token '+STATS_GIST_TOKEN,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+      body:JSON.stringify({
+        description:`PosiTraining stats · ${activeId} · S${summary.week} · ${new Date().toISOString().slice(0,10)}`,
+        public:false,
+        files:{'snapshot.json':{content:JSON.stringify({profile_id:activeId,payload:summary},null,2)}}
+      })
     });
-    // Échec (pas de réseau, table pas encore créée...) : on retente simplement au prochain chargement de
+    // Échec (pas de réseau, jeton pas encore configuré...) : on retente simplement au prochain chargement de
     // l'app, state.lastStatsPush n'est mis à jour qu'en cas de succès confirmé.
     if(res.ok){state.lastStatsPush=Date.now();save();}
   }catch(e){}
