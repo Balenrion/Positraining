@@ -3154,31 +3154,36 @@ function openAbsSession(){
   absSetup={minutes:20,safe:state.perineumCare,level:state.absLevel};
   absStarted=false;
   circuitActive=false;
+  stopRoundTimer();
   $('#absMain').style.display='';
   renderAbsSheet();
   $('#absSheet').classList.add('show');
 }
 function renderAbsSheet(){circuitActive?renderAbsCircuit():(absStarted?renderAbsSession():renderAbsSetup());}
 function renderAbsSetup(){
+  // Retour utilisateur (après une 1ère version avec un bouton séparé sous les réglages) : « il faut faire un
+  // bouton intensité ++ à côté de intense » — devenu une 4ᵉ puce dans la même rangée que Facile/Modéré/Intense
+  // (`absSetup.level='circuit'`, valeur volontairement absente d'`ABS_LEVELS` : ne doit jamais alimenter
+  // `applyAbsLevel`/`renderAbsSession`, interceptée avant dans `#absMain`, voir plus bas). Durée et périnée ne
+  // s'appliquent pas à ce mode (prescription fixe) — chips de durée grisées, bloc périnée remplacé par le
+  // rappel du circuit.
+  const isCircuit=absSetup.level==='circuit';
   $('#absTitle').textContent='Abdos express';
-  $('#absMain').textContent="C'est parti";
+  $('#absMain').textContent=isCircuit?'🔥 Lancer le circuit':"C'est parti";
   $('#absBody').innerHTML=`
     <div class="d" style="font-size:13px;color:var(--muted);margin-bottom:8px">Durée</div>
-    <div class="qxdur" id="absDurChips">${ABS_DURATIONS.map(m=>`<button type="button" class="day${absSetup.minutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('')}</div>
+    <div class="qxdur" id="absDurChips" style="${isCircuit?'opacity:.4;pointer-events:none':''}">${ABS_DURATIONS.map(m=>`<button type="button" class="day${absSetup.minutes===m?' on':''}" data-m="${m}" style="padding:6px 11px"><span class="t">${m} min</span></button>`).join('')}</div>
     <div class="d" style="font-size:13px;color:var(--muted);margin:14px 0 8px">Difficulté</div>
-    <div class="qxdur" id="absLevelChips">${ABS_LEVELS.map(l=>`<button type="button" class="day${absSetup.level===l.key?' on':''}" data-k="${l.key}" style="padding:6px 11px"><span class="t">${l.label}</span></button>`).join('')}</div>
-    <div class="opt" style="border-top:0;padding-top:16px">
+    <div class="qxdur" id="absLevelChips">${ABS_LEVELS.map(l=>`<button type="button" class="day${absSetup.level===l.key?' on':''}" data-k="${l.key}" style="padding:6px 11px"><span class="t">${l.label}</span></button>`).join('')}<button type="button" class="day${isCircuit?' on':''}" data-k="circuit" style="padding:6px 11px"><span class="t">🔥 Intensité ++</span></button></div>
+    ${isCircuit
+      ?`<div class="qxnote">Circuit fixe, la durée et le réglage périnée ne s'appliquent pas ici : 3 tours à travers Crunch, bicycle, relevé de jambes, toucher chevilles, Russian twist, flutter kick et gainage — x10 / x20 / x30 répétitions (gainage 40 / 60 / 80 s), repos uniquement en fin de tour.</div>`
+      :`<div class="opt" style="border-top:0;padding-top:16px">
       <div class="d"><b>Exercices adaptés périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
       <button class="sw${absSetup.safe?' on':''}" id="absSafeSw" aria-label="Activer les exercices adaptés"></button>
-    </div>
-    <div class="opt" style="border-top:0;padding-top:16px;display:block">
-      <div class="d"><b>🔥 Circuit Intensité ++</b><br>3 tours à x10 / x20 / x30 (gainage 40 / 60 / 80 s) — Crunch, bicycle, relevé de jambes, toucher chevilles, Russian twist, flutter kick, gainage. Repos uniquement en fin de tour.</div>
-      <button class="close" id="absCircuitBtn" style="margin-top:10px">Lancer le circuit</button>
-    </div>`;
-  $('#absDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.minutes=+b.dataset.m;renderAbsSetup();});
+    </div>`}`;
+  $('#absDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(isCircuit)return;absSetup.minutes=+b.dataset.m;renderAbsSetup();});
   $('#absLevelChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.level=b.dataset.k;renderAbsSetup();});
-  $('#absSafeSw').onclick=()=>{absSetup.safe=!absSetup.safe;renderAbsSetup();};
-  $('#absCircuitBtn').onclick=()=>startAbsCircuit();
+  if(!isCircuit)$('#absSafeSw').onclick=()=>{absSetup.safe=!absSetup.safe;renderAbsSetup();};
 }
 // Retour utilisateur : « dans la séance abdo express, je voudrais un bouton séance intensité ++ [...] un
 // circuit d'exercices [...] tour 1 x10, tour 2 x20 et tour 3 x30 [...] repos seulement en fin de tour » —
@@ -3193,8 +3198,28 @@ const INTENSE_CIRCUIT_EXOS=['Crunch classique','Crunch croisé','Relevé de jamb
 const INTENSE_CIRCUIT_ROUNDS=[{reps:10,hold:40},{reps:20,hold:60},{reps:30,hold:80}];
 const INTENSE_CIRCUIT_REST=60;
 let circuitActive=false,circuitRound=0,circuitIdx=0,circuitResting=false;
+// Minuteur par tour (retour utilisateur : « mets aussi un minuteur par tour ») : un chronomètre qui compte
+// depuis 0 pendant tout le tour en cours, pas un décompte — contrairement au minuteur partagé `startTimer`
+// (`#timer`, réservé aux décomptes : repos de fin de tour, chrono du gainage), on ne connaît pas à l'avance
+// combien de temps prendra un tour de mouvements en répétitions. Redémarré à chaque nouveau tour
+// (`beginRoundTimer`), jamais à chaque exercice — `renderAbsCircuit()` est appelé à chaque avancée dans le
+// tour, donc l'affichage relit l'élément par sélecteur à chaque tick plutôt que de garder une référence DOM,
+// pour survivre au remplacement de `#absBody.innerHTML` sans se raccrocher à un nœud périmé.
+let circuitRoundStart=0,circuitRoundTickId=null;
+function beginRoundTimer(){
+  stopRoundTimer();
+  circuitRoundStart=Date.now();
+  circuitRoundTickId=setInterval(()=>{
+    const el=$('#circuitRoundClock');
+    if(el)el.textContent='Tour en cours : '+fmt(Math.floor((Date.now()-circuitRoundStart)/1000));
+  },1000);
+}
+function stopRoundTimer(){
+  if(circuitRoundTickId){clearInterval(circuitRoundTickId);circuitRoundTickId=null;}
+}
 function startAbsCircuit(){
   circuitActive=true;circuitRound=0;circuitIdx=0;circuitResting=false;
+  beginRoundTimer();
   renderAbsSheet();
 }
 function renderAbsCircuit(){
@@ -3208,30 +3233,32 @@ function renderAbsCircuit(){
         <div style="font-family:var(--num);font-weight:700;font-size:22px">Repos</div>
         <div style="color:var(--deload);font-family:var(--num);font-weight:600;font-size:16px;margin-top:8px">${INTENSE_CIRCUIT_REST} secondes</div>
       </div>
-      <button class="close" id="circuitContinue" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Continuer → Tour ${circuitRound+1}</button>`;
+      <button class="close" id="circuitContinue" style="margin-top:18px;width:100%;padding:22px 0;font-size:19px;font-weight:700;border-radius:16px;background:var(--go);color:#12141a;border-color:var(--go)">Continuer → Tour ${circuitRound+1}</button>`;
     startTimer(INTENSE_CIRCUIT_REST,'Circuit','Repos');
-    $('#circuitContinue').onclick=()=>{circuitResting=false;renderAbsCircuit();};
+    $('#circuitContinue').onclick=()=>{circuitResting=false;beginRoundTimer();renderAbsCircuit();};
     return;
   }
   const round=INTENSE_CIRCUIT_ROUNDS[circuitRound];
   const name=INTENSE_CIRCUIT_EXOS[circuitIdx];
   const isHold=name==='Gainage (planche)';
   const target=isHold?`${round.hold} secondes`:`${round.reps} répétitions`;
+  const isLastStep=circuitRound===totalRounds-1&&circuitIdx===INTENSE_CIRCUIT_EXOS.length-1;
   $('#absBody').innerHTML=`
     <div class="qxnote">Tour ${circuitRound+1}/${totalRounds} · Exercice ${circuitIdx+1}/${INTENSE_CIRCUIT_EXOS.length}</div>
+    <div id="circuitRoundClock" style="text-align:center;color:var(--muted);font-family:var(--num);font-size:12.5px;margin-top:4px">Tour en cours : 0:00</div>
     <div style="text-align:center;padding:28px 10px;background:var(--raised);border-radius:14px;margin-top:10px">
       <div style="font-family:var(--num);font-weight:700;font-size:22px">${name}</div>
       <div style="color:var(--go);font-family:var(--num);font-weight:600;font-size:16px;margin-top:8px">${target}</div>
       ${isHold?`<button class="close" id="circuitChrono" style="margin-top:14px">⏱ Chrono ${round.hold} s</button>`:''}
     </div>
-    <button class="close" id="circuitNext" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">✓ Terminé</button>`;
+    <button class="close" id="circuitNext" style="margin-top:18px;width:100%;padding:22px 0;font-size:19px;font-weight:700;border-radius:16px;background:var(--go);color:#12141a;border-color:var(--go)">${isLastStep?'✓ Terminer le circuit':'Suivant ▸'}</button>`;
   if(isHold)$('#circuitChrono').onclick=()=>startTimer(round.hold,name,'Maintien');
   $('#circuitNext').onclick=()=>advanceCircuit();
 }
 function advanceCircuit(){
   if(navigator.vibrate)navigator.vibrate(15);
   if(circuitIdx<INTENSE_CIRCUIT_EXOS.length-1){circuitIdx++;renderAbsCircuit();return;}
-  if(circuitRound<INTENSE_CIRCUIT_ROUNDS.length-1){circuitRound++;circuitIdx=0;circuitResting=true;renderAbsCircuit();return;}
+  if(circuitRound<INTENSE_CIRCUIT_ROUNDS.length-1){circuitRound++;circuitIdx=0;circuitResting=true;stopRoundTimer();renderAbsCircuit();return;}
   finishAbsCircuit();
 }
 function finishAbsCircuit(){
@@ -3241,6 +3268,7 @@ function finishAbsCircuit(){
   state.extraSessions.push({date:today(),type:'abs',label:'Abdos express (Intensité ++)',minutes:15});
   flush();
   circuitActive=false;
+  stopRoundTimer();
   $('#absMain').style.display='';
   if(navigator.vibrate)navigator.vibrate(20);
   $('#absSheet').classList.remove('show');
@@ -3294,10 +3322,11 @@ function openAbsSwap(x){
   });
   $('#swap').classList.add('show');
 }
-$('#absCancel').onclick=()=>{circuitActive=false;$('#absMain').style.display='';$('#absSheet').classList.remove('show');};
+$('#absCancel').onclick=()=>{circuitActive=false;stopRoundTimer();$('#absMain').style.display='';$('#absSheet').classList.remove('show');};
 $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};
 $('#absMain').onclick=()=>{
   if(!absStarted){
+    if(absSetup.level==='circuit'){startAbsCircuit();return;}
     absStarted=true;
     // Retour utilisateur : « sur la capture des abdos express, ça garde apparemment la séance précédente
     // sans revenir à zéro à la nouvelle séance » — cause : les cartes d'exercice de l'abdos express étaient
