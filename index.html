@@ -729,6 +729,12 @@ EXO_POOL['Crunch oblique au sol']={n:'Crunch oblique au sol',tag:'obliques',sets
 EXO_POOL['Crunch croisé']={n:'Crunch croisé',tag:'obliques',sets:3,reps:'20',rest:30,bw:true,cue:'Allongé, genoux fléchis, mains derrière la tête sans tirer. Enroule le buste en amenant un coude vers le genou opposé (l’autre jambe se tend), puis alterne côté.'};
 EXO_POOL['Toucher chevilles']={n:'Toucher chevilles',tag:'obliques',sets:3,reps:'20',rest:30,bw:true,cue:'Allongé, genoux fléchis, bras tendus le long du corps. Enroule légèrement le buste d’un côté pour toucher la cheville avec la main, reviens, puis touche l’autre côté.'};
 EXO_POOL['Planche avec touche épaule']={n:'Planche avec touche épaule',sets:3,reps:'20',rest:30,bw:true,cue:'En planche haute (mains sous les épaules, pieds écartés pour la stabilité), touche l’épaule opposée avec une main sans laisser le bassin basculer. Alterne des deux côtés.'};
+// Retour utilisateur (circuit « Intensité ++ » de l'abdos express, voir plus bas) : « flutter kick » n'existait
+// dans aucune source déjà présente — ajouté comme n'importe quel autre exercice bodyweight du pool (pas
+// seulement pour ce circuit : disponible via « + Ajouter un exercice »/swap comme les ajouts précédents). Pas
+// de photo dans free-exercise-db pour ce mouvement précis — dégradation déjà en place (voir « Planche avec
+// touche épaule » ci-dessus, même limitation assumée).
+EXO_POOL['Flutter kick']={n:'Flutter kick',tag:'bas abdos',sets:3,reps:'20 /côté',rest:30,bw:true,cue:'Allongé, bas du dos plaqué au sol, jambes tendues légèrement décollées. Petits battements alternés et rapides, sans les laisser retomber.'};
 const EXO_GROUP={
  // Ajouts « prise de masse » en fin de chaque tableau (jamais insérés au milieu) pour ne pas décaler les
  // index fixes utilisés ailleurs par position (genderBias, templates fixes de buildDay, pickExo(g,2) etc.).
@@ -747,7 +753,7 @@ const EXO_GROUP={
  // utilisateur). Ajoutés en fin de liste pour ne pas décaler les index 0/1 utilisés ailleurs (genderBias,
  // templates fixes de buildDay) qui pointent vers Abduction machine / Mollets debout.
  glutes:['Abduction machine','Mollets debout','Hip thrust','Adduction machine','Mollets assis'],
- core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core','Russian twist','Crunch oblique au sol','Crunch croisé','Toucher chevilles','Planche avec touche épaule'],
+ core:['Woodchopper poulie','Crunch à la poulie','Pallof press poulie','Gainage latéral','Relevé de jambes suspendu','Rotations obliques poulie','Dead bug','Circuit core','Russian twist','Crunch oblique au sol','Crunch croisé','Toucher chevilles','Planche avec touche épaule','Flutter kick'],
  // Groupe « Cardio » à part, jamais référencé par les générateurs (generateProgram/templateFocus/buildDay
  // n'utilisent que quad/hinge/push/pushIso/pull/shoulder/arms/glutes/core par position fixe) — uniquement
  // sélectionnable à la main via « + Ajouter un exercice », jamais ajouté d'office à un programme généré.
@@ -1748,6 +1754,7 @@ HOWTO["Crunch oblique au sol"]={m:"Obliques",s:["Allongé sur le dos, genoux fl�
 HOWTO["Crunch croisé"]={m:"Abdominaux, obliques",s:["Allongé sur le dos, genoux fléchis à ~60°, mains derrière la tête sans tirer.","Enroule le buste en amenant un coude vers le genou opposé, l'autre jambe se tend.","Reviens à la position de départ et alterne côté à chaque répétition."]};
 HOWTO["Toucher chevilles"]={m:"Obliques",s:["Allongé sur le dos, genoux fléchis, pieds au sol écartés, bras tendus le long du corps.","Enroule légèrement le buste vers l'avant et sur le côté pour toucher une cheville.","Reviens à plat puis touche l'autre cheville — 1 touche de chaque côté = 1 répétition."]};
 HOWTO["Planche avec touche épaule"]={m:"Abdominaux, obliques (anti-rotation)",s:["Position de planche haute, mains sous les épaules, pieds écartés pour la stabilité.","Touche l'épaule opposée avec une main, sans laisser le bassin tourner ou basculer.","Repose la main, puis répète avec l'autre côté."]};
+HOWTO["Flutter kick"]={m:"Bas des abdominaux",s:["Allongé sur le dos, bas du dos plaqué au sol, mains sous les fessiers ou le long du corps.","Jambes tendues, décollées de quelques centimètres, petits battements rapides et alternés.","Garde le bas du dos au sol tout du long — si ça cambre, remonte légèrement les jambes."]};
 
 const ALT={
  "Presse à cuisses":["Hack squat","Squat gobelet haltère","Squat guidé (Smith)"],
@@ -3146,10 +3153,12 @@ let absStarted=false;
 function openAbsSession(){
   absSetup={minutes:20,safe:state.perineumCare,level:state.absLevel};
   absStarted=false;
+  circuitActive=false;
+  $('#absMain').style.display='';
   renderAbsSheet();
   $('#absSheet').classList.add('show');
 }
-function renderAbsSheet(){absStarted?renderAbsSession():renderAbsSetup();}
+function renderAbsSheet(){circuitActive?renderAbsCircuit():(absStarted?renderAbsSession():renderAbsSetup());}
 function renderAbsSetup(){
   $('#absTitle').textContent='Abdos express';
   $('#absMain').textContent="C'est parti";
@@ -3161,10 +3170,82 @@ function renderAbsSetup(){
     <div class="opt" style="border-top:0;padding-top:16px">
       <div class="d"><b>Exercices adaptés périnée</b><br>Sans pression abdominale (post-partum, gêne, désir de grossesse…)</div>
       <button class="sw${absSetup.safe?' on':''}" id="absSafeSw" aria-label="Activer les exercices adaptés"></button>
+    </div>
+    <div class="opt" style="border-top:0;padding-top:16px;display:block">
+      <div class="d"><b>🔥 Circuit Intensité ++</b><br>3 tours à x10 / x20 / x30 (gainage 40 / 60 / 80 s) — Crunch, bicycle, relevé de jambes, toucher chevilles, Russian twist, flutter kick, gainage. Repos uniquement en fin de tour.</div>
+      <button class="close" id="absCircuitBtn" style="margin-top:10px">Lancer le circuit</button>
     </div>`;
   $('#absDurChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.minutes=+b.dataset.m;renderAbsSetup();});
   $('#absLevelChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{absSetup.level=b.dataset.k;renderAbsSetup();});
   $('#absSafeSw').onclick=()=>{absSetup.safe=!absSetup.safe;renderAbsSetup();};
+  $('#absCircuitBtn').onclick=()=>startAbsCircuit();
+}
+// Retour utilisateur : « dans la séance abdo express, je voudrais un bouton séance intensité ++ [...] un
+// circuit d'exercices [...] tour 1 x10, tour 2 x20 et tour 3 x30 [...] repos seulement en fin de tour » —
+// prescription fixe (toujours les mêmes 7 mouvements, mêmes cibles à chaque lancement), donc aucune
+// progression à suivre exercice par exercice : pas de grille poids/reps comme `renderAbsSession`
+// (`renderExerciseCard`), juste un écran « un mouvement à la fois » qu'on fait défiler. `#absMain` (qui gère
+// déjà le cycle « C'est parti »/« ✓ Terminer » des niveaux Facile/Modéré/Intense) n'est délibérément pas
+// réutilisé pour ce flux différent — il reste caché pendant le circuit (voir `openAbsSession`/`finishAbsCircuit`)
+// et le circuit avance via son propre bouton injecté dans `#absBody`, `#absCancel` restant l'unique moyen
+// d'abandonner (comme une séance normale, un circuit non terminé n'est jamais journalisé).
+const INTENSE_CIRCUIT_EXOS=['Crunch classique','Crunch croisé','Relevé de jambes allongé','Toucher chevilles','Russian twist','Flutter kick','Gainage (planche)'];
+const INTENSE_CIRCUIT_ROUNDS=[{reps:10,hold:40},{reps:20,hold:60},{reps:30,hold:80}];
+const INTENSE_CIRCUIT_REST=60;
+let circuitActive=false,circuitRound=0,circuitIdx=0,circuitResting=false;
+function startAbsCircuit(){
+  circuitActive=true;circuitRound=0;circuitIdx=0;circuitResting=false;
+  renderAbsSheet();
+}
+function renderAbsCircuit(){
+  $('#absTitle').textContent='Abdos express · Intensité ++';
+  $('#absMain').style.display='none';
+  const totalRounds=INTENSE_CIRCUIT_ROUNDS.length;
+  if(circuitResting){
+    $('#absBody').innerHTML=`
+      <div class="qxnote">💪 Tour ${circuitRound} terminé — repos avant le tour ${circuitRound+1}.</div>
+      <div style="text-align:center;padding:28px 10px;background:var(--raised);border-radius:14px;margin-top:10px">
+        <div style="font-family:var(--num);font-weight:700;font-size:22px">Repos</div>
+        <div style="color:var(--deload);font-family:var(--num);font-weight:600;font-size:16px;margin-top:8px">${INTENSE_CIRCUIT_REST} secondes</div>
+      </div>
+      <button class="close" id="circuitContinue" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">Continuer → Tour ${circuitRound+1}</button>`;
+    startTimer(INTENSE_CIRCUIT_REST,'Circuit','Repos');
+    $('#circuitContinue').onclick=()=>{circuitResting=false;renderAbsCircuit();};
+    return;
+  }
+  const round=INTENSE_CIRCUIT_ROUNDS[circuitRound];
+  const name=INTENSE_CIRCUIT_EXOS[circuitIdx];
+  const isHold=name==='Gainage (planche)';
+  const target=isHold?`${round.hold} secondes`:`${round.reps} répétitions`;
+  $('#absBody').innerHTML=`
+    <div class="qxnote">Tour ${circuitRound+1}/${totalRounds} · Exercice ${circuitIdx+1}/${INTENSE_CIRCUIT_EXOS.length}</div>
+    <div style="text-align:center;padding:28px 10px;background:var(--raised);border-radius:14px;margin-top:10px">
+      <div style="font-family:var(--num);font-weight:700;font-size:22px">${name}</div>
+      <div style="color:var(--go);font-family:var(--num);font-weight:600;font-size:16px;margin-top:8px">${target}</div>
+      ${isHold?`<button class="close" id="circuitChrono" style="margin-top:14px">⏱ Chrono ${round.hold} s</button>`:''}
+    </div>
+    <button class="close" id="circuitNext" style="margin-top:14px;background:var(--go);color:#12141a;border-color:var(--go)">✓ Terminé</button>`;
+  if(isHold)$('#circuitChrono').onclick=()=>startTimer(round.hold,name,'Maintien');
+  $('#circuitNext').onclick=()=>advanceCircuit();
+}
+function advanceCircuit(){
+  if(navigator.vibrate)navigator.vibrate(15);
+  if(circuitIdx<INTENSE_CIRCUIT_EXOS.length-1){circuitIdx++;renderAbsCircuit();return;}
+  if(circuitRound<INTENSE_CIRCUIT_ROUNDS.length-1){circuitRound++;circuitIdx=0;circuitResting=true;renderAbsCircuit();return;}
+  finishAbsCircuit();
+}
+function finishAbsCircuit(){
+  // Estimation grossière (comme `exDuration`/`cardioNote` ailleurs dans l'app, pas un chronométrage réel) :
+  // 7 mouvements × 3 tours à ~30 s de travail effectif + les maintiens (40+60+80=180 s) + 2 repos de fin de
+  // tour (2×60 s) ≈ 15 min.
+  state.extraSessions.push({date:today(),type:'abs',label:'Abdos express (Intensité ++)',minutes:15});
+  flush();
+  circuitActive=false;
+  $('#absMain').style.display='';
+  if(navigator.vibrate)navigator.vibrate(20);
+  $('#absSheet').classList.remove('show');
+  if(state.view==='home')renderHome();
+  if(state.view==='agenda')renderAgenda();
 }
 function trimCoreToTime(list,capMinutes){
   const capSec=capMinutes*60;
@@ -3213,7 +3294,7 @@ function openAbsSwap(x){
   });
   $('#swap').classList.add('show');
 }
-$('#absCancel').onclick=()=>$('#absSheet').classList.remove('show');
+$('#absCancel').onclick=()=>{circuitActive=false;$('#absMain').style.display='';$('#absSheet').classList.remove('show');};
 $('#absSheet').onclick=e=>{if(e.target.id==='absSheet')$('#absSheet').classList.remove('show');};
 $('#absMain').onclick=()=>{
   if(!absStarted){
